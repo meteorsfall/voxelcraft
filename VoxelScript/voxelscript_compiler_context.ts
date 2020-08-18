@@ -4,6 +4,8 @@ class VSCompilerContext {
   classes : any = {};
   tabs = 0;
   output = "";
+  is_currently_implementing = null;
+  is_currently_implementing_on = null;
   
   tab(change_tab) {
     this.tabs += change_tab;
@@ -23,8 +25,21 @@ class VSCompilerContext {
     }
   }
   
-  parse_typed_args(typed_arg) {
+  parse_typed_args(typed_args) {
     return "()";
+  }
+
+  render_args(args) {
+    this.write_output("(");
+    let first = true;
+    for(let arg of args) {
+      if (!first) {
+        this.write_output(", ");
+      }
+      this.render_expression(arg);
+      first = false;
+    }
+    this.write_output(")");
   }
   
   register_trait(trait_identifier) {
@@ -38,7 +53,7 @@ class VSCompilerContext {
     let cls : any = {};
     let class_original_name = class_identifier.value;
     this.traits[class_original_name] = cls;
-    cls.name = "INTERFACE_" + class_original_name;
+    cls.name = "CLASS_" + class_original_name;
   }
   
   parse_type(type) {
@@ -81,6 +96,150 @@ class VSCompilerContext {
         }
       ]
     }
+  }
+
+  render_expression(e) {
+    if (e.type != "expression") {
+      throw new Error("e is not an expression!");
+    }
+    this.render_subexpression(e.value);
+  }
+
+  render_subexpression(e) {
+    switch(e.type) {
+    case "assignment":
+      this.render_subexpression(e.lhs);
+      this.write_output(" = ");
+      this.render_subexpression(e.rhs);
+      return;
+    case "operator_assignment":
+      this.render_subexpression(e.lhs);
+      this.write_output(" " + e.operator + "= ");
+      this.render_subexpression(e.rhs);
+      return;
+    }
+
+    let binary_operators = {
+      "logical_or": "||",
+      "logical_and": "&&",
+      "bitwise_or": "|",
+      "bitwise_xor": "^",
+      "bitwise_and": "&",
+      "logical_equal": "==",
+      "logical_unequal": "!=",
+      "greater_than": ">",
+      "greater_than_or_equal": ">=",
+      "less_than": "<",
+      "less_than_or_equal": "<=",
+      "left_shift": "<<",
+      "right_shift": ">>",
+      "add": "+",
+      "subtract": "-",
+      "multiply": "*",
+      "divide": "/",
+      "modulus": "%",
+      "member_of": ".",
+    }
+
+    let op;
+    if (e.type in binary_operators) {
+      op = binary_operators[e.type];
+      e.type = "binary_operator";
+    }
+
+    this.write_output("(");
+    switch(e.type) {
+    case "lambda":
+      this.write_output(this.parse_typed_args(e.args) + " => {\n");
+      this.tab(1);
+      this.render_function_body(e.body);
+      this.tab(-1);
+      this.write_output("}");
+      break;
+    case "ternary":
+      this.render_subexpression(e.condition);
+      this.write_output(" ? ");
+      this.render_subexpression(e.if_true);
+      this.write_output(" : ");
+      this.render_subexpression(e.if_false);
+      break;
+    case "binary_operator":
+      this.render_subexpression(e.lhs);
+      this.write_output(" " + op + " ");
+      this.render_subexpression(e.rhs);
+      break;
+    case "is":
+      this.write_output("(<any> <unknown>")
+      this.render_subexpression(e.lhs);
+      this.write_output(").is_" + this.parse_identifier(e.rhs));
+      break;
+    case "identifier":
+      this.write_output(this.parse_identifier(e));
+      break;
+    case "integer":
+    case "bool":
+    case "double":
+      this.write_output(e.value);
+      break;
+    // ****
+    // Unary Operators
+    // ****
+    case "logical_not":
+      this.write_output("!");
+      this.render_subexpression(e.rhs);
+      break;
+    case "postfix_minus":
+      this.render_subexpression(e.lhs);
+      this.write_output("--");
+      break;
+    case "postfix_plus":
+      this.render_subexpression(e.lhs);
+      this.write_output("++");
+      break;
+    case "cast":
+      let type_name = this.parse_type(e.lhs);
+      this.write_output("cast<" + type_name + ">(");
+      this.render_subexpression(e.rhs);
+      this.write_output(", " + "\"is_" + type_name + "\")");
+      break;
+    case "new":
+      this.write_output("new ");
+      // Pass onto function call for the rest of the new
+    case "function_call":
+      this.render_subexpression(e.lhs);
+      this.render_args(e.args);
+      break;
+    case "this":
+      if (this.is_currently_implementing_on) {
+        this.write_output("<" + this.is_currently_implementing_on + "> <unknown> this");
+      } else {
+        this.write_output("this");
+      }
+      break;
+    default:
+      this.write_output("<" + e.type + "/>");
+      break;
+    }
+    this.write_output(")");
+  }
+
+  render_function_body(statements) {
+    for(let statement of statements) {
+      if (statement.type == "variable_definition" || statement.type == "variable_declaration") {
+        this.write_output("let ");
+      }
+      this.emit(statement);
+    }
+  }
+
+  set_trait_implementing_on(trait, cls) {
+    this.is_currently_implementing = trait;
+    this.is_currently_implementing_on = cls;
+  }
+
+  unset_trait_implementing_on() {
+    this.is_currently_implementing = null;
+    this.is_currently_implementing_on = null;
   }
   
   emit(data) {
@@ -143,9 +302,7 @@ class VSCompilerContext {
       this.write_output(this.parse_identifier(data.identifier) + this.parse_typed_args(data.arguments) + " : " + this.parse_type(data.return_type) + " {\n");
       this.tab(1);
   
-      for(let statement of data.body) {
-        this.emit(statement);
-      }
+      this.render_function_body(data.body);
   
       this.tab(-1);
       this.write_output("}\n");
@@ -155,9 +312,7 @@ class VSCompilerContext {
       this.tab(1);
   
       this.write_output("super();\n");
-      for(let statement of data.body) {
-        this.emit(statement);
-      }
+      this.render_function_body(data.body);
   
       this.tab(-1);
       this.write_output("}\n");
@@ -168,11 +323,6 @@ class VSCompilerContext {
       this.tab(-1);
       this.write_output("}\n");
       break;
-    case "return":
-      this.write_output("return ");
-      this.emit(data.value);
-      this.write_output(";\n");
-      break;
     case "init_declaration":
       this.write_output("abstract init" + this.parse_typed_args(data.arguments) + " : void;\n");
       break;
@@ -181,20 +331,6 @@ class VSCompilerContext {
         this.write_output("private ");
       }
       this.write_output("abstract " + this.parse_identifier(data.identifier) + this.parse_typed_args(data.arguments) + " : " + this.parse_type(data.return_type) + ";\n");
-      break;
-    case "variable_declaration":
-      if (data.private) {
-        this.write_output("private ");
-      }
-      this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + ";\n");
-      break;
-    case "variable_definition":
-      if (data.private) {
-        this.write_output("private ");
-      }
-      this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + " = ");
-      this.emit(data.var_definition);
-      this.write_output(";\n");
       break;
     case "class_implementation":
       var class_name = this.parse_identifier(data.identifier);
@@ -216,20 +352,71 @@ class VSCompilerContext {
       this.write_output("class " + trait_implementation_name + " extends " + trait_name + " {\n");
       this.tab(1);
   
+      this.set_trait_implementing_on(trait_name, class_name);
       for(let statement of data.body) {
         this.emit(statement);
       }
+      this.unset_trait_implementing_on();
   
       this.tab(-1);
       this.write_output("}\n");
       this.write_output("interface " + class_name + " extends " + trait_implementation_name + " {};\n");
       this.write_output("applyMixins(" + class_name + ", [" + trait_implementation_name + "]);\n");
       break;
-    case "expression":
-      this.write_output("<" + data.type + "/>");
+    // *************
+    // Statements
+    // *************
+    case "variable_declaration":
+      if (data.private) {
+        this.write_output("private ");
+      }
+      this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + ";\n");
+      break;
+    case "variable_definition":
+      if (data.private) {
+        this.write_output("private ");
+      }
+      this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + " = ");
+      this.render_expression(data.var_definition);
+      this.write_output(";\n");
+      break;
+    case "block_statement":
+      this.write_output("{\n");
+      this.tab(1);
+      this.render_function_body(data.body);
+      this.tab(-1);
+      this.write_output("}\n");
+      break;
+    case "simple_statement":
+      this.render_expression(data.value);
+      this.write_output(";\n");
+      break;
+    case "throw":
+      this.write_output("throw new Error\(");
+      this.render_expression(data.value);
+      this.write_output("\);\n");
+      break;
+    case "return":
+      this.write_output("return ");
+      this.render_expression(data.value);
+      this.write_output(";\n");
+      break;
+    case "if":
+      this.write_output("if ");
+      this.render_expression(data.condition);
+      this.write_output(" ");
+
+      this.emit(data.body);
+
+      if (data.otherwise) {
+        this.write_output(" else ");
+        this.emit(data.otherwise);
+      }
+
+      this.write_output("\n");
       break;
     default:
-      this.write_output("<" + data.type + ">" + data.toString() + "</" + data.type + ">\n");
+      this.write_output("<" + data.type + "/>\n");
     }
     return this.output;
   }

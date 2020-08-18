@@ -16,6 +16,7 @@ let vs_data = readFileSync(VS_FILE, 'utf8');
 let tracer = new Tracer(vs_data, {});
 let results = null;
 try {
+  console.log("Parsing...");
   results = parser.parse(vs_data, {tracer:tracer});
 } catch (err) {
   console.log(tracer.getBacktraceString());
@@ -26,6 +27,7 @@ try {
 }
 
 if (results) {
+  console.log("Compiling...");
   console.log(JSON.stringify(results, null, 4));
   console.log();
   let compiler_context = new VSCompilerContext();

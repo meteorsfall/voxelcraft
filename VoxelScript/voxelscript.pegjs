@@ -4,7 +4,7 @@
       let cur = lhs;
       for(let rhs of many_rhs) {
         rhs[rhs.capture_lhs] = cur;
-        rhs.capture_lhs = undefined;
+        delete rhs.capture_lhs;
         cur = rhs;
       }
       return cur;
@@ -168,7 +168,7 @@ precedence_6_extensions
   / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
   / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs}; }
   / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
-  / __ IS __ rhs:precedence_5 { return {type: "is", capture_lhs: "lhs", rhs: rhs}; }
+  / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_6
   = lhs:precedence_5 many_rhs:precedence_6_extensions* { return leftAssoc(lhs, many_rhs); }
@@ -198,7 +198,7 @@ precedence_3
 // Right Associative
 precedence_2
   = "(" _ lhs:type _ ")" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
-  / NEW __ lhs:precedence_0 args:argument_list { return {type: "new", class_name: lhs, args: args}; }
+  / NEW __ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
   / "-" _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
   / "++" _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
   / "--" _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
@@ -209,7 +209,7 @@ precedence_2
 precedence_1_extensions
   = _ "." _ rhs:precedence_0 { return {type: "member_of", capture_lhs: "lhs", rhs: rhs}; }
   / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs}; }
-  / _ args:argument_list { return {type: "function_call", capture_lhs: "identifier", args: args}; }
+  / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args}; }
   / _ "++" { return {type: "postfix_plus", capture_lhs: "lhs"}; }
   / _ "--" { return {type: "postfix_minus", capture_lhs: "lhs"}; }
 
@@ -258,21 +258,24 @@ private_function_implementation
 // All Statements
 // *************************
 
-statement = simple_statement / variable_declaration / variable_definition / if / for / while / return / function_block / throw
+statement = simple_statement / variable_declaration / variable_definition / if / for / while / return / block_statement / throw
+
+block_statement
+  = b:function_block { return {type:"block_statement", body:b}; }
 
 simple_statement
   = e:expression ENDSTATEMENT { return {type:"simple_statement", value:e}; }
 
 if
-  = IF _ "(" _ c:expression _ ")" _ b:function_block otherwise:(_ ELSE _ statement)? _ {
+  = IF _ "(" _ c:expression _ ")" _ b:statement otherwise:(_ ELSE _ statement)? _ {
     return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[3] : null};
   }
   
 for
-  = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:function_block _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b}; }
+  = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b}; }
   
 while
-  = WHILE _ "(" _ c:expression _ ")" _ b:function_block _ { return {type:"while", condition: c, body:b}; }
+  = WHILE _ "(" _ c:expression _ ")" _ b:statement _ { return {type:"while", condition: c, body:b}; }
 
 variable_declaration
   = t:type __ id:identifier ENDSTATEMENT { return {type:"variable_declaration", "var_identifier":id, "var_type":t}; }
