@@ -1,0 +1,126 @@
+// VoxelScript AST Documentation
+
+module {
+    type: "module",
+    body: [
+        import,
+        const,
+        trait,
+        class,
+        class_implementation,
+        trait_implementation
+    ]
+}
+
+import {
+    type: "import",
+    identifier: identifier,
+}
+
+const {
+    type: "const",
+    identifier: identifier,
+    value: value,
+}
+
+trait {
+    type: "trait",
+    identifier: identifier,
+    body: [
+        function_declaration
+    ]
+}
+
+class {
+    type: "class",
+    identifier: identifier,
+    body: [
+        variable_declaration,
+        function_declaration,
+        init_declaration
+    ]
+}
+
+class_implementation {
+    type: "class_implementation",
+    identifier: identifier,
+    body: [
+        init_implementation,
+        function_implementation (can be private),
+        variable_declaration (must be private),
+        variable_definition (must be private),
+    ]
+}
+
+trait_implementation {
+    type: "trait_implementation",
+    trait: identifier,
+    class: identifier,
+    body: [
+        function_implementation
+    ]
+}
+
+function_declaration {
+    type: "init_declaration",
+    arguments: [
+        typed_arg
+    ]
+}
+
+init_implementation {
+    type: "init_implementation",
+    arguments: [
+        typed_arg | underscore
+    ],
+    body: [
+        statement
+    ]
+}
+
+function_declaration {
+    type: "function_declaration",
+    arguments: [
+        typed_arg
+    ],
+    identifier: identifier,
+    return_type: type,
+}
+
+function_implementation {
+    type: "function_implementation",
+    private?: bool
+    arguments: [
+        typed_arg | underscore
+    ],
+    identifier: identifier,
+    return_type: type,
+    body: [
+        statement
+    ]
+}
+
+variable_declaration {
+    type: "variable_declaration",
+    var_identifier: identifier,
+    var_type: type,
+    private?: bool
+}
+
+variable_definition {
+    "type": "variable_definition",
+    var_identifier: identifier,
+    var_type: type,
+    var_definition: expression,
+    private?: bool
+}
+
+return {
+    type: "return",
+    value: expression
+}
+
+expression {
+    type: "expression",
+    value: _,
+}
