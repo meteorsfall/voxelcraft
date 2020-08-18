@@ -4,10 +4,15 @@
   "description": "VoxelScript Compiler",
   "main": "create_voxelscript_parser.js",
   "dependencies": {
+    "@types/node": "^14.6.0",
+    "@types/pegjs": "^0.10.2",
     "pegjs": "^0.10.0",
-    "pegjs-backtrace": "^0.2.0"
+    "pegjs-backtrace": "^0.2.0",
+    "typescript": "^3.9.7"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@types/node": "^14.6.0"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
