@@ -1,3 +1,19 @@
+{
+  function leftAssoc(lhs, many_rhs) {
+    if (many_rhs) {
+      let cur = lhs;
+      for(let rhs of many_rhs) {
+        rhs[rhs.capture_lhs] = cur;
+        rhs.capture_lhs = undefined;
+        cur = rhs;
+      }
+      return cur;
+    } else {
+      return lhs;
+    }
+  }
+}
+
 // *************************
 // Module Definition
 // *************************
@@ -8,7 +24,7 @@ module
 
 // A top level statement is any of the following
 top_level
-  = _ top_level:(import / const / trait / class / class_implementation / trait_implementation / single_line_comment) _ { return top_level; }
+  = _ top_level:(import / const / trait / class / class_implementation / trait_implementation) _ { return top_level; }
 
 // *************************
 // Top-Level named blocks
@@ -36,22 +52,22 @@ trait_implementation
 
 // A trait block consists of a set of function declarations
 trait_block
-  = "{" _ decls:(function_declaration / single_line_comment)* _ "}" { return {type:"block", value:decls}; }
+  = "{" _ decls:(function_declaration)* _ "}" { return decls; }
 
 // A class block consists of a set of function and variable declarations, with an optional init declaration
 class_block
-  = "{" _ decls:(variable_declaration / function_declaration / init_declaration / single_line_comment)* _ "}" { return {type:"block", value:decls}; }
+  = "{" _ decls:(variable_declaration / function_declaration / init_declaration)* _ "}" { return decls; }
 
 // A trait implementation block consists of a set of function implementations
 trait_implementation_block
-  = "{" _ decls:(function_implementation / single_line_comment)* _ "}" { return {type:"block", value:decls}; }
+  = "{" _ decls:(function_implementation)* _ "}" { return decls; }
 
 // A function block consists of a set of standard statements
 function_block
-  = "{" _ decls:(statement)* _ "}" { return {type:"block", value:decls}; }
+  = "{" _ decls:(statement)* _ "}" { return decls; }
 
 class_implementation_block
-  = "{" _ decls:((PRIVATE __ variable_declaration / PRIVATE __ variable_definition / function_implementation / PRIVATE __ function_implementation / init_implementation / single_line_comment))* _ "}" { return {type:"block", value:decls}; }
+  = "{" _ decls:((PRIVATE __ variable_declaration / PRIVATE __ variable_definition / function_implementation / PRIVATE __ function_implementation / init_implementation))* _ "}" { return decls; }
 
 // *************************
 // Expressions
@@ -66,7 +82,18 @@ typed_argument_with_comma
 
 // (type1 id1, type2 id2, type3, id3)
 typed_argument_list
-  = "(" _ args:(typed_argument typed_argument_with_comma*)? _ ")" { return {type: "arguments", value:args||[]}; }
+  = "(" _ args:(typed_argument typed_argument_with_comma*)? _ ")" {
+    if (args) {
+      let a = [];
+      a.push(args[0]);
+      for(let arg of args[1]) {
+        a.push(arg);
+      }
+      return {type: "arguments", values:a};
+    } else {
+      return {type: "arguments", values:[]};
+    }
+  }
 
 argument
   = _ e:expression _ { return e; }
@@ -75,7 +102,18 @@ argument_with_comma
   = _ "," _ a:argument { return a; }
 
 argument_list "argument_list"
-  = "(" _ args:(argument argument_with_comma*)? _ ")" { return {type: "arguments", values:args||[]}; }
+  = "(" _ args:(argument argument_with_comma*)? _ ")" {
+    if (args) {
+      let a = [];
+      a.push(args[0]);
+      for(let arg of args[1]) {
+        a.push(arg);
+      }
+      return {type: "arguments", values:a};
+    } else {
+      return {type: "arguments", values:[]};
+    }
+  }
 
 expression
   = e:(precedence_15) { return e; }
@@ -192,17 +230,7 @@ precedence_1_extensions
 
 precedence_1
   = lhs:precedence_0 many_rhs:(precedence_1_extensions*) {
-    if (many_rhs) {
-      let cur = lhs;
-      for(let rhs of many_rhs) {
-        console.log(rhs);
-        rhs[rhs.capture_lhs] = cur;
-        cur = rhs;
-      }
-      return cur;
-    } else {
-      return lhs;
-    }
+    return leftAssoc(lhs, many_rhs);
   }
 
 precedence_0
@@ -240,7 +268,7 @@ init_implementation
 // All Statements
 // *************************
 
-statement = simple_statement / variable_declaration / variable_definition / if / for / while / return / function_block / throw / single_line_comment
+statement = simple_statement / variable_declaration / variable_definition / if / for / while / return / function_block / throw
 
 simple_statement
   = e:expression ENDSTATEMENT { return {type:"statement", value:e}; }
@@ -273,19 +301,29 @@ throw
 // *************************
 
 // General identifier
-identifier
-  = name:(THIS / [a-zA-Z_][a-zA-Z_0-9]*) { return {type:"identifier", value: name[0] + (name[1].join ? name[1].join("") : "")}; }
+general_identifier
+  = !(KEYWORDS ![a-zA-Z_0-9]) name:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return {type:"identifier", value: name[0] + (name[1].join ? name[1].join("") : "")}; }
 
-// Number
-number
-  = num:([0-9]+) { return {type:"number", value: num.join("")}; }
+this
+  = THIS { return {type:"this"} }
+
+identifier
+  = this / general_identifier
+
+// Integer
+integer
+  = num:([0-9]+) { return {type:"integer", value: num.join("")}; }
+
+// Double
+double
+  = num:([0-9]+ "." [0-9]+) { return {type:"double", value: num.join("")}; }
 
 // String
 string
-  = "\"" str:([^"]*) "\"" { return {type: "string", value: str}; }
+  = "\"" str:([^"]*) "\"" { return {type: "string", value: str.join("")}; }
 
 value
-  = v:(number / string / identifier) { return v; }
+  = v:(double / integer / string / identifier) { return v; }
 
 type
   = t:(INT / DOUBLE / BOOL / STRING / identifier) { return {type:"type", value:t}; }
@@ -295,24 +333,26 @@ type
 // *************************
 
 single_line_comment
-  = _ "//" c:([^\n]*) ([\n] / !.) _ { return {type:"single_line_comment", value:c.join("")}; }
+  = "//" c:([^\n]*) ([\n] / !.) { return {type:"single_line_comment", value:c.join("")}; }
 
 multi_line_comment
-  = "/*" (!"*/" .)* "*/"
+  = "/*" c:(!"*/" .)* "*/" { return {type:"multi_line_comment", value:c.join("")}; }
 
 // *************************
 // Whitespace
 // *************************
 
 // Optional whitespace
-_  = ([ \t\r\n] / multi_line_comment)*
+_  = ([ \t\r\n] / multi_line_comment / single_line_comment)*
 
 // Mandatory whitespace
-__ = ([ \t\r\n] / multi_line_comment)+
+__ = ([ \t\r\n] / multi_line_comment / single_line_comment)+
 
 // *************************
 // Constants
 // *************************
+
+KEYWORDS = THIS / INT / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / IF / ELSE / FOR / WHILE / THROW
 
 THIS = "this"
 INT = "int"

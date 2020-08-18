@@ -1,7 +1,6 @@
 let peg = require("pegjs");
 var Tracer = require('pegjs-backtrace');
 let fs = require('fs');
-//let custom_parser = require('./voxelscript.vs');
 
 let PEGJS_FILE = 'voxelscript.pegjs';
 let VS_FILE = 'test.vs';
@@ -22,7 +21,7 @@ fs.readFile(PEGJS_FILE, 'utf8', function (err,data) {
     let tracer = new Tracer(vs_data, {});
     try {
       let results = parser.parse(vs_data, {tracer:tracer});
-      console.log(results);
+      console.log(JSON.stringify(results, null, 4));
     } catch (err) {
       console.log(tracer.getBacktraceString());
       if (!err.hasOwnProperty('location')) throw(err);
