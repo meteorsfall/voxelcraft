@@ -130,108 +130,90 @@ precedence_14
   / precedence_13
 
 precedence_13
-  = lhs:precedence_12 branch_taken:(_ "?" _ precedence_13 _ ":" _ precedence_12)? {
-    if (branch_taken) {
-      let if_true = branch_taken[3];
-      let if_false = branch_taken[7];
-      return branch_taken ? {type: "ternary", condition: lhs, if_true, if_false} : lhs;
-    } else {
-      return lhs;
-    }
+  = lhs:precedence_12 _ "?" _ if_true:expression _ ":" _ if_false:precedence_13 {
+    return {type: "ternary", condition: lhs, if_true: if_true, if_false: if_false};
   }
+  / precedence_12
 
+precedence_12_extensions = _ LOGICAL_OR _ rhs:precedence_11 { return {type: "logical_or", capture_lhs: "lhs", rhs: rhs}; }
 precedence_12
-  = lhs:precedence_11 branch_taken:(_ LOGICAL_OR _ precedence_12)? { return branch_taken ? {type: "logical_or", lhs: lhs, rhs: branch_taken[3]} : lhs; }
+  = lhs:precedence_11 many_rhs:precedence_12_extensions* { return leftAssoc(lhs, many_rhs) }
 
+precedence_11_extensions = _ LOGICAL_AND _ rhs:precedence_10 { return {type: "logical_and", capture_lhs: "lhs", rhs: rhs}; }
 precedence_11
-  = lhs:precedence_10 branch_taken:(_ LOGICAL_AND _ precedence_11)? { return branch_taken ? {type: "logical_and", lhs: lhs, rhs: branch_taken[3]} : lhs; }
+  = lhs:precedence_10 many_rhs:precedence_11_extensions* { return leftAssoc(lhs, many_rhs); }
 
+precedence_10_extensions = _ BITWISE_OR _ rhs:precedence_9 { return {type: "bitwise_or", capture_lhs: "lhs", rhs: rhs}; }
 precedence_10
-  = lhs:precedence_9 branch_taken:(_ BITWISE_OR _ precedence_10)? { return branch_taken ? {type: "bitwise_or", lhs: lhs, rhs: branch_taken[3]} : lhs; }
+  = lhs:precedence_9 many_rhs:precedence_10_extensions* { return leftAssoc(lhs, many_rhs); }
 
+precedence_9_extensions = _ BITWISE_XOR _ rhs:precedence_8 { return {type: "bitwise_xor", capture_lhs: "lhs", rhs: rhs}; }
 precedence_9
-  = lhs:precedence_8 branch_taken:(_ BITWISE_XOR _ precedence_9)? { return branch_taken ? {type: "bitwise_xor", lhs: lhs, rhs: branch_taken[3]} : lhs; }
+  = lhs:precedence_8 many_rhs:precedence_9_extensions* { return leftAssoc(lhs, many_rhs); }
 
+precedence_8_extensions = _ BITWISE_AND _ rhs:precedence_7 { return {type: "bitwise_and", capture_lhs: "lhs", rhs: rhs}; }
 precedence_8
-  = lhs:precedence_7 branch_taken:(_ BITWISE_AND _ precedence_8)? { return branch_taken ? {type: "bitwise_and", lhs: lhs, rhs: branch_taken[3]} : lhs; }
+  = lhs:precedence_7 many_rhs:precedence_8_extensions* { return leftAssoc(lhs, many_rhs); }
 
-PRECEDENCE_7_OPERATORS = LOGICAL_EQUAL / LOGICAL_UNEQUAL
+precedence_7_extensions
+  = _ LOGICAL_EQUAL _ rhs:precedence_6 { return {type: "logical_equal", capture_lhs: "lhs", rhs: rhs}; }
+  / _ LOGICAL_UNEQUAL _ rhs:precedence_6 { return {type: "logical_unequal", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_7
-  = lhs:precedence_6 branch_taken:(_ PRECEDENCE_7_OPERATORS _ precedence_7)? {
-    if (branch_taken) {
-      let op = branch_taken[0];
-      let rhs = branch_taken[3];
-      return {type: op == "=" ? "logical_equal" : "logical_unequal", lhs: lhs, rhs: rhs};
-    } else {
-      return lhs;
-    }
-  }
+  = lhs:precedence_6 many_rhs:precedence_7_extensions* { return leftAssoc(lhs, many_rhs); }
 
-PRECEDENCE_6_OPERATORS = op:(_ GREATER_THAN _ / _ GREATER_THAN_OR_EQUAL _ / _ LESS_THAN _ / _ LESS_THAN_OR_EQUAL _ / __ IS __) {return op[1];}
+precedence_6_extensions
+  = _ GREATER_THAN _ rhs:precedence_5 { return {type: "greater_than", capture_lhs: "lhs", rhs: rhs}; }
+  / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
+  / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs}; }
+  / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
+  / __ IS __ rhs:precedence_5 { return {type: "is", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_6
-  = lhs:precedence_5 branch_taken:(PRECEDENCE_6_OPERATORS precedence_6)? {
-    if (branch_taken) {
-      let op = branch_taken[0];
-      let rhs = branch_taken[1];
-      let operator_to_type = {
-        ">":"greater_than",
-        ">=":"greater_than_or_equal",
-        "<":"less_than",
-        "<=":"less_than_or_equal",
-        "is":"is"
-      };
-      return {type: operator_to_type[op], lhs: lhs, rhs: rhs};
-    } else {
-      return lhs;
-    }
-  }
+  = lhs:precedence_5 many_rhs:precedence_6_extensions* { return leftAssoc(lhs, many_rhs); }
 
-PRECEDENCE_5_OPERATORS = LEFT_SHIFT / RIGHT_SHIFT
+precedence_5_extensions
+  = _ LEFT_SHIFT _ rhs:precedence_4 { return {type: "left_shift", capture_lhs: "lhs", rhs: rhs}; }
+  / _ RIGHT_SHIFT _ rhs:precedence_4 { return {type: "right_shift", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_5
-  = lhs:precedence_4 branch_taken:(_ PRECEDENCE_5_OPERATORS _ precedence_5)? {
-    if (branch_taken) {
-      let op = branch_taken[1];
-      let rhs = branch_taken[3];
-      return {type: op == "<<" ? "left_shift" : "right_shift", lhs: lhs, rhs: rhs};
-    } else {
-      return lhs;
-    }
-  }
+  = lhs:precedence_4 many_rhs:precedence_5_extensions* { return leftAssoc(lhs, many_rhs); }
+
+precedence_4_extensions
+  = _ PLUS _ rhs:precedence_3 { return {type: "add", capture_lhs: "lhs", rhs: rhs}; }
+  / _ MINUS _ rhs:precedence_3 { return {type: "subtract", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_4
-  = lhs:precedence_3 _ PLUS _ rhs:precedence_4 { return {type: "add", lhs: lhs, rhs: rhs}; }
-  / lhs:precedence_3 _ MINUS _ rhs:precedence_4 { return {type: "subtract", lhs: lhs, rhs: rhs}; }
-  / precedence_3
+  = lhs:precedence_3 many_rhs:precedence_4_extensions* { return leftAssoc(lhs, many_rhs); }
+
+precedence_3_extensions
+  = _ ASTERISK _ rhs:precedence_2 { return {type: "multiply", capture_lhs: "lhs", rhs: rhs}; }
+  / _ DIVIDE _ rhs:precedence_2 { return {type: "divide", capture_lhs: "lhs", rhs: rhs}; }
+  / _ MODULUS _ rhs:precedence_2 { return {type: "modulus", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_3
-  = lhs:precedence_2 _ ASTERISK _ rhs:precedence_3 { return {type: "multiply", lhs: lhs, rhs: rhs}; }
-  / lhs:precedence_2 _ DIVIDE _ rhs:precedence_3 { return {type: "divide", lhs: lhs, rhs: rhs}; }
-  / lhs:precedence_2 _ MODULUS _ rhs:precedence_3 { return {type: "modulus", lhs: lhs, rhs: rhs}; }
-  / precedence_2
+  = lhs:precedence_2 many_rhs:precedence_3_extensions* { return leftAssoc(lhs, many_rhs); }
 
+// Right Associative
 precedence_2
   = "(" _ lhs:type _ ")" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
   / NEW __ lhs:precedence_0 args:argument_list { return {type: "new", class_name: lhs, args: args}; }
   / "-" _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
   / "++" _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
   / "--" _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
-  / "!" _ rhs:precedence_2 { return {type: "not", rhs: rhs}; }
+  / "!" _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs}; }
+  / "~" _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs}; }
   / precedence_1
 
 precedence_1_extensions
   = _ "." _ rhs:precedence_0 { return {type: "member_of", capture_lhs: "lhs", rhs: rhs}; }
   / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs}; }
   / _ args:argument_list { return {type: "function_call", capture_lhs: "identifier", args: args}; }
-  / _ "++" { return {type: "suffix_plus", capture_lhs: "lhs"}; }
-  / _ "--" { return {type: "suffix_minus", capture_lhs: "lhs"}; }
+  / _ "++" { return {type: "postfix_plus", capture_lhs: "lhs"}; }
+  / _ "--" { return {type: "postfix_minus", capture_lhs: "lhs"}; }
 
 precedence_1
-  = lhs:precedence_0 many_rhs:(precedence_1_extensions*) {
-    return leftAssoc(lhs, many_rhs);
-  }
+  = lhs:precedence_0 many_rhs:precedence_1_extensions* { return leftAssoc(lhs, many_rhs); }
 
 precedence_0
   = v:value { return v; }
