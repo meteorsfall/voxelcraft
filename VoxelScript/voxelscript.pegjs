@@ -257,7 +257,7 @@ simple_statement
 
 if
   = IF _ "(" _ c:expression _ ")" _ b:function_block otherwise:(_ ELSE _ statement)? _ {
-    return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[1] : null};
+    return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[3] : null};
   }
   
 for
