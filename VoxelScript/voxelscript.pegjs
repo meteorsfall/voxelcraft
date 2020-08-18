@@ -57,7 +57,7 @@ class_implementation
 
 // A trait implementation consists of a set of function implementations
 trait_implementation
-  = IMPLEMENT __ intfs:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":intfs, "class":cls, body: b}; }
+  = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b}; }
 
 // *************************
 // Blocks
@@ -261,7 +261,7 @@ private_function_implementation
 statement = simple_statement / variable_declaration / variable_definition / if / for / while / return / function_block / throw
 
 simple_statement
-  = e:expression ENDSTATEMENT { return {type:"statement", value:e}; }
+  = e:expression ENDSTATEMENT { return {type:"simple_statement", value:e}; }
 
 if
   = IF _ "(" _ c:expression _ ")" _ b:function_block otherwise:(_ ELSE _ statement)? _ {
@@ -295,7 +295,7 @@ general_identifier
   = !(KEYWORDS ![a-zA-Z_0-9]) name:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return {type:"identifier", value: name[0] + (name[1].join ? name[1].join("") : "")}; }
 
 this
-  = THIS { return {type:"this"} }
+  = THIS { return {type:"this", value:"this"} }
 
 identifier
   = this / general_identifier
