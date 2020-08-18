@@ -14,10 +14,10 @@ let parser = peg.generate(data, {cache:true, trace:true});
 let vs_data = readFileSync(VS_FILE, 'utf8');
 
 let tracer = new Tracer(vs_data, {});
-let results = null;
+let ast = null;
 try {
   console.log("Parsing...");
-  results = parser.parse(vs_data, {tracer:tracer});
+  ast = parser.parse(vs_data, {tracer:tracer});
 } catch (err) {
   console.log(tracer.getBacktraceString());
   if (!err.hasOwnProperty('location')) throw(err);
@@ -26,10 +26,15 @@ try {
       err.location.end.offset+10).replace(/\r/g, '\\r'));
 }
 
-if (results) {
-  console.log("Compiling...");
-  console.log(JSON.stringify(results, null, 4));
+function print_ast(a) {
+  console.log(JSON.stringify(a, null, 4));
   console.log();
+}
+
+if (ast) {
+  console.log("Compiling...");
+  //print_ast(ast);
+  // Abstract Syntax Tree
   let compiler_context = new VSCompilerContext();
-  console.log(compiler_context.emit(results));
+  console.log(compiler_context.emit(ast));
 }
