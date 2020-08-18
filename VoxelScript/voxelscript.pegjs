@@ -12,6 +12,19 @@
       return lhs;
     }
   }
+
+  function flatten_comma(args) {
+    if (args) {
+      let a = [];
+      a.push(args[0]);
+      for(let arg of args[1]) {
+        a.push(arg);
+      }
+      return a;
+    } else {
+      return [];
+    }
+  }
 }
 
 // *************************
@@ -20,7 +33,7 @@
 
 // A set of top level statements make up a module 
 module
-  = root:(top_level)+ { return {type:"module", value:root}; }
+  = root:(top_level)+ { return {type:"module", body:root}; }
 
 // A top level statement is any of the following
 top_level
@@ -32,11 +45,11 @@ top_level
 
 // A trait is a set of function declarations
 trait
-  = TRAIT __ id:identifier _ b:trait_block { return {type:"trait", body:b}; }
+  = TRAIT __ id:identifier _ b:trait_block { return {type:"trait", identifier:id, body:b}; }
 
 // A class is a set of function and variable declarations, with an optional init declaration
 class
-  = CLASS __ id:identifier _ b:class_block { return {type:"class", body:b}; }
+  = CLASS __ id:identifier _ b:class_block { return {type:"class", identifier:id, body:b}; }
 
 // A class implementation is a set of private variable declarations, and function implementations
 class_implementation
@@ -44,7 +57,7 @@ class_implementation
 
 // A trait implementation consists of a set of function implementations
 trait_implementation
-  = IMPLEMENT __ intfs:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"implementation", "trait":intfs, "class":cls, body: b}; }
+  = IMPLEMENT __ intfs:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":intfs, "class":cls, body: b}; }
 
 // *************************
 // Blocks
@@ -58,6 +71,10 @@ trait_block
 class_block
   = "{" _ decls:(variable_declaration / function_declaration / init_declaration)* _ "}" { return decls; }
 
+// A class implementation block includes private variables/functions, along with public function implementations
+class_implementation_block
+  = "{" _ decls:((init_implementation / function_implementation / private_variable_declaration / private_variable_definition / private_function_implementation))* _ "}" { return decls; }
+
 // A trait implementation block consists of a set of function implementations
 trait_implementation_block
   = "{" _ decls:(function_implementation)* _ "}" { return decls; }
@@ -66,34 +83,29 @@ trait_implementation_block
 function_block
   = "{" _ decls:(statement)* _ "}" { return decls; }
 
-class_implementation_block
-  = "{" _ decls:((PRIVATE __ variable_declaration / PRIVATE __ variable_definition / function_implementation / PRIVATE __ function_implementation / init_implementation))* _ "}" { return decls; }
-
 // *************************
 // Expressions
 // *************************
 
 typed_argument
-  = t:type __ id:identifier { return {type: "arg", "arg_type": t, "arg_identifier": id}; }
-  / _ UNDERSCORE _ { return {type:"underscore"} }
-
+  = t:type __ id:identifier { return {type: "typed_arg", "arg_type": t, "arg_identifier": id}; }
 typed_argument_with_comma
   = _ "," _ arg:typed_argument { return arg; }
 
 // (type1 id1, type2 id2, type3, id3)
 typed_argument_list
-  = "(" _ args:(typed_argument typed_argument_with_comma*)? _ ")" {
-    if (args) {
-      let a = [];
-      a.push(args[0]);
-      for(let arg of args[1]) {
-        a.push(arg);
-      }
-      return {type: "arguments", values:a};
-    } else {
-      return {type: "arguments", values:[]};
-    }
-  }
+  = "(" _ args:(typed_argument typed_argument_with_comma*)? _ ")" { return flatten_comma(args); }
+
+typed_argument_with_underscore
+  = t:type __ id:identifier { return {type: "typed_arg", "arg_type": t, "arg_identifier": id}; }
+  / _ UNDERSCORE _ { return {type:"underscore"} }
+
+typed_argument_with_comma_with_underscore
+  = _ "," _ arg:typed_argument_with_underscore { return arg; }
+
+// (type1 id1, type2 id2, type3, id3)
+typed_argument_list_with_underscore
+  = "(" _ args:(typed_argument_with_underscore typed_argument_with_comma_with_underscore*)? _ ")" { return flatten_comma(args); }
 
 argument
   = _ e:expression _ { return e; }
@@ -102,21 +114,10 @@ argument_with_comma
   = _ "," _ a:argument { return a; }
 
 argument_list "argument_list"
-  = "(" _ args:(argument argument_with_comma*)? _ ")" {
-    if (args) {
-      let a = [];
-      a.push(args[0]);
-      for(let arg of args[1]) {
-        a.push(arg);
-      }
-      return {type: "arguments", values:a};
-    } else {
-      return {type: "arguments", values:[]};
-    }
-  }
+  = "(" _ args:(argument argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 expression
-  = e:(precedence_15) { return e; }
+  = e:(precedence_15) { return {type: "expression", value:e}; }
 
 // Operator Precedence from https://en.cppreference.com/w/c/language/operator_precedence
 
@@ -126,11 +127,11 @@ precedence_15
   / precedence_14
 
 precedence_14
-  = args:typed_argument_list _ ARROW _ b:function_block { return {type:"lambda", args:args, body:b} }
+  = args:typed_argument_list_with_underscore _ ARROW _ b:function_block { return {type:"lambda", args:args, body:b} }
   / precedence_13
 
 precedence_13
-  = lhs:precedence_12 _ "?" _ if_true:expression _ ":" _ if_false:precedence_13 {
+  = lhs:precedence_12 _ "?" _ if_true:precedence_15 _ ":" _ if_false:precedence_13 {
     return {type: "ternary", condition: lhs, if_true: if_true, if_false: if_false};
   }
   / precedence_12
@@ -217,34 +218,41 @@ precedence_1
 
 precedence_0
   = v:value { return v; }
-  / "(" _ inner:expression _ ")" { return inner; }
+  / "(" _ inner:precedence_15 _ ")" { return inner; }
 
 // *************************
 // Top-level Statements
 // *************************
 
 import
-  = IMPORT __ id:identifier ENDSTATEMENT { return {type:"import", value: id}; }
+  = IMPORT __ id:identifier ENDSTATEMENT { return {type:"import", identifier: id}; }
 
 const
-  = CONST __ id:identifier _ EQUAL _ val:value ENDSTATEMENT { return {type:"const", value:{...id, ...val}}; }
+  = CONST __ id:identifier _ EQUAL _ val:value ENDSTATEMENT { return {type:"const", identifier:id, value:val}; }
 
 // *************************
 // Class-level Statements
 // *************************
 
 function_declaration
-  = t:type __ id:identifier _ args:typed_argument_list ENDSTATEMENT { return {type:"function_declaration", arguments:args, "func_identifier":id, "func_return":t}; }
+  = r:type __ id:identifier _ args:typed_argument_list ENDSTATEMENT { return {type:"function_declaration", arguments:args, "identifier":id, "return_type":r}; }
 
 // A function implementation
 function_implementation
-  = t:type __ id:identifier _ args:typed_argument_list _ b:function_block _ { return {type:"function_implementation", identifier:id, arguments:args, body:b}; }
+  = r:type __ id:identifier _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"function_implementation",arguments:args, identifier:id, "return_type":r, body:b}; }
 
 init_declaration
   = INIT _ args:typed_argument_list ENDSTATEMENT { return {type:"init_declaration", arguments:args}; }
 
 init_implementation
-  = INIT _ args:typed_argument_list _ b:function_block _ { return {type:"init_implementation", arguments:args, body:b}; }
+  = INIT _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"init_implementation", arguments:args, body:b}; }
+
+private_variable_declaration
+  = PRIVATE __ v:variable_declaration { return {...v, private:true}; }
+private_variable_definition
+  = PRIVATE __ v:variable_definition { return {...v, private:true}; }
+private_function_implementation
+  = PRIVATE __ v:function_implementation { return {...v, private:true}; }
 
 // *************************
 // All Statements
