@@ -1,7 +1,17 @@
 import * as peg from 'pegjs';
 import * as Tracer from 'pegjs-backtrace';
-import { readFileSync } from 'fs';
+import { readFileSync, readdirSync, statSync } from 'fs';
+import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
+
+let getAllSubFolders = (baseFolder, folderList = []) => {
+  let folders:string[] = readdirSync(baseFolder).filter(file => statSync(path.join(baseFolder, file)).isDirectory());
+  folders.forEach(folder => {
+      folderList.push(path.join(baseFolder,folder));
+      this.getAllSubFolders(path.join(baseFolder,folder), folderList);
+  });
+}
+console.log(getAllSubFolders);
 
 let PEGJS_FILE = 'voxelscript.pegjs';
 let VS_FILE = 'test.vs';
@@ -14,6 +24,7 @@ let parser = peg.generate(data, {cache:true, trace:true});
 let vs_data = readFileSync(VS_FILE, 'utf8');
 
 let tracer = new Tracer(vs_data, {});
+// Abstract Syntax Tree
 let ast = null;
 try {
   console.log("Parsing...");
@@ -34,7 +45,7 @@ function print_ast(a) {
 if (ast) {
   console.log("Compiling...");
   //print_ast(ast);
-  // Abstract Syntax Tree
   let compiler_context = new VSCompilerContext();
-  console.log(compiler_context.emit(ast));
+  let compiled_module = compiler_context.compile_module(ast);
+  console.log(compiled_module);
 }

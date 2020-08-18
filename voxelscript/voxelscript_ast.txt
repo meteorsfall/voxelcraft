@@ -8,7 +8,8 @@ module {
         trait,
         class,
         class_implementation,
-        trait_implementation
+        trait_implementation,
+        export
     ]
 }
 
@@ -38,6 +39,13 @@ class {
         variable_declaration,
         function_declaration,
         init_declaration
+    ]
+}
+
+export {
+    type: "export",
+    args: [
+        identifier
     ]
 }
 

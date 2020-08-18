@@ -1,11 +1,33 @@
+interface module {
+  name: string,
+  voxelscript: string,
+  compiled: string,
+};
+
 class VSCompilerContext {
+  // Global Context
   modules : any = {};
   traits : any = {};
   classes : any = {};
+
+  // Rendering Context
   tabs = 0;
   output = "";
+
+  // Compilation Context
   is_currently_implementing = null;
   is_currently_implementing_on = null;
+
+  private get_module(key) : module | null {
+    return this.modules[key];
+  }
+
+  private set_module(key : string, voxelscript : string) : void {
+    this.modules[key] = {};
+    this.modules[key].name = key;
+    this.modules[key].voxelscript = voxelscript;
+    this.modules[key].compiled = "";
+  }
   
   tab(change_tab) {
     this.tabs += change_tab;
@@ -46,7 +68,7 @@ class VSCompilerContext {
     let trait : any = {};
     let trait_original_name = trait_identifier.value;
     this.traits[trait_original_name] = trait;
-    trait.name = "INTERFACE_" + trait_original_name;
+    trait.name = "TRAIT_" + trait_original_name;
   }
 
   register_class(class_identifier) {
@@ -71,13 +93,13 @@ class VSCompilerContext {
     return id.value;
   }
   
-  create_is_interface_function(interface_name) {
+  create_is_trait_function(trait_name) {
     return {
       type: "function_implementation",
       arguments: [],
       identifier: {
         type: "identifier",
-        value: "is_" + interface_name,
+        value: "is_" + trait_name,
       },
       return_type: {
         type: "type",
@@ -179,6 +201,7 @@ class VSCompilerContext {
     case "integer":
     case "bool":
     case "double":
+    case "string":
       this.write_output(e.value);
       break;
     // ****
@@ -217,8 +240,7 @@ class VSCompilerContext {
       }
       break;
     default:
-      this.write_output("<" + e.type + "/>");
-      break;
+      throw new Error("type did not match in render_subexpression: " + e.type);
     }
     this.write_output(")");
   }
@@ -228,7 +250,7 @@ class VSCompilerContext {
       if (statement.type == "variable_definition" || statement.type == "variable_declaration") {
         this.write_output("let ");
       }
-      this.emit(statement);
+      this.render_statement(statement);
     }
   }
 
@@ -242,8 +264,8 @@ class VSCompilerContext {
     this.is_currently_implementing_on = null;
   }
   
-  emit(data) {
-    // Help find bugs in emit calls
+  render_statement(data) {
+    // Help find bugs in render_statement calls
     if (!data.type) {
       console.log(data.type);
       throw new Error("data does not have type!");
@@ -252,7 +274,7 @@ class VSCompilerContext {
     switch (data.type) {
     case "module":
       for(let top_level of data.body) {
-        this.emit(top_level);
+        this.render_statement(top_level);
       }
       break;
     case "import":
@@ -266,6 +288,18 @@ class VSCompilerContext {
     case "const":
       this.write_output("const " + this.parse_identifier(data.identifier) + " = " + data.value.value + ";\n");
       break;
+    case "export":
+      this.write_output("export {");
+      let first = true;
+      for(let arg of data.args) {
+        if (!first) {
+          this.write_output(", ");
+        }
+        this.write_output(this.parse_identifier(arg));
+        first = false;
+      }
+      this.write_output("};\n");
+      break;
     case "trait":
       // Register trait name
       this.register_trait(data.identifier);
@@ -273,9 +307,9 @@ class VSCompilerContext {
       this.write_output("abstract class " + this.parse_identifier(data.identifier) + " {\n");
       this.tab(1);
   
-      data.body = [this.create_is_interface_function(this.parse_identifier(data.identifier))].concat(data.body);
+      data.body = [this.create_is_trait_function(this.parse_identifier(data.identifier))].concat(data.body);
       for(let statement of data.body) {
-        this.emit(statement);
+        this.render_statement(statement);
       }
   
       this.tab(-1);
@@ -289,7 +323,7 @@ class VSCompilerContext {
       this.tab(1);
   
       for(let statement of data.body) {
-        this.emit(statement);
+        this.render_statement(statement);
       }
       
       this.tab(-1);
@@ -338,7 +372,7 @@ class VSCompilerContext {
       this.tab(1);
   
       for(let statement of data.body) {
-        this.emit(statement);
+        this.render_statement(statement);
       }
   
       this.tab(-1);
@@ -354,7 +388,7 @@ class VSCompilerContext {
   
       this.set_trait_implementing_on(trait_name, class_name);
       for(let statement of data.body) {
-        this.emit(statement);
+        this.render_statement(statement);
       }
       this.unset_trait_implementing_on();
   
@@ -406,19 +440,39 @@ class VSCompilerContext {
       this.render_expression(data.condition);
       this.write_output(" ");
 
-      this.emit(data.body);
+      this.render_statement(data.body);
 
       if (data.otherwise) {
         this.write_output(" else ");
-        this.emit(data.otherwise);
+        this.render_statement(data.otherwise);
       }
 
       this.write_output("\n");
       break;
     default:
-      this.write_output("<" + data.type + "/>\n");
+      throw new Error("type did not match in render_statement: " + data.type);
     }
+  }
+
+  add_module(module_name, module) {
+    this.set_module(module_name, module);
+    this.render_statement(module);
     return this.output;
+  }
+
+  compile_modules() {
+    for(let module_name of this.modules) {
+      console.log("Module: " + module_name);
+    }
+  }
+
+  get_compiled_module(key : string) : string | null {
+    let m = this.get_module(key);
+    if (m) {
+      return m.compiled;
+    } else {
+      return null;
+    }
   }
 }
 
