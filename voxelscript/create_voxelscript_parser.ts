@@ -29,12 +29,6 @@ function print_ast(a) {
 
 // Get all voxelscript subfiles
 let subfiles = getAllSubfiles("./tests/voxelscript_test");
-/*
-subfiles = [{
-  name: "test",
-  data: readFileSync("test.vs", 'utf8'),
-}];
-*/
 
 // Creat PegJs parser for .vs files
 const PEGJS_FILE = 'voxelscript.pegjs';
@@ -50,7 +44,7 @@ for(let file_data of subfiles) {
   // Abstract Syntax Tree
   let ast = null;
   try {
-    console.log("Parsing...");
+    console.log("Parsing " + voxelscript_module_name + "...");
     ast = parser.parse(voxelscript_data, {tracer:tracer});
   } catch (err) {
     console.log(tracer.getBacktraceString());
@@ -71,18 +65,11 @@ for(let file_data of subfiles) {
   }
 
   if (ast) {
-    console.log("Adding Module: " + voxelscript_module_name + " (" + file_data.filename + ")");
     //print_ast(ast);
     compiler_context.add_module(voxelscript_module_name, ast);
+    console.log("Added Module: " + voxelscript_module_name + " (" + file_data.filename + ")");
+    console.log();
   }
-}
-
-console.log("Compiling...");
-compiler_context.compile_modules();
-
-const BUILD_TARGET = "./tests/build";
-if (!existsSync(BUILD_TARGET)){
-  mkdirSync(BUILD_TARGET);
 }
 
 const BASE = `
@@ -98,7 +85,7 @@ function applyMixins(derivedCtor: any, constructors: any[]) {
     let all_constructors = parents.concat(constructors);
     all_constructors.forEach((baseCtor) => {
         Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-            console.log(derivedCtor.name + " gets \"" + name + "\" from " + baseCtor.name);
+            console.log(derivedCtor.name + " gets \\"" + name + "\\" from " + baseCtor.name);
             Object.defineProperty(
                 derivedCtor.prototype,
                 name,
@@ -120,9 +107,19 @@ function cast<T>(arg : any, verify : null | string) : T {
 export {int, double, bool, applyMixins, cast};
 `;
 
-writeFileSync(BUILD_TARGET + "/Base.ts", BASE);
-for (let m in compiler_context.modules) {
-  console.log("Compiled " + m);
-  let compiled = compiler_context.get_compiled_module(m);
-  writeFileSync(BUILD_TARGET + "/" + m + ".ts", compiled);
+console.log("Compiling...");
+if (!compiler_context.compile_modules()) {
+  console.log("Failed to compile!");
+} else {
+  const BUILD_TARGET = "./tests/build";
+  if (!existsSync(BUILD_TARGET)){
+    mkdirSync(BUILD_TARGET);
+  }
+  writeFileSync(BUILD_TARGET + "/Base.ts", BASE);
+  for (let m in compiler_context.modules) {
+    console.log("Compiled " + m);
+    let compiled = compiler_context.get_compiled_module(m);
+    writeFileSync(BUILD_TARGET + "/" + m + ".ts", compiled);
+  }
+  console.log("Compilation Succeeded!");
 }

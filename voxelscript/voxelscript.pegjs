@@ -107,7 +107,7 @@ typed_argument_list
   = "(" _ args:(typed_argument typed_argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 typed_argument_with_underscore
-  = t:type __ id:identifier { return {type: "typed_arg", "arg_type": t, "arg_identifier": id}; }
+  = typed_argument
   / _ UNDERSCORE _ { return {type:"underscore"} }
 
 typed_argument_with_comma_with_underscore
@@ -218,7 +218,7 @@ precedence_2
   / precedence_1
 
 precedence_1_extensions
-  = _ "." _ rhs:precedence_0 { return {type: "member_of", capture_lhs: "lhs", rhs: rhs}; }
+  = _ "." _ rhs:value { return {type: "member_of", capture_lhs: "lhs", rhs: rhs}; }
   / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs}; }
   / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args}; }
   / _ "++" { return {type: "postfix_plus", capture_lhs: "lhs"}; }
@@ -288,7 +288,7 @@ if
   
 for
   = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b}; }
-  / FOR _ "("  _ t:type __ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_type":t, "item_identifier":id, "collection":e, body:b}; }
+  / FOR _ "("  _ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_identifier":id, "collection":e, body:b}; }
 
 while
   = WHILE _ "(" _ c:expression _ ")" _ b:statement _ { return {type:"while", condition: c, body:b}; }
@@ -337,11 +337,16 @@ double
 string
   = "\"" str:([^"]*) "\"" { return {type: "string", value: str.join("")}; }
 
+value_comma
+  = _ "," _ v:value { return v; }
+
+// Values can be constants, identifiers, or arrays of identifiers
 value
   = v:(double / integer / string / identifier) { return v; }
+  / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals)}; }
 
 type
-  = t:(INT / DOUBLE / BOOL / STRING / identifier) { return {type:"type", value:t}; }
+  = t:(VOID / INT / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value:t}; }
 
 // *************************
 // Comments
@@ -367,7 +372,7 @@ __ = ([ \t\r\n] / multi_line_comment / single_line_comment)+
 // Constants
 // *************************
 
-KEYWORDS = THIS / INT / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
+KEYWORDS = THIS / INT / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
 
 THIS = "this"
 INT = "int"
@@ -393,6 +398,7 @@ WHILE = "while"
 THROW = "throw"
 EXPORT = "export"
 TYPEDEF = "typedef"
+VOID = "void"
 
 ARITHMETIC_SYMBOL
  = PLUS / MINUS / ASTERISK / DIVIDE / MODULUS / LEFT_SHIFT / RIGHT_SHIFT / BITWISE_AND / BITWISE_XOR / BITWISE_OR
