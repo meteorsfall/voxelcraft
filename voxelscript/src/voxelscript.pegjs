@@ -206,15 +206,28 @@ precedence_3_extensions
 precedence_3
   = lhs:precedence_2 many_rhs:precedence_3_extensions* { return leftAssoc(lhs, many_rhs); }
 
+UNARY_NEW "unary operator"
+  = NEW __
+UNARY_MINUS "unary operator"
+  = "-"
+UNARY_PLUSPLUS "unary operator"
+  = "++"
+UNARY_MINUSMINUS "unary operator"
+  = "--"
+UNARY_LOGICAL_NOT "unary operator"
+  = "!"
+UNARY_BITWISE_NOT "unary operator"
+  = "~"
+
 // Right Associative
 precedence_2
   = "(" _ lhs:type _ ")" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
-  / NEW __ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
-  / "-" _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
-  / "++" _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
-  / "--" _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
-  / "!" _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs}; }
-  / "~" _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs}; }
+  / UNARY_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
+  / UNARY_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
+  / UNARY_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
+  / UNARY_MINUSMINUS _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
+  / UNARY_LOGICAL_NOT _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs}; }
+  / UNARY_BITWISE_NOT _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs}; }
   / precedence_1
 
 precedence_1_extensions
@@ -311,10 +324,10 @@ throw
 
 // General identifier
 general_identifier
-  = !(KEYWORDS ![a-zA-Z_0-9]) id:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return id[0] + (id[1] ? id[1].join("") : ""); }
+  = !(KEYWORDS ![a-zA-Z_0-9]) id:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return "_VS_" + id[0] + (id[1] ? id[1].join("") : ""); }
 
 this
-  = THIS { return {type:"this", value:"this"} }
+  = THIS { return {type:"this"} }
 
 general_identifier_with_namespace
   = "::" id:general_identifier { return "::" + id; }
@@ -325,13 +338,17 @@ general_identifier_with_namespacing
 identifier "identifier"
   = id:(this / general_identifier_with_namespacing) ![:] {return id;}
 
+// Boolean
+bool
+  = b:(TRUE / FALSE) ![a-zA-Z_0-9] { return {type:"bool", value: b}; }
+
 // Integer
 integer
-  = num:([0-9]+) { return {type:"integer", value: num.join("")}; }
+  = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join("")}; }
 
 // Double
 double
-  = num:([0-9]+ "." [0-9]+) { return {type:"double", value: num.join("")}; }
+  = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"double", value: num.join("")}; }
 
 // String
 string
@@ -342,7 +359,7 @@ value_comma
 
 // Values can be constants, identifiers, or arrays of identifiers
 value "value"
-  = v:(double / integer / string / identifier) { return v; }
+  = v:(bool / double / integer / string / identifier) { return v; }
   / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals)}; }
 
 type "type"
@@ -374,12 +391,14 @@ __ ""
 // Constants
 // *************************
 
-KEYWORDS = THIS / INT / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
+KEYWORDS = THIS / INT / DOUBLE / BOOL / TRUE / FALSE / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
 
 THIS = "this"
 INT = "int"
 DOUBLE = "double"
 BOOL = "bool"
+TRUE = "true"
+FALSE = "false"
 STRING = "string"
 IMPORT = "import"
 CONST = "const"

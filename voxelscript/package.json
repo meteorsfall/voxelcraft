@@ -14,7 +14,8 @@
     "@types/node": "^14.6.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "compile_compiler": "cd src; npx tsc; cd ..",
+    "test": "npm run compile_compiler; node ./src/build/voxelscript_compiler.js"
   },
   "author": "VoxelCraft",
   "license": "ISC"

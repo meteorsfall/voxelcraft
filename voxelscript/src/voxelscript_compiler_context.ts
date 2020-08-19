@@ -35,27 +35,26 @@ class VSCompilerContext {
     return var_name;
   }
 
-  private get_module(key : string) : module | null {
-    return this.modules[key];
+  private get_module(module_name : string) : module | null {
+    return this.modules[module_name];
   }
 
-  private set_module(key : string, voxelscript_ast : any) : void {
+  private set_module(module_name : string, voxelscript_ast : any) : void {
     if (voxelscript_ast.type != 'module') {
       throw new Error("syntax tree provided is not a module!");
     }
 
     let m : module = {
-      name: key,
+      name: module_name,
       voxelscript_ast: voxelscript_ast,
       compiled: "",
       dependencies: [],
       exports: null,
     };
-    this.modules[key] = m;
+    this.modules[module_name] = m;
     for(let top_level of voxelscript_ast.body) {
       if (top_level.type == "import") {
-        let dep = top_level.identifier.value;
-        console.log(key + " <= " + dep);
+        let dep = this.parse_identifier(top_level.identifier);
         m.dependencies.push(dep);
       }
     }
@@ -473,7 +472,7 @@ class VSCompilerContext {
       this.tab(-1);
       this.write_output("}\n");
       
-      this.write_output("init");
+      this.write_output("_VS_init");
       this.render_typed_args(data.arguments);
       this.write_output(" : void {\n");
       this.tab(1);
@@ -482,7 +481,7 @@ class VSCompilerContext {
       this.write_output("}\n");
       break;
     case "init_declaration":
-      this.write_output("abstract init");
+      this.write_output("abstract _VS_init");
       this.render_typed_args(data.arguments);
       this.write_output(" : void;\n");
       break;
@@ -603,11 +602,12 @@ class VSCompilerContext {
     }
   }
 
-  add_module(module_name : string, voxelscript : string) {
+  add_module(module_name : string, voxelscript_ast : any) {
+    module_name = "_VS_" + module_name;
     if (this.get_module(module_name)) {
       throw new Error("Module of name <" + module_name + "> has already been added to this compilation target!");
     }
-    this.set_module(module_name, voxelscript);
+    this.set_module(module_name, voxelscript_ast);
   }
 
   compile_module(module_name : string) {
@@ -640,7 +640,6 @@ class VSCompilerContext {
   }
 
   compile_modules() {
-    let compiled = {};
     for(let module_name in this.modules) {
       if (module_name in this.loaded_modules) {
         continue;
@@ -664,8 +663,17 @@ class VSCompilerContext {
     return true;
   }
 
-  get_compiled_module(key : string) : string | null {
-    let m = this.get_module(key);
+  get_modules() : string[] {
+    let all_modules = [];
+    for (let m in this.modules) {
+      all_modules.push(m.slice(4));
+    }
+    return all_modules;
+  }
+
+  get_compiled_module(module_name : string) : string | null {
+    module_name = "_VS_" + module_name;
+    let m = this.get_module(module_name);
     if (m) {
       return m.compiled;
     } else {

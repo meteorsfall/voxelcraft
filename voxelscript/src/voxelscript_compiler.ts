@@ -4,10 +4,10 @@ import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSy
 import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
 
-const TRACE = false;
+const TRACE_PARSER = false;
 
 function error_to_string(module_name : string, file_path : string, code : string, start_data : any, end_data : any, msg : string) {
-  const width = 40;
+  const width = 80;
   const height = 6;
 
   let lines = code.split('\n');
@@ -124,9 +124,9 @@ function print_ast(a : any) {
 let subfiles = getAllSubfiles("./tests/voxelscript_test");
 
 // Creat PegJs parser for .vs files
-const PEGJS_FILE = 'voxelscript.pegjs';
+const PEGJS_FILE = './src/voxelscript.pegjs';
 let pegjs_data = readFileSync(PEGJS_FILE, 'utf8');
-let parser = peg.generate(pegjs_data, {cache:true, trace:TRACE});
+let parser = peg.generate(pegjs_data, {cache:true, trace:TRACE_PARSER});
 
 let compiler_context = new VSCompilerContext();
 let failed = false;
@@ -135,7 +135,7 @@ for(let file_data of subfiles) {
   let voxelscript_data = file_data.data;
 
   let tracer = null;
-  if (TRACE) {
+  if (TRACE_PARSER) {
     tracer = new Tracer(voxelscript_data, {});
   }
   // Abstract Syntax Tree
@@ -144,7 +144,7 @@ for(let file_data of subfiles) {
     console.log("Parsing " + voxelscript_module_name + "...");
     ast = parser.parse(voxelscript_data, {tracer:tracer});
   } catch (err) {
-    if (TRACE) {
+    if (TRACE_PARSER) {
       console.log(tracer.getBacktraceString());
     }
     if (!err.hasOwnProperty('location')) throw(err);
@@ -214,9 +214,9 @@ if (!failed) {
       mkdirSync(BUILD_TARGET);
     }
     writeFileSync(BUILD_TARGET + "/Base.ts", BASE);
-    for (let m in compiler_context.modules) {
-      let compiled = compiler_context.get_compiled_module(m)!;
-      writeFileSync(BUILD_TARGET + "/" + m + ".ts", compiled);
+    for (let module_name of compiler_context.get_modules()) {
+      let compiled = compiler_context.get_compiled_module(module_name)!;
+      writeFileSync(BUILD_TARGET + "/_VS_" + module_name + ".ts", compiled);
     }
     console.log();
     console.log("Compilation Succeeded!");
