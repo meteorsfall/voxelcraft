@@ -162,7 +162,7 @@ main : context {
    
    // Color all functions
    : pattern {
-      regex          \= $${__MY_CONSTANT}(\()
+      regex          \= $${__MY_CONSTANT}(\s*[(])
       styles []       = .func, .white;
    }
    

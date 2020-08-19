@@ -123,7 +123,7 @@ argument
 argument_with_comma
   = _ "," _ a:argument { return a; }
 
-argument_list "argument_list"
+argument_list
   = "(" _ args:(argument argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 expression
@@ -227,7 +227,7 @@ precedence_1_extensions
 precedence_1
   = lhs:precedence_0 many_rhs:precedence_1_extensions* { return leftAssoc(lhs, many_rhs); }
 
-precedence_0
+precedence_0 "expression"
   = v:value { return v; }
   / "(" _ inner:precedence_15 _ ")" { return inner; }
 
@@ -322,7 +322,7 @@ general_identifier_with_namespace
 general_identifier_with_namespacing
   = name:(general_identifier (general_identifier_with_namespace)*) { return {type:"identifier", value: flatten_comma(name).join("")}; }
 
-identifier
+identifier "identifier"
   = id:(this / general_identifier_with_namespacing) ![:] {return id;}
 
 // Integer
@@ -341,11 +341,11 @@ value_comma
   = _ "," _ v:value { return v; }
 
 // Values can be constants, identifiers, or arrays of identifiers
-value
+value "value"
   = v:(double / integer / string / identifier) { return v; }
   / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals)}; }
 
-type
+type "type"
   = t:(VOID / INT / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value:t}; }
 
 // *************************
@@ -363,10 +363,12 @@ multi_line_comment
 // *************************
 
 // Optional whitespace
-_  = ([ \t\r\n] / multi_line_comment / single_line_comment)*
+_ ""
+  = ([ \t\r\n] / multi_line_comment / single_line_comment)*
 
 // Mandatory whitespace
-__ = ([ \t\r\n] / multi_line_comment / single_line_comment)+
+__ ""
+  = ([ \t\r\n] / multi_line_comment / single_line_comment)+
 
 // *************************
 // Constants
