@@ -6,7 +6,7 @@ import { VSCompilerContext } from './voxelscript_compiler_context';
 
 const TRACE = false;
 
-function error_to_string(module_name, file_path, code, start_data, end_data, msg) {
+function error_to_string(module_name : string, file_path : string, code : string, start_data : any, end_data : any, msg : string) {
   const width = 40;
   const height = 6;
 
@@ -95,7 +95,9 @@ function error_to_string(module_name, file_path, code, start_data, end_data, msg
   return output;
 }
 
-let getAllSubfiles = (baseFolder, folderList = []) => {
+interface folder_information {filename:string, name:string, data:string};
+
+let getAllSubfiles = (baseFolder : string, folderList : folder_information[] = []) => {
   let folders:string[] = readdirSync(baseFolder).filter(file => statSync(path.join(baseFolder, file)).isDirectory());
   let files:string[] = readdirSync(baseFolder).filter(file => !statSync(path.join(baseFolder, file)).isDirectory());
   for (let file of files) {
@@ -113,7 +115,7 @@ let getAllSubfiles = (baseFolder, folderList = []) => {
   return folderList;
 }
 
-function print_ast(a) {
+function print_ast(a : any) {
   console.log(JSON.stringify(a, null, 4));
   console.log();
 }
@@ -134,7 +136,7 @@ for(let file_data of subfiles) {
 
   let tracer = null;
   if (TRACE) {
-    new Tracer(voxelscript_data, {});
+    tracer = new Tracer(voxelscript_data, {});
   }
   // Abstract Syntax Tree
   let ast = null;
@@ -213,7 +215,7 @@ if (!failed) {
     }
     writeFileSync(BUILD_TARGET + "/Base.ts", BASE);
     for (let m in compiler_context.modules) {
-      let compiled = compiler_context.get_compiled_module(m);
+      let compiled = compiler_context.get_compiled_module(m)!;
       writeFileSync(BUILD_TARGET + "/" + m + ".ts", compiled);
     }
     console.log();

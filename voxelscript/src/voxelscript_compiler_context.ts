@@ -3,7 +3,7 @@ interface module {
   voxelscript_ast: any,
   compiled: string,
   dependencies: string[],
-  exports: string,
+  exports: string[] | null,
 };
 
 class VSCompilerContext {
@@ -15,15 +15,15 @@ class VSCompilerContext {
   compiling_module : string | null = null;
   origin_module_of : any = {};
   // Reset back to underscore whenever a new module has loaded
-  unused_variable_name : string | null = null;
+  unused_variable_name : string = "UNUSED_";
 
   // Rendering Context
   tabs = 0;
   output = "";
 
   // Compilation Context
-  is_currently_implementing = null;
-  is_currently_implementing_on = null;
+  is_currently_implementing : string | null = null;
+  is_currently_implementing_on : string | null = null;
 
   private reset_unused_variable_name() {
     this.unused_variable_name = "UNUSED_";
@@ -35,7 +35,7 @@ class VSCompilerContext {
     return var_name;
   }
 
-  private get_module(key) : module | null {
+  private get_module(key : string) : module | null {
     return this.modules[key];
   }
 
@@ -61,14 +61,14 @@ class VSCompilerContext {
     }
   }
   
-  tab(change_tab) {
+  tab(change_tab : number) {
     this.tabs += change_tab;
     if (this.tabs < 0) {
       throw new Error("this.tabs is negative!");
     }
   }
   
-  write_output(str) {
+  write_output(str : string) {
     for(let c of str) {
       if (this.output[this.output.length - 1] == '\n') {
         for(let i = 0; i < 4 * this.tabs; i++) {
@@ -79,7 +79,7 @@ class VSCompilerContext {
     }
   }
   
-  render_typed_args(typed_args) {
+  render_typed_args(typed_args : any[]) {
     this.write_output("(");
     let first = true;
     for(let arg of typed_args) {
@@ -99,7 +99,7 @@ class VSCompilerContext {
     this.write_output(")");
   }
 
-  render_args(args) {
+  render_args(args : any[]) {
     this.write_output("(");
     let first = true;
     for(let arg of args) {
@@ -112,7 +112,7 @@ class VSCompilerContext {
     this.write_output(")");
   }
 
-  verify_not_registered(id) {
+  verify_not_registered(id : any) {
     let unparsed_name = id.value;
     let parsed_name = this.parse_identifier(id);
     if (parsed_name != unparsed_name) {
@@ -120,7 +120,7 @@ class VSCompilerContext {
     }
   }
   
-  register_trait(trait_identifier) {
+  register_trait(trait_identifier : any) {
     let trait : any = {};
     let original_name = trait_identifier.value;
     let new_name = "TRAIT_" + original_name;
@@ -131,7 +131,7 @@ class VSCompilerContext {
     trait.name = new_name;
   }
 
-  register_class(class_identifier) {
+  register_class(class_identifier : any) {
     let cls : any = {};
     let original_name = class_identifier.value;
     let new_name = "CLASS_" + original_name;
@@ -142,7 +142,7 @@ class VSCompilerContext {
     cls.name = new_name;
   }
   
-  parse_type(type) {
+  parse_type(type : any) {
     let val;
     if (type.value.type == "identifier") {
       // If type is an identifier, we should parse it as such
@@ -157,7 +157,7 @@ class VSCompilerContext {
     return val + suffix;
   }
   
-  parse_identifier(id) {
+  parse_identifier(id : any) {
     if (id.value in this.traits) {
       return this.traits[id.value].name;
     }
@@ -167,7 +167,7 @@ class VSCompilerContext {
     return id.value;
   }
   
-  create_is_trait_function(trait_name) {
+  create_is_trait_function(trait_name : string) {
     return {
       type: "function_implementation",
       arguments: [],
@@ -194,14 +194,14 @@ class VSCompilerContext {
     }
   }
 
-  render_expression(e) {
+  render_expression(e : any) {
     if (e.type != "expression") {
       throw new Error("e is not an expression!");
     }
     this.render_subexpression(e.value);
   }
 
-  render_subexpression(e, with_parens=true) {
+  render_subexpression(e : any, with_parens=true) {
     switch(e.type) {
     case "assignment":
       this.render_subexpression(e.lhs);
@@ -215,7 +215,7 @@ class VSCompilerContext {
       return;
     }
 
-    let binary_operators = {
+    let binary_operators : any = {
       "logical_or": "||",
       "logical_and": "&&",
       "bitwise_or": "|",
@@ -236,7 +236,7 @@ class VSCompilerContext {
       "modulus": "%",
     }
 
-    let op;
+    let op : string = "";
     if (e.type in binary_operators) {
       op = binary_operators[e.type];
       e.type = "binary_operator";
@@ -340,7 +340,7 @@ class VSCompilerContext {
     }
   }
 
-  render_function_body(statements) {
+  render_function_body(statements : any[]) {
     for(let statement of statements) {
       if (statement.type == "variable_definition" || statement.type == "variable_declaration") {
         this.write_output("let ");
@@ -349,7 +349,7 @@ class VSCompilerContext {
     }
   }
 
-  set_trait_implementing_on(trait, cls) {
+  set_trait_implementing_on(trait : string, cls : string) {
     this.is_currently_implementing = trait;
     this.is_currently_implementing_on = cls;
   }
@@ -359,7 +359,7 @@ class VSCompilerContext {
     this.is_currently_implementing_on = null;
   }
   
-  render_statement(data) {
+  render_statement(data : any) {
     // Help find bugs in render_statement calls
     if (!data.type) {
       console.log(data.type);
@@ -414,7 +414,7 @@ class VSCompilerContext {
         export_args += export_arg;
         first = false;
       }
-      this.modules[this.compiling_module].exports = export_args;
+      this.modules[this.compiling_module!].exports = export_args;
       this.write_output(export_args);
       this.write_output("};\n");
       break;
@@ -603,7 +603,7 @@ class VSCompilerContext {
     }
   }
 
-  add_module(module_name, voxelscript) {
+  add_module(module_name : string, voxelscript : string) {
     if (this.get_module(module_name)) {
       throw new Error("Module of name <" + module_name + "> has already been added to this compilation target!");
     }
@@ -612,6 +612,9 @@ class VSCompilerContext {
 
   compile_module(module_name : string) {
     let m = this.get_module(module_name);
+    if (!m) {
+      throw new Error("Cannot compile module that doesn't exist! " + module_name);
+    }
     this.output = "";
     try {
       this.compiling_module = module_name;
@@ -628,7 +631,7 @@ class VSCompilerContext {
 
   missing_dependencies(module_name : string) {
     let m = this.get_module(module_name);
-    for (let dep of m.dependencies) {
+    for (let dep of m!.dependencies) {
       if (!(dep in this.loaded_modules)) {
         return dep;
       }
@@ -644,8 +647,8 @@ class VSCompilerContext {
       }
       while (!this.loaded_modules[module_name]) {
         let m = this.get_module(module_name);
-        let prev = null;
-        let cur = module_name;
+        let prev : string | null = null;
+        let cur : string | null = module_name;
         while(cur != null) {
           prev = cur;
           cur = this.missing_dependencies(prev);
@@ -655,7 +658,7 @@ class VSCompilerContext {
           }
         }
         console.log("Compiling " + prev);
-        this.compile_module(prev);
+        this.compile_module(prev!);
       }
     }
     return true;
