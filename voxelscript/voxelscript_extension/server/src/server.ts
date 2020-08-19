@@ -51,7 +51,7 @@ connection.onInitialize((params) => {
 documents.onDidChangeContent((change) => {
     let diagnostics = [];
     let doc = change.document.getText();
-    log(change.document);
+    log(change.document.uri);
 
     let loc = doc.indexOf('bad');
 

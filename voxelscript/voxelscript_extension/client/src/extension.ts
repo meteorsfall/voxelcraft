@@ -5,7 +5,7 @@ import {LanguageClient} from 'vscode-languageclient';
 
 function activate(context) {
     // The server is implemented in node
-    let serverModule = context.asAbsolutePath(path.join('server/out', 'server.js'));
+    let serverModule = context.asAbsolutePath(path.join('server/build', 'server.js'));
     // The debug options for the server
     let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
     // If the extension is launch in debug mode the debug server options are use

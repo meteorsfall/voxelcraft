@@ -1,5 +1,7 @@
 voxelscript/voxelscript_highlighter/syntaxes
 
+**/package-lock.json
 **/node_modules
+**/build
 *.swp
 

@@ -14,7 +14,7 @@
 	"activationEvents": [
 		"onLanguage:voxelscript"
 	],
-	"main": "./client/out/extension",
+	"main": "./client/build/extension",
 	"contributes": {
 		"configuration": {
 			"type": "object",
