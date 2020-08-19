@@ -1,0 +1,23 @@
+{
+    "name": "voxelscript_highlighter",
+    "displayName": "VoxelScript Syntax Highlighter",
+    "description": "Syntax Highlighter for the VoxelScript language",
+    "version": "0.1.0",
+    "engines": {
+        "vscode": ">=0.9.0-pre.1"
+    },
+    "publisher": "Nicholas Pipitone",
+    "contributes": {
+        "languages": [{
+            "id": "voxelscript",
+            "aliases": ["VoxelScript", "voxelscript"],
+            "extensions": [".vs"]
+        }],
+        "grammars": [{
+            "language": "voxelscript",
+            "scopeName": "source.voxelscript",
+            "path": "./syntaxes/voxelscript.tmLanguage"
+        }]
+    }
+}
+

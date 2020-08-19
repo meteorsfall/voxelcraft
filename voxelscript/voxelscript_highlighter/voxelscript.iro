@@ -1,0 +1,209 @@
+#################################################################
+## Iro
+################################################################ 
+##
+## * Press Ctrl + '+'/'-' To Zoom in
+## * Press Ctrl + S to save and recalculate... 
+## * Documents are saved to web storage.
+## * Only one save slot supported.
+## * Matches cannot span lines.
+## * Unicode chars must be defined in \u0000 to \uffff format.
+## * All matches must be contained by a single group ( ... )
+## * Look behinds not permitted, (?<= or (?<!
+## * Look forwards are permitted (?= or (?!
+## * Constants are defined as __my_const = (......)
+## * The \= format allows unescaped regular expressions
+## * Constants referenced by match \= $${__my_const}
+## * Constants can reference other constants
+## * You are free to delete all the default scopes.
+## * Twitter : ainslec , Web: http://eeyo.io/iro
+##
+################################################################
+
+name                   = voxelscript
+file_extensions []     = vs;
+
+################################################################
+## Constants
+################################################################
+
+__CONTROL_FLOW \= (return|import|if|else|for|while|export)(?![a-zA-Z_0=9])
+__KEYWORDS \= (this|int|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|void)(?![a-zA-Z_0=9])
+__MY_CONSTANT \= (\b[a-zA-Z_][a-zA-Z_0-9]*)(?![a-zA-Z_0=9])
+
+################################################################
+## Styles
+################################################################
+
+styles [] {
+
+.white : style {
+   color                 = #D4D4D4
+   textmate_scope        = keyword.operator
+}
+
+.variable : style {
+   color                 = #9CDCFE
+   textmate_scope        = support.variable
+}
+
+.string : style {
+   color                 = #CE9178
+   textmate_scope        = string
+}
+
+.keyword : style {
+   color                 = #569CD6
+   textmate_scope        = keyword
+}
+
+.type : style {
+   color                 = #4EC9B0
+   textmate_scope        = support.type
+}
+
+.func : style {
+   color                 = #DCDCAA
+   textmate_scope        = support.function
+}
+
+.special : style {
+   color                 = #C586C0
+   textmate_scope        = keyword.control
+}
+
+.comment : style {
+   color                 = #6A9955
+   textmate_scope        = comment
+}
+
+.numeric : style {
+   color                 = #B5CEA8
+   textmate_scope        = constant.numeric
+}
+
+}
+
+#################################################
+## Parse contexts
+#################################################
+
+contexts [] {
+
+##############################################
+## Main Context - Entry point context
+##############################################
+
+main : context {
+
+   // Color control flow and import/export statements vibrantly
+   : pattern {
+      regex          \= $${__CONTROL_FLOW}
+      styles []       = .special;
+   }
+   
+   // Color all other keywords with the keyword color
+   : pattern {
+      regex          \= $${__KEYWORDS}
+      styles []       = .keyword;
+   }
+   
+   // Color all functions
+   : pattern {
+      regex          \= $${__MY_CONSTANT}(\()
+      styles []       = .func, .white;
+   }
+   
+   // Color custom typenames whenever possible
+   : pattern {
+      regex          \= $${__MY_CONSTANT}(\s+)$${__MY_CONSTANT}(\s*[,();=])
+      styles []       = .type, .white, .variable, .white;
+   }
+   
+   // Color custom typenames in "on" statements
+   : pattern {
+      regex          \= $${__MY_CONSTANT}(\s+on\s+)$${__MY_CONSTANT}
+      styles []       = .type, .keyword, .type;
+   }
+   
+   // Color custom typenames in casting statements
+   : pattern {
+      regex          \= (\()$${__MY_CONSTANT}(\s*\)\s*)$${__MY_CONSTANT}
+      styles []       = .white, .type, .white, .variable;
+   }
+   
+   // Color namespaces as a type
+   : pattern {
+      regex          \= $${__MY_CONSTANT}(::)
+      styles []       = .type, .white;
+   }
+   
+   // Color all variables
+   : pattern {
+      regex          \= $${__MY_CONSTANT}
+      styles []       = .variable;
+   }
+   
+   // Color numerics
+   : include "numeric" ;
+   
+   // Color strings
+   : inline_push {
+      regex          \= (\")
+      styles []       = .string;
+      default_style   = .string
+      : pop {
+         regex       \= (\")
+         styles []    = .string;
+      }
+   }
+   
+   // Color comments
+   : include "multi_line_comment" ;
+   
+   : pattern {
+      regex          \= (//.*)
+      styles []       = .comment;
+   }
+   
+   // Color all other symbols white
+   : pattern {
+      regex          \= ([^\s])
+      styles []       = .white;
+   }
+   
+}
+
+#################################################
+## End of Contexts
+#################################################
+
+###########################################
+## Numeric Context
+###########################################
+
+numeric : context {
+   : pattern {
+      regex          \= (\b\d+.?\d+)
+      styles []       = .numeric;
+   }
+}
+
+###########################################
+## Multi Line Comment Context
+###########################################
+
+multi_line_comment : context {
+   description        = multiline
+   : inline_push {
+      regex          \= (/\*)
+      styles []       = .comment;
+      default_style   = .comment
+      : pop {
+         regex       \= (\*/)
+         styles []    = .comment;
+      }
+   }
+}
+   
+}
