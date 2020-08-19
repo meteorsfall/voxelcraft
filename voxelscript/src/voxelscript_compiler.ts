@@ -6,9 +6,13 @@ import { VSCompilerContext } from './voxelscript_compiler_context';
 
 const TRACE_PARSER = false;
 
-function error_to_string(module_name : string, file_path : string, code : string, start_data : any, end_data : any, msg : string) {
+function error_to_string(module_name : string, file_path : string, code : string, err : any) {
   const width = 80;
   const height = 6;
+
+  let start_data = err.location.start;
+  let end_data = err.location.end;
+  let msg = err.message;
 
   let lines = code.split('\n');
 
@@ -35,6 +39,8 @@ function error_to_string(module_name : string, file_path : string, code : string
   for(let i = 0; i < max_num_digits; i++) {
     band += "~";
   }
+
+  output += '\n';
   output += band + ' Error parsing module ' + module_name + ' ' + band + '\n';
 
   // Print error filename and row/col
@@ -45,30 +51,6 @@ function error_to_string(module_name : string, file_path : string, code : string
 
   for(let i = top_line; i <= bottom_line; i++) {
     let line = lines[i-1];
-    if (start_line + 1 <= i && i <= end_line + 1) {
-      // Print line #
-      output += i;
-      for(let j = 0; j < max_num_digits - ("" + i).length; j++) {
-        output += " ";
-      }
-      // Print line with ^ under the marked columns
-      output += " | ";
-      for(let c = left_col; c <= right_col && c < lines[i-2].length; c++) {
-        let should_point = true;
-        if (c < start_col && i == start_line + 1) {
-          should_point = false;
-        }
-        if (end_col < c && i == end_line + 1) {
-          should_point = false;
-        }
-        if (should_point) {
-          output += "^";
-        } else {
-          output += " ";
-        }
-      }
-      output += "\n";
-    }
     // Print line #
     output += i;
     for(let j = 0; j < max_num_digits - ("" + i).length; j++) {
@@ -84,13 +66,53 @@ function error_to_string(module_name : string, file_path : string, code : string
       output += ch;
     }
     output += '\n';
+    // Print ^ below error regions of the line
+    if (start_line <= i && i <= end_line) {
+      // Print line #
+      output += i;
+      for(let j = 0; j < max_num_digits - ("" + i).length; j++) {
+        output += " ";
+      }
+      // Print line with ^ under the marked columns
+      output += " | ";
+      for(let c = left_col; c <= right_col && c < line.length; c++) {
+        let should_point = true;
+        if (c < start_col && i == start_line) {
+          should_point = false;
+        }
+        if (end_col < c && i == end_line) {
+          should_point = false;
+        }
+        if (should_point) {
+          output += "^";
+        } else {
+          output += " ";
+        }
+      }
+      output += "\n";
+    }
   }
   for(let j = 0; j < max_num_digits; j++) {
     output += " ";
   }
   output += " \\--- ";
-  output += msg;
-  output += "\n";
+  output += "Expected ";
+
+  // Format list of expected symbols
+  let expected_arr : string[] = [];
+  for(let e of err.expected) {
+    if (e.text) {
+      expected_arr.push("\"" + e.text + "\"");
+    } else {
+      expected_arr.push(e.description);
+    }
+  }
+  expected_arr = [...Array.from(new Set(expected_arr))];
+  if (expected_arr.length > 1) {
+    expected_arr[expected_arr.length - 1] = "or " + expected_arr[expected_arr.length - 1];
+  }
+  output += expected_arr.join(", ");
+  output += ", but character \"" + err.found + "\" found instead.\n";
 
   return output;
 }
@@ -153,7 +175,7 @@ for(let file_data of subfiles) {
     const gap = 80;
     let err_str = error_to_string(
       voxelscript_module_name, file_data.filename,
-      voxelscript_data, err.location.start, err.location.end, err.message
+      voxelscript_data, err
     );
     console.log(err_str);
   }

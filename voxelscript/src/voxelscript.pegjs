@@ -104,7 +104,7 @@ typed_argument_with_comma
 
 // (type1 id1, type2 id2, type3, id3)
 typed_argument_list
-  = "(" _ args:(typed_argument typed_argument_with_comma*)? _ ")" { return flatten_comma(args); }
+  = START_OF_ARGUMENT_LIST _ args:(typed_argument typed_argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 typed_argument_with_underscore
   = typed_argument
@@ -115,7 +115,7 @@ typed_argument_with_comma_with_underscore
 
 // (type1 id1, type2 id2, type3, id3)
 typed_argument_list_with_underscore
-  = "(" _ args:(typed_argument_with_underscore typed_argument_with_comma_with_underscore*)? _ ")" { return flatten_comma(args); }
+  = START_OF_ARGUMENT_LIST _ args:(typed_argument_with_underscore typed_argument_with_comma_with_underscore*)? _ ")" { return flatten_comma(args); }
 
 argument
   = _ e:expression _ { return e; }
@@ -123,8 +123,11 @@ argument
 argument_with_comma
   = _ "," _ a:argument { return a; }
 
+START_OF_ARGUMENT_LIST "argument list \"(\""
+  = "("
+
 argument_list
-  = "(" _ args:(argument argument_with_comma*)? _ ")" { return flatten_comma(args); }
+  = START_OF_ARGUMENT_LIST _ args:(argument argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 expression
   = e:(precedence_15) { return {type: "expression", value:e}; }
@@ -178,7 +181,7 @@ precedence_6_extensions
   / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
   / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs}; }
   / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
-  / __ IS __ NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs}; }
+  / __ IS_NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs}; }
   / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_6
@@ -206,36 +209,44 @@ precedence_3_extensions
 precedence_3
   = lhs:precedence_2 many_rhs:precedence_3_extensions* { return leftAssoc(lhs, many_rhs); }
 
-UNARY_NEW "unary operator"
+PREFIX_NEW "prefix operator"
   = NEW __
-UNARY_MINUS "unary operator"
+PREFIX_MINUS "prefix operator"
   = "-"
-UNARY_PLUSPLUS "unary operator"
+PREFIX_PLUSPLUS "prefix operator"
   = "++"
-UNARY_MINUSMINUS "unary operator"
+PREFIX_MINUSMINUS "prefix operator"
   = "--"
-UNARY_LOGICAL_NOT "unary operator"
+PREFIX_LOGICAL_NOT "prefix operator"
   = "!"
-UNARY_BITWISE_NOT "unary operator"
+PREFIX_BITWISE_NOT "prefix operator"
   = "~"
+
+CAST_LPAREN "explicit cast \"(\""
+  = "("
 
 // Right Associative
 precedence_2
-  = "(" _ lhs:type _ ")" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
-  / UNARY_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
-  / UNARY_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
-  / UNARY_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
-  / UNARY_MINUSMINUS _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
-  / UNARY_LOGICAL_NOT _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs}; }
-  / UNARY_BITWISE_NOT _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs}; }
+  = CAST_LPAREN _ lhs:type _ ")" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
+  / PREFIX_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
+  / PREFIX_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
+  / PREFIX_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
+  / PREFIX_MINUSMINUS _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
+  / PREFIX_LOGICAL_NOT _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs}; }
+  / PREFIX_BITWISE_NOT _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs}; }
   / precedence_1
+
+POSTFIX_PLUSPLUS "postfix operator"
+  = "++"
+POSTFIX_MINUSMINUS "postfix operator"
+  = "--"
 
 precedence_1_extensions
   = _ "." _ rhs:value { return {type: "member_of", capture_lhs: "lhs", rhs: rhs}; }
   / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs}; }
   / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args}; }
-  / _ "++" { return {type: "postfix_plus", capture_lhs: "lhs"}; }
-  / _ "--" { return {type: "postfix_minus", capture_lhs: "lhs"}; }
+  / _ POSTFIX_PLUSPLUS { return {type: "postfix_plus", capture_lhs: "lhs"}; }
+  / _ POSTFIX_MINUSMINUS { return {type: "postfix_minus", capture_lhs: "lhs"}; }
 
 precedence_1
   = lhs:precedence_0 many_rhs:precedence_1_extensions* { return leftAssoc(lhs, many_rhs); }
@@ -410,7 +421,7 @@ IMPLEMENT = "implement"
 PRIVATE = "private"
 ON = "on"
 NEW = "new"
-IS = "is"
+IS "binary operator" = "is"
 NOT = "not"
 IF = "if"
 ELSE = "else"
@@ -424,27 +435,28 @@ VOID = "void"
 ARITHMETIC_SYMBOL
  = PLUS / MINUS / ASTERISK / DIVIDE / MODULUS / LEFT_SHIFT / RIGHT_SHIFT / BITWISE_AND / BITWISE_XOR / BITWISE_OR
 
-PLUS = "+"(!"=") {return "+"}
-MINUS = "-"(!"=") {return "-"}
-ASTERISK = "*"(!"=") {return "*"}
-DIVIDE = "/"(!"=") {return "/"}
-MODULUS = "%"(!"=") {return "%"}
-LEFT_SHIFT = "<<"(!"=") {return "<<"}
-RIGHT_SHIFT = ">>"(!"=") {return ">>"}
-BITWISE_AND = "&"(!"=") {return "&"}
-BITWISE_XOR = "^"(!"=") {return "^"}
-BITWISE_OR = "|"(!"=") {return "|"}
+IS_NOT "binary operator" = IS __ NOT
+PLUS "binary operator" = "+"(!"=") {return "+"}
+MINUS "binary operator" = "-"(!"=") {return "-"}
+ASTERISK "binary operator" = "*"(!"=") {return "*"}
+DIVIDE "binary operator" = "/"(!"=") {return "/"}
+MODULUS "binary operator" = "%"(!"=") {return "%"}
+LEFT_SHIFT "binary operator" = "<<"(!"=") {return "<<"}
+RIGHT_SHIFT "binary operator" = ">>"(!"=") {return ">>"}
+BITWISE_AND "binary operator" = "&"(!"=") {return "&"}
+BITWISE_XOR "binary operator" = "^"(!"=") {return "^"}
+BITWISE_OR "binary operator" = "|"(!"=") {return "|"}
 
-LOGICAL_OR = "||"(!"=") {return "||"}
-LOGICAL_AND = "&&"(!"=") {return "&&"}
-LOGICAL_EQUAL = "=="(!"=") {return "=="}
-LOGICAL_UNEQUAL = "!="(!"=") {return "!="}
-LESS_THAN = "<"(!"=") {return "<"}
-LESS_THAN_OR_EQUAL = "<="(!"=") {return "<="}
-GREATER_THAN = ">"(!"=") {return ">"}
-GREATER_THAN_OR_EQUAL = ">="(!"=") {return ">="}
+LOGICAL_OR "binary operator" = "||"(!"=") {return "||"}
+LOGICAL_AND "binary operator" = "&&"(!"=") {return "&&"}
+LOGICAL_EQUAL "binary operator" = "=="(!"=") {return "=="}
+LOGICAL_UNEQUAL "binary operator" = "!="(!"=") {return "!="}
+LESS_THAN "binary operator" = "<"(!"=") {return "<"}
+LESS_THAN_OR_EQUAL "binary operator" = "<="(!"=") {return "<="}
+GREATER_THAN "binary operator" = ">"(!"=") {return ">"}
+GREATER_THAN_OR_EQUAL "binary operator" = ">="(!"=") {return ">="}
 
-EQUAL = "="(!"=") {return "="}
+EQUAL "assignment operator" = "="(!"=") {return "="}
 
 ARROW = "=>" {return "=>"}
 UNDERSCORE = "_" {return "_"}
