@@ -1,0 +1,17 @@
+{
+	"name": "voxelscript_extension_language_client",
+	"description": "Language Client",
+	"author": "VoxelCraft",
+	"license": "MIT",
+	"version": "0.1.0",
+	"engines": {
+		"vscode": "^1.33.0"
+	},
+	"scripts": {},
+	"dependencies": {
+		"vscode-languageclient": "^5.2.1"
+	},
+	"devDependencies": {
+		"@types/vscode": "^1.32.0"
+	}
+}

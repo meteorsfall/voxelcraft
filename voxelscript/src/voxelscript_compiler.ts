@@ -3,6 +3,24 @@ import * as Tracer from 'pegjs-backtrace';
 import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'fs';
 import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
+import minimist from 'minimist';
+
+let argv = minimist(process.argv.slice(2));
+
+let build_target : string = "";
+let source : string = "";
+
+if (argv['build-target']) {
+  build_target = argv['build-target'] + '/';
+} else {
+  throw new Error("No --build-target given!");
+}
+
+if (argv['source']) {
+  source = argv['source'] + '/';
+} else {
+  throw new Error("No --source given!");
+}
 
 const TRACE_PARSER = false;
 
@@ -47,7 +65,7 @@ function error_to_string(module_name : string, file_path : string, code : string
   for(let i = 0; i < max_num_digits; i++) {
     output += ">";
   }
-  output += " " + file_path + ":" + start_line + ":" + start_col + "\n";
+  output += " " + file_path + ":" + start_line + ":" + start_col + ' -> ' + end_line + ':' + end_col + "\n";
 
   for(let i = top_line; i <= bottom_line; i++) {
     let line = lines[i-1];
@@ -143,10 +161,11 @@ function print_ast(a : any) {
 }
 
 // Get all voxelscript subfiles
-let subfiles = getAllSubfiles("./tests/voxelscript_test");
+console.log("SOURCE", source);
+let subfiles = getAllSubfiles(source);
 
-// Creat PegJs parser for .vs files
-const PEGJS_FILE = './src/voxelscript.pegjs';
+// Create PegJs parser for .vs files
+const PEGJS_FILE = __dirname + '/voxelscript.pegjs';
 let pegjs_data = readFileSync(PEGJS_FILE, 'utf8');
 let parser = peg.generate(pegjs_data, {cache:true, trace:TRACE_PARSER});
 
@@ -231,14 +250,13 @@ if (!failed) {
   if (!compiler_context.compile_modules()) {
     console.log("Failed to compile!");
   } else {
-    const BUILD_TARGET = "./tests/build";
-    if (!existsSync(BUILD_TARGET)){
-      mkdirSync(BUILD_TARGET);
+    if (!existsSync(build_target)){
+      mkdirSync(build_target);
     }
-    writeFileSync(BUILD_TARGET + "/Base.ts", BASE);
+    writeFileSync(build_target + "/Base.ts", BASE);
     for (let module_name of compiler_context.get_modules()) {
       let compiled = compiler_context.get_compiled_module(module_name)!;
-      writeFileSync(BUILD_TARGET + "/_VS_" + module_name + ".ts", compiled);
+      writeFileSync(build_target + "/_VS_" + module_name + ".ts", compiled);
     }
     console.log();
     console.log("Compilation Succeeded!");

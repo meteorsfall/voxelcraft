@@ -4,8 +4,10 @@
   "description": "VoxelScript Compiler",
   "main": "create_voxelscript_parser.js",
   "dependencies": {
+    "@types/minimist": "^1.2.0",
     "@types/node": "^14.6.0",
     "@types/pegjs": "^0.10.2",
+    "minimist": "^1.2.5",
     "pegjs": "^0.10.0",
     "pegjs-backtrace": "^0.2.0",
     "typescript": "^3.9.7"
@@ -14,8 +16,8 @@
     "@types/node": "^14.6.0"
   },
   "scripts": {
-    "compile_compiler": "cd src; npx tsc; cd ..",
-    "test": "npm run compile_compiler; node ./src/build/voxelscript_compiler.js"
+    "compile_compiler": "cd src; npx tsc; cp voxelscript.pegjs build; cd ..; cp -r ./src/build ./voxelscript_extension/server/out/voxelscript_compiler",
+    "test": "npm run compile_compiler; node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
   },
   "author": "VoxelCraft",
   "license": "ISC"

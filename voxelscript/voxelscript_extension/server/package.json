@@ -1,0 +1,14 @@
+{
+  "name": "voxelscript_extension_language_server",
+  "description": "VoxelScript Language Server",
+  "version": "0.1.0",
+  "author": "VoxelCraft",
+  "license": "MIT",
+  "engines": {
+    "node": "*"
+  },
+  "dependencies": {
+    "vscode-languageserver": "^5.2.1"
+  },
+  "scripts": {}
+}
