@@ -190,6 +190,9 @@ class VSCompilerContext {
       this.write_output(" " + op + " ");
       this.render_subexpression(e.rhs);
       break;
+    case "is_not":
+      this.write_output("!");
+      // Pass onto "is"
     case "is":
       this.write_output("(<any> <unknown>")
       this.render_subexpression(e.lhs);
@@ -273,6 +276,7 @@ class VSCompilerContext {
   
     switch (data.type) {
     case "module":
+      this.write_output("import {int, double, bool, applyMixins, cast} from \"./Base\";\n");
       for(let top_level of data.body) {
         this.render_statement(top_level);
       }
@@ -283,10 +287,13 @@ class VSCompilerContext {
       if (raw_import_id in this.modules) {
         import_location = this.modules[raw_import_id].url;
       }
-      this.write_output("import " + raw_import_id + ";\n");
+      this.write_output("import * from \"./" + raw_import_id + "\";\n");
       break;
     case "const":
       this.write_output("const " + this.parse_identifier(data.identifier) + " = " + data.value.value + ";\n");
+      break;
+    case "typedef":
+      // TODO: Impl typedef
       break;
     case "export":
       this.write_output("export {");
@@ -400,6 +407,8 @@ class VSCompilerContext {
     // *************
     // Statements
     // *************
+    case "null_statement":
+      break;
     case "variable_declaration":
       if (data.private) {
         this.write_output("private ");
@@ -449,20 +458,38 @@ class VSCompilerContext {
 
       this.write_output("\n");
       break;
+    case "for_each":
+      this.write_output("for (let " + this.parse_identifier(data.item_identifier) + " : " + this.parse_type(data.item_type) + " in ");
+      this.render_expression(data.collection);
+      this.write_output(" ");
+
+      this.render_statement(data.body);
+
+      this.write_output("\n");
+      break;
     default:
       throw new Error("type did not match in render_statement: " + data.type);
     }
   }
 
-  add_module(module_name, module) {
-    this.set_module(module_name, module);
-    this.render_statement(module);
-    return this.output;
+  add_module(module_name, voxelscript) {
+    if (this.get_module(module_name)) {
+      throw "Module of name <" + module_name + "> has already been added to this compilation target!";
+    }
+    this.set_module(module_name, voxelscript);
   }
 
   compile_modules() {
-    for(let module_name of this.modules) {
-      console.log("Module: " + module_name);
+    for(let module_name in this.modules) {
+      let m : module = this.modules[module_name];
+      this.output = "";
+      try {
+        this.render_statement(m.voxelscript);
+      } catch(e) {
+        console.log("Error: ", e, " in module ", module_name);
+        console.log(JSON.stringify(m.voxelscript, null, 4));
+      }
+      m.compiled = this.output;
     }
   }
 

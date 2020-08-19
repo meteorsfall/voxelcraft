@@ -37,14 +37,14 @@ module
 
 // A top level statement is any of the following
 top_level
-  = _ top_level:(import / const / trait / class / class_implementation / trait_implementation) _ { return top_level; }
+  = _ top_level:(import / typedef / const / trait / class / class_implementation / trait_implementation / variable_definition) _ { return top_level; }
 
 comma_identifier
   = _ "," _ i:identifier { return i; }
 
 // Export statement lists the public-facing objects of the module
 export
-  = EXPORT __ "{" _ args:(identifier comma_identifier*) _"}" ENDSTATEMENT { return {type:"export", args:flatten_comma(args)}; };
+  = EXPORT __ "{" _ args:(identifier comma_identifier*)? _"}" ENDSTATEMENT { return {type:"export", args:flatten_comma(args)}; };
 
 // *************************
 // Top-Level named blocks
@@ -66,13 +66,16 @@ class_implementation
 trait_implementation
   = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b}; }
 
+typedef
+  = TYPEDEF __ f:function_declaration { return {type:"typedef", value: f}; }
+
 // *************************
 // Blocks
 // *************************
 
 // A trait block consists of a set of function declarations
 trait_block
-  = "{" _ decls:(function_declaration)* _ "}" { return decls; }
+  = "{" _ decls:(function_declaration / function_implementation)* _ "}" { return decls; }
 
 // A class block consists of a set of function and variable declarations, with an optional init declaration
 class_block
@@ -175,6 +178,7 @@ precedence_6_extensions
   / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
   / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs}; }
   / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
+  / __ IS __ NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs}; }
   / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs}; }
 
 precedence_6
@@ -265,7 +269,11 @@ private_function_implementation
 // All Statements
 // *************************
 
-statement = simple_statement / variable_declaration / variable_definition / if / for / while / return / block_statement / throw
+statement
+  = simple_statement / variable_declaration / variable_definition / if / for / while / return / block_statement / throw / null_statement
+
+null_statement
+  = ENDSTATEMENT { return {type:"null_statement"} }
 
 block_statement
   = b:function_block { return {type:"block_statement", body:b}; }
@@ -280,7 +288,8 @@ if
   
 for
   = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b}; }
-  
+  / FOR _ "("  _ t:type __ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_type":t, "item_identifier":id, "collection":e, body:b}; }
+
 while
   = WHILE _ "(" _ c:expression _ ")" _ b:statement _ { return {type:"while", condition: c, body:b}; }
 
@@ -302,13 +311,19 @@ throw
 
 // General identifier
 general_identifier
-  = !(KEYWORDS ![a-zA-Z_0-9]) name:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return {type:"identifier", value: name[0] + (name[1].join ? name[1].join("") : "")}; }
+  = !(KEYWORDS ![a-zA-Z_0-9]) id:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return id[0] + (id[1] ? id[1].join("") : ""); }
 
 this
   = THIS { return {type:"this", value:"this"} }
 
+general_identifier_with_namespace
+  = "::" id:general_identifier { return "::" + id; }
+
+general_identifier_with_namespacing
+  = name:(general_identifier (general_identifier_with_namespace)*) { return {type:"identifier", value: flatten_comma(name).join("")}; }
+
 identifier
-  = this / general_identifier
+  = id:(this / general_identifier_with_namespacing) ![:] {return id;}
 
 // Integer
 integer
@@ -352,7 +367,7 @@ __ = ([ \t\r\n] / multi_line_comment / single_line_comment)+
 // Constants
 // *************************
 
-KEYWORDS = THIS / INT / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / IF / ELSE / FOR / WHILE / THROW / EXPORT
+KEYWORDS = THIS / INT / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
 
 THIS = "this"
 INT = "int"
@@ -370,12 +385,14 @@ PRIVATE = "private"
 ON = "on"
 NEW = "new"
 IS = "is"
+NOT = "not"
 IF = "if"
 ELSE = "else"
 FOR = "for"
 WHILE = "while"
 THROW = "throw"
 EXPORT = "export"
+TYPEDEF = "typedef"
 
 ARITHMETIC_SYMBOL
  = PLUS / MINUS / ASTERISK / DIVIDE / MODULUS / LEFT_SHIFT / RIGHT_SHIFT / BITWISE_AND / BITWISE_XOR / BITWISE_OR

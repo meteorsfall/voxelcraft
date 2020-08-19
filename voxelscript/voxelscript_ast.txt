@@ -9,7 +9,8 @@ module {
         class,
         class_implementation,
         trait_implementation,
-        export
+        export,
+        variable_definition,
     ]
 }
 
@@ -28,7 +29,8 @@ trait {
     type: "trait",
     identifier: identifier,
     body: [
-        function_declaration
+        function_declaration,
+        function_implementation
     ]
 }
 
