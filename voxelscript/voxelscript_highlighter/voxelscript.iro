@@ -28,7 +28,7 @@ file_extensions []     = vs;
 ################################################################
 
 __CONTROL_FLOW \= (return|import|if|else|for|while|export)(?!\w)
-__KEYWORDS \= (this|int|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|void)(?!\w)
+__KEYWORDS \= (true|false|void|=>|this|int|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef)(?!\w)
 __MY_CONSTANT \= (\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
 __NUMERIC \= (\b\d+(\.\d+)?)(?!\w)
 
@@ -110,6 +110,34 @@ main : context {
    
    // Color all new calls with type colors
    : pattern {
+      regex          \= (\b_\b)
+      styles []       = .white;
+   }
+   
+   // Color top-level block headers
+   : inline_push {
+      regex          \= (implement|class|trait)
+      styles []       = .keyword;
+      : pop {
+         regex       \= ({)
+         styles []    = .white;
+      }
+      : pattern {
+         regex       \= (on)
+         styles []    = .keyword;
+      }
+      : pattern {
+         regex       \= (::)
+         styles []    = .white;
+      }
+      : pattern {
+         regex       \= $${__MY_CONSTANT}
+         styles []    = .type;
+      }
+   }
+   
+   // Color all new calls with type colors
+   : pattern {
       regex          \= (new)(\s+)$${__MY_CONSTANT}
       styles []       = .keyword, .white, .type;
    }
@@ -120,28 +148,28 @@ main : context {
       styles []       = .keyword;
    }
    
+   // Color custom typenames whenever possible
+   : pattern {
+      regex          \= $${__MY_CONSTANT}(\s+)$${__MY_CONSTANT}(\s*[,);=])
+      styles []       = .type, .white, .variable, .white;
+   }
+   
+   // Color custom typenames whenever possible
+   : pattern {
+      regex          \= $${__MY_CONSTANT}(\s+)$${__MY_CONSTANT}(\s*[(])
+      styles []       = .type, .white, .func, .white;
+   }
+   
    // Color all functions
    : pattern {
       regex          \= $${__MY_CONSTANT}(\()
       styles []       = .func, .white;
    }
    
-   // Color custom typenames whenever possible
-   : pattern {
-      regex          \= $${__MY_CONSTANT}(\s+)$${__MY_CONSTANT}(\s*[,();=])
-      styles []       = .type, .white, .variable, .white;
-   }
-   
-   // Color custom typenames in "on" statements
-   : pattern {
-      regex          \= $${__MY_CONSTANT}(\s+on\s+)$${__MY_CONSTANT}
-      styles []       = .type, .keyword, .type;
-   }
-   
    // Color custom typenames in casting statements
    : pattern {
-      regex          \= (\()$${__MY_CONSTANT}(\s*\)\s*)$${__MY_CONSTANT}
-      styles []       = .white, .type, .white, .variable;
+      regex          \= (\()$${__MY_CONSTANT}(\s*\)\s*)(?=\w)
+      styles []       = .white, .type, .white;
    }
    
    // Color namespaces as a type
