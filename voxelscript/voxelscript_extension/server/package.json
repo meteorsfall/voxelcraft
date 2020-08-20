@@ -8,6 +8,7 @@
     "node": "*"
   },
   "dependencies": {
+    "file-uri-to-path": "^2.0.0",
     "vscode-languageserver": "^5.2.1"
   },
   "scripts": {}

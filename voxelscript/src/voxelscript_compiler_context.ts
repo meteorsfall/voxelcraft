@@ -32,6 +32,7 @@ class VSCompilerContext {
 
   // Error holding
   missing_dependency : dependency | null = null;
+  error_reason : string = "";
 
   private reset_unused_variable_name() {
     this.unused_variable_name = "UNUSED_";
@@ -613,6 +614,14 @@ class VSCompilerContext {
     }
   }
 
+  remove_module(module_name : string) {
+    module_name = "_VS_" + module_name;
+    if (!(module_name in this.modules)) {
+      throw new Error("Cannot remove module that doesn't exist!");
+    }
+    delete this.modules[module_name];
+  }
+
   add_module(module_name : string, voxelscript_ast : any) {
     module_name = "_VS_" + module_name;
     if (this.get_module(module_name)) {
@@ -663,7 +672,18 @@ class VSCompilerContext {
         location: null
       };
       let original_missing_dependency = null;
+      let full_dependency_chain : any = {};
       while(cur != null) {
+        if (full_dependency_chain[cur.module_name]) {
+          console.log("Recursive Dependency!");
+          this.missing_dependency = {
+            module_name: original_missing_dependency!.module_name.slice(4),
+            location: original_missing_dependency!.location,
+          };
+          this.error_reason = "Recursive Dependency Found";
+          return false;
+        }
+        full_dependency_chain[cur.module_name] = true;
         let was_first = prev == null;
         prev = cur;
         cur = this.missing_dependencies(prev.module_name);
@@ -675,6 +695,7 @@ class VSCompilerContext {
             module_name: original_missing_dependency!.module_name.slice(4),
             location: original_missing_dependency!.location,
           };
+          this.error_reason = "Dependency failed to compile";
           return false;
         }
       }

@@ -4,27 +4,39 @@ import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSy
 import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
 import minimist from 'minimist';
+import { pathToFileURL } from 'url';
+
+interface vspackage {
+  package_name:string,
+  package_path:string,
+  options: any
+};
 
 let argv = minimist(process.argv.slice(2));
 
 let build_target : string = "";
 let source : string = "";
 let desired_module : string | null = null;
+let override : string | null = null;
 
 if (argv['build-target']) {
-  build_target = argv['build-target'] + '/';
+  build_target = path.resolve(argv['build-target']);
 } else {
   throw new Error("No --build-target given!");
 }
 
 if (argv['source']) {
-  source = argv['source'] + '/';
+  source = path.resolve(argv['source']);
 } else {
   throw new Error("No --source given!");
 }
 
 if (argv['module']) {
   desired_module = argv['module'];
+}
+
+if (argv['override']) {
+  override = path.resolve(argv['override']);
 }
 
 const TRACE_PARSER = false;
@@ -131,7 +143,7 @@ function error_to_string(module_name : string, file_path : string, code : string
   }
   output += " \\--- ";
   if (err.missing_dependency) {
-    output += msg;
+    output += msg + " (" + err.message + ")";
     output += "\n";
   } else {
     output += "Expected ";
@@ -163,12 +175,14 @@ let getAllSubfiles = (baseFolder : string, folderList : folder_information[] = [
   let files:string[] = readdirSync(baseFolder).filter(file => !statSync(path.join(baseFolder, file)).isDirectory());
   for (let file of files) {
     let filename = path.join(baseFolder, file);
-    let file_data = readFileSync(filename, 'utf8');
-    folderList.push({
-      filename: filename,
-      name: file.split('.')[0],
-      data: file_data,
-    });
+    if (path.basename(filename).match(/^\w+\.vs$/g)) {
+      let file_data = readFileSync(filename, 'utf8');
+      folderList.push({
+        filename: filename,
+        name: path.basename(filename).split('.')[0],
+        data: file_data,
+      });
+    }
   }
   folders.forEach(folder => {
     getAllSubfiles(path.join(baseFolder,folder), folderList);
@@ -181,12 +195,52 @@ function print_ast(a : any) {
   console.log();
 }
 
+function get_package_json(pathname : string) : vspackage | null {
+  let dir = pathname;
+  while(true) {
+    let try_package_path = path.join(dir, 'vspackage.json');
+    let package_json_data;
+    try {
+      package_json_data = readFileSync(try_package_path, 'utf8');
+    } catch (err) {
+      // Here you get the error when the file was not found,
+      // but you also get any other error
+      if (err.code === 'ENOENT') {
+      } else {
+        console.log(try_package_path + ' not found! Error Code: ' + err.code);
+      }
+    }
+
+    if (typeof(package_json_data) == 'string') {
+      return {
+        package_name: JSON.parse(package_json_data).name,
+        package_path: dir,
+        options: JSON.parse(package_json_data)
+      };
+    }
+
+    // Move up to parent directory
+    let new_dir = path.dirname(dir);
+    if (new_dir == dir) {
+      return null;
+    }
+    dir = new_dir;
+  }
+}
+
 // Get all voxelscript subfiles
 console.log("SOURCE", source);
-let subfiles = getAllSubfiles(source);
+
+let pkg = get_package_json(source);
+if (pkg == null) {
+  console.log('Error: vspackage.json not found in any parent directory.');
+  process.exit(2);
+}
+console.log('Package: ', pkg);
+let subfiles = getAllSubfiles(pkg.package_path);
 
 // Create PegJs parser for .vs files
-const PEGJS_FILE = __dirname + '/voxelscript.pegjs';
+const PEGJS_FILE = path.join(__dirname, 'voxelscript.pegjs');
 let pegjs_data = readFileSync(PEGJS_FILE, 'utf8');
 let parser = peg.generate(pegjs_data, {cache:true, trace:TRACE_PARSER});
 
@@ -197,9 +251,25 @@ let voxelscripts : any = {};
 for(let file_data of subfiles) {
   let voxelscript_module_name = file_data.name;
   let voxelscript_data = file_data.data;
+  if (voxelscripts[voxelscript_module_name]) {
+    if (override) {
+      let filepath = file_data.filename;
+      let relative = path.relative(override, filepath);
+      const isSubdir = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+      console.log(override, filepath, relative, isSubdir);
+      if (!isSubdir) {
+        // Ignoring because it's not in override
+        continue;
+      }
+    }
+    if (voxelscripts[voxelscript_module_name].parsed) {
+      compiler_context.remove_module(voxelscript_module_name);
+    }
+  }
   voxelscripts[voxelscript_module_name] = {
     code: voxelscript_data,
     filepath: file_data.filename,
+    parsed: false
   };
 
   let tracer = null;
@@ -235,6 +305,7 @@ for(let file_data of subfiles) {
     compiler_context.add_module(voxelscript_module_name, ast);
     console.log("Added Module: " + voxelscript_module_name + " (" + file_data.filename + ")");
     console.log();
+    voxelscripts[voxelscript_module_name].parsed = true;
   }
 }
 
@@ -280,7 +351,8 @@ if (desired_module) {
     console.log("Failed to compile!");
     if (compiler_context.missing_dependency) {
       let err_string = error_to_string(desired_module, voxelscripts[desired_module].filepath, voxelscripts[desired_module].code, {
-        missing_dependency: compiler_context.missing_dependency
+        missing_dependency: compiler_context.missing_dependency,
+        message: compiler_context.error_reason
       });
       console.log(err_string);
     }
@@ -296,7 +368,7 @@ if (desired_module) {
 if (!existsSync(build_target)){
   mkdirSync(build_target);
 }
-writeFileSync(build_target + "/Base.ts", BASE);
+writeFileSync(path.join(build_target, "Base.ts"), BASE);
 let modules_to_compile = [];
 if (desired_module) {
   modules_to_compile.push(desired_module);
@@ -305,7 +377,7 @@ if (desired_module) {
 }
 for (let module_name of modules_to_compile) {
   let compiled_data = compiler_context.get_compiled_module(module_name)!;
-  writeFileSync(build_target + "/_VS_" + module_name + ".ts", compiled_data);
+  writeFileSync(path.join(build_target, "_VS_" + module_name + ".ts"), compiled_data);
 }
 console.log();
 console.log("Compilation Succeeded!");

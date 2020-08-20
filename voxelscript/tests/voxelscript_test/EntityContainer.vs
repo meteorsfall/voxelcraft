@@ -1,8 +1,8 @@
 import Entity;
 import Ores;
 import Fuels;
-
-trait Stackable {
+ 
+trait Stackable  {
     int max_stack_size();
 }
 
