@@ -3,10 +3,28 @@ import {
     createConnection,
     DiagnosticSeverity
 } from 'vscode-languageserver';
-import { unlinkSync, createWriteStream, writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync, appendFileSync, symlinkSync, rmdirSync, open } from 'fs';
+import { unlinkSync, createWriteStream, writeFileSync, readFileSync, readdirSync, lstatSync, existsSync, mkdirSync, appendFileSync, symlinkSync, rmdirSync, open } from 'fs';
 import * as path from 'path';
 import * as childProcess from 'child_process';
 import uri_to_path = require('file-uri-to-path');
+
+function recursivelyDelete(filePath) {
+    //check if directory or file
+    let stats = lstatSync(filePath);
+      
+    //if file unlinkSync
+    if (stats.isFile() || stats.isSymbolicLink()) {
+     unlinkSync(filePath);
+    }
+    //if directory, readdir and call recursivelyDelete for each file
+    else {
+     let files = readdirSync(filePath);
+     files.forEach((file) => {
+      recursivelyDelete(path.join(filePath, file));
+     });
+     rmdirSync(filePath);
+    }
+   }
 
 interface vspackage {
   package_name:string,
@@ -198,9 +216,10 @@ documents.listen(connection);
 // in the passed params the rootPath of the workspace plus the client capabilites.
 let workspaceRoot;
 connection.onInitialize((params) => {
-    if (!existsSync(PROJECTS_PATH)) {
-        mkdirSync(PROJECTS_PATH);
+    if (existsSync(PROJECTS_PATH)) {
+        recursivelyDelete(PROJECTS_PATH);
     }
+    mkdirSync(PROJECTS_PATH);
     workspaceRoot = params.rootPath;
     return {
         capabilities: {
