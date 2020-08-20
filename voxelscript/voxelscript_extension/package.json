@@ -16,6 +16,16 @@
 	],
 	"main": "./client/build/extension",
 	"contributes": {
+        "languages": [{
+            "id": "voxelscript",
+            "aliases": ["VoxelScript", "voxelscript"],
+            "extensions": [".vs"]
+        }],
+        "grammars": [{
+            "language": "voxelscript",
+            "scopeName": "source.voxelscript",
+            "path": "./voxelscript_highlighter/syntaxes/voxelscript.tmLanguage"
+        }],
 		"configuration": {
 			"type": "object",
 			"title": "VoxelScript LSP configuration",
