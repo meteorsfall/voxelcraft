@@ -347,7 +347,7 @@ general_identifier_with_namespacing
   = name:(general_identifier (general_identifier_with_namespace)*) { return {type:"identifier", value: flatten_comma(name).join("")}; }
 
 identifier "identifier"
-  = id:(this / general_identifier_with_namespacing) ![:] {return id;}
+  = id:(this / general_identifier_with_namespacing) ![:] { return {...id, location: location()}; }
 
 // Boolean
 bool

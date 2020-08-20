@@ -16,8 +16,8 @@
     "@types/node": "^14.6.0"
   },
   "scripts": {
-    "compile_compiler": "cd src; npx tsc; cp voxelscript.pegjs build; cd ..; cp -r ./src/build ./voxelscript_extension/server/build/voxelscript_compiler",
-    "test": "npm run compile_compiler; node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
+    "compile": "cd voxelscript_extension && npm run compile && cd .. && cd src && npx tsc && cp voxelscript.pegjs build && cd .. && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
+    "test": "npm run compile; node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
   },
   "author": "VoxelCraft",
   "license": "ISC"

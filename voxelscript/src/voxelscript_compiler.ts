@@ -9,6 +9,7 @@ let argv = minimist(process.argv.slice(2));
 
 let build_target : string = "";
 let source : string = "";
+let desired_module : string | null = null;
 
 if (argv['build-target']) {
   build_target = argv['build-target'] + '/';
@@ -22,15 +23,29 @@ if (argv['source']) {
   throw new Error("No --source given!");
 }
 
+if (argv['module']) {
+  desired_module = argv['module'];
+}
+
 const TRACE_PARSER = false;
 
 function error_to_string(module_name : string, file_path : string, code : string, err : any) {
   const width = 80;
   const height = 6;
+  
+  let start_data;
+  let end_data;
+  let msg;
 
-  let start_data = err.location.start;
-  let end_data = err.location.end;
-  let msg = err.message;
+  if (err.missing_dependency) {
+    start_data = err.missing_dependency.location.start;
+    end_data = err.missing_dependency.location.end;
+    msg = 'Missing Dependency: ' + err.missing_dependency.module_name;
+  } else {
+    start_data = err.location.start;
+    end_data = err.location.end;
+    msg = err.message;
+  }
 
   let lines = code.split('\n');
 
@@ -98,7 +113,8 @@ function error_to_string(module_name : string, file_path : string, code : string
         if (c < start_col && i == start_line) {
           should_point = false;
         }
-        if (end_col < c && i == end_line) {
+        // Clip off the end_col itself
+        if (end_col <= c && i == end_line) {
           should_point = false;
         }
         if (should_point) {
@@ -114,23 +130,28 @@ function error_to_string(module_name : string, file_path : string, code : string
     output += " ";
   }
   output += " \\--- ";
-  output += "Expected ";
+  if (err.missing_dependency) {
+    output += msg;
+    output += "\n";
+  } else {
+    output += "Expected ";
 
-  // Format list of expected symbols
-  let expected_arr : string[] = [];
-  for(let e of err.expected) {
-    if (e.text) {
-      expected_arr.push("\"" + e.text + "\"");
-    } else {
-      expected_arr.push(e.description);
+    // Format list of expected symbols
+    let expected_arr : string[] = [];
+    for(let e of err.expected) {
+      if (e.text) {
+        expected_arr.push("\"" + e.text + "\"");
+      } else {
+        expected_arr.push(e.description);
+      }
     }
+    expected_arr = [...Array.from(new Set(expected_arr))];
+    if (expected_arr.length > 1) {
+      expected_arr[expected_arr.length - 1] = "or " + expected_arr[expected_arr.length - 1];
+    }
+    output += expected_arr.join(", ");
+    output += ", but character \"" + err.found + "\" found instead.\n";
   }
-  expected_arr = [...Array.from(new Set(expected_arr))];
-  if (expected_arr.length > 1) {
-    expected_arr[expected_arr.length - 1] = "or " + expected_arr[expected_arr.length - 1];
-  }
-  output += expected_arr.join(", ");
-  output += ", but character \"" + err.found + "\" found instead.\n";
 
   return output;
 }
@@ -170,10 +191,16 @@ let pegjs_data = readFileSync(PEGJS_FILE, 'utf8');
 let parser = peg.generate(pegjs_data, {cache:true, trace:TRACE_PARSER});
 
 let compiler_context = new VSCompilerContext();
-let failed = false;
+let parsing_errors : any = {};
+let voxelscripts : any = {};
+
 for(let file_data of subfiles) {
   let voxelscript_module_name = file_data.name;
   let voxelscript_data = file_data.data;
+  voxelscripts[voxelscript_module_name] = {
+    code: voxelscript_data,
+    filepath: file_data.filename,
+  };
 
   let tracer = null;
   if (TRACE_PARSER) {
@@ -197,6 +224,10 @@ for(let file_data of subfiles) {
       voxelscript_data, err
     );
     console.log(err_str);
+    if (voxelscript_module_name == desired_module) {
+      process.exit(1);
+    }
+    parsing_errors[voxelscript_module_name] = err_str;
   }
 
   if (ast) {
@@ -204,9 +235,6 @@ for(let file_data of subfiles) {
     compiler_context.add_module(voxelscript_module_name, ast);
     console.log("Added Module: " + voxelscript_module_name + " (" + file_data.filename + ")");
     console.log();
-  } else {
-    failed = true;
-    break;
   }
 }
 
@@ -245,20 +273,39 @@ function cast<T>(arg : any, verify : null | string) : T {
 export {int, double, bool, applyMixins, cast};
 `;
 
-if (!failed) {
-  console.log("Compiling...");
-  if (!compiler_context.compile_modules()) {
+console.log("Compiling...");
+
+if (desired_module) {
+  if (!compiler_context.compile_single_module(desired_module)) {
     console.log("Failed to compile!");
-  } else {
-    if (!existsSync(build_target)){
-      mkdirSync(build_target);
+    if (compiler_context.missing_dependency) {
+      let err_string = error_to_string(desired_module, voxelscripts[desired_module].filepath, voxelscripts[desired_module].code, {
+        missing_dependency: compiler_context.missing_dependency
+      });
+      console.log(err_string);
     }
-    writeFileSync(build_target + "/Base.ts", BASE);
-    for (let module_name of compiler_context.get_modules()) {
-      let compiled = compiler_context.get_compiled_module(module_name)!;
-      writeFileSync(build_target + "/_VS_" + module_name + ".ts", compiled);
-    }
-    console.log();
-    console.log("Compilation Succeeded!");
+    process.exit(1);
+  }
+} else {
+  if (!compiler_context.compile_all_modules()) {
+    console.log("Failed to compile!");
+    process.exit(1);
   }
 }
+
+if (!existsSync(build_target)){
+  mkdirSync(build_target);
+}
+writeFileSync(build_target + "/Base.ts", BASE);
+let modules_to_compile = [];
+if (desired_module) {
+  modules_to_compile.push(desired_module);
+} else {
+  modules_to_compile = compiler_context.get_modules();
+}
+for (let module_name of modules_to_compile) {
+  let compiled_data = compiler_context.get_compiled_module(module_name)!;
+  writeFileSync(build_target + "/_VS_" + module_name + ".ts", compiled_data);
+}
+console.log();
+console.log("Compilation Succeeded!");

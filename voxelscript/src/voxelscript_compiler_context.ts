@@ -1,8 +1,13 @@
+interface dependency {
+  module_name : string,
+  location: any
+};
+
 interface module {
   name: string,
   voxelscript_ast: any,
   compiled: string,
-  dependencies: string[],
+  dependencies: dependency[],
   exports: string[] | null,
 };
 
@@ -24,6 +29,9 @@ class VSCompilerContext {
   // Compilation Context
   is_currently_implementing : string | null = null;
   is_currently_implementing_on : string | null = null;
+
+  // Error holding
+  missing_dependency : dependency | null = null;
 
   private reset_unused_variable_name() {
     this.unused_variable_name = "UNUSED_";
@@ -55,7 +63,10 @@ class VSCompilerContext {
     for(let top_level of voxelscript_ast.body) {
       if (top_level.type == "import") {
         let dep = this.parse_identifier(top_level.identifier);
-        m.dependencies.push(dep);
+        m.dependencies.push({
+          module_name: dep,
+          location: top_level.identifier.location
+        });
       }
     }
   }
@@ -610,7 +621,7 @@ class VSCompilerContext {
     this.set_module(module_name, voxelscript_ast);
   }
 
-  compile_module(module_name : string) {
+  private compile_module(module_name : string) {
     let m = this.get_module(module_name);
     if (!m) {
       throw new Error("Cannot compile module that doesn't exist! " + module_name);
@@ -629,35 +640,59 @@ class VSCompilerContext {
     }
   }
 
-  missing_dependencies(module_name : string) {
+  private missing_dependencies(module_name : string) : dependency | null {
     let m = this.get_module(module_name);
     for (let dep of m!.dependencies) {
-      if (!(dep in this.loaded_modules)) {
+      if (!(dep.module_name in this.loaded_modules)) {
         return dep;
       }
     }
     return null;
   }
 
-  compile_modules() {
-    for(let module_name in this.modules) {
-      if (module_name in this.loaded_modules) {
-        continue;
-      }
-      while (!this.loaded_modules[module_name]) {
-        let m = this.get_module(module_name);
-        let prev : string | null = null;
-        let cur : string | null = module_name;
-        while(cur != null) {
-          prev = cur;
-          cur = this.missing_dependencies(prev);
-          if (cur != null && !(cur in this.modules)) {
-            console.log("Missing Dependency! " + cur);
-            return false;
-          }
+  private compile_internal_module(module_name : string) : boolean {
+    if (module_name in this.loaded_modules) {
+      return true;
+    }
+    this.missing_dependency = null;
+    while (!this.loaded_modules[module_name]) {
+      let m = this.get_module(module_name);
+      let prev : dependency | null = null;
+      let cur : dependency | null = {
+        module_name,
+        location: null
+      };
+      let original_missing_dependency = null;
+      while(cur != null) {
+        let was_first = prev == null;
+        prev = cur;
+        cur = this.missing_dependencies(prev.module_name);
+        if (was_first) {
+          original_missing_dependency = cur;
         }
-        console.log("Compiling " + prev);
-        this.compile_module(prev!);
+        if (cur != null && !(cur.module_name in this.modules)) {
+          this.missing_dependency = {
+            module_name: original_missing_dependency!.module_name.slice(4),
+            location: original_missing_dependency!.location,
+          };
+          return false;
+        }
+      }
+      console.log("Compiling " + prev?.module_name);
+      this.compile_module(prev!.module_name);
+    }
+    return true;
+  }
+
+  compile_single_module(module_name : string) {
+    module_name = "_VS_" + module_name;
+    return this.compile_internal_module(module_name);
+  }
+
+  compile_all_modules() {
+    for(let module_name in this.modules) {
+      if (!this.compile_internal_module(module_name)) {
+        return false;
       }
     }
     return true;

@@ -159,7 +159,7 @@ implement Crushable on IronOre {
         Function ToDust = (Entity a) => {return a;};
         Entity ret = ToDust(this);
         EntityContainer stack = new EntityContainer();
-        stack.change(ret, 2 5);
+        stack.change(ret, 2);
         return stack;
     }
 
