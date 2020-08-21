@@ -28,8 +28,8 @@ file_extensions []     = vs;
 ################################################################
 
 __CONTROL_FLOW \= (return|import|if|else|for|while|export)(?!\w)
-__KEYWORDS \= (true|false|void|=>|this|int|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef)(?!\w)
-__MY_CONSTANT \= (\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
+__KEYWORDS \= (true|false|void|this|int|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|=>)(?!\w)
+__IDENTIFIER \= (\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
 __NUMERIC \= (\b\d+(\.\d+)?)(?!\w)
 
 ################################################################
@@ -108,7 +108,7 @@ main : context {
       styles []       = .special;
    }
    
-   // Color all new calls with type colors
+   // Color all _ white, ie underscore parameters
    : pattern {
       regex          \= (\b_\b)
       styles []       = .white;
@@ -131,66 +131,89 @@ main : context {
          styles []    = .white;
       }
       : pattern {
-         regex       \= $${__MY_CONSTANT}
+         regex       \= $${__IDENTIFIER}
          styles []    = .type;
       }
    }
-   
-   // Color all new calls with type colors
+   // Color all "typedef CUSTOM_TYPE = CUSTOM_TYPE;"
    : pattern {
-      regex          \= (\bnew)(\s+)$${__MY_CONSTANT}
+      regex          \= (\btypedef)(\s+)$${__IDENTIFIER}(\s*=\s*)$${__KEYWORDS}(\s*)(\[\])*(\s*;)
+      styles []       = .keyword, .white, .type, .white, .keyword, .white, .white, .white;
+   }
+   
+   // Color all "typedef CUSTOM_TYPE = CUSTOM_TYPE;"
+   : pattern {
+      regex          \= (\btypedef)(\s+)$${__IDENTIFIER}(\s*=\s*)$${__IDENTIFIER}(\s*(\[\])*\s*;)
+      styles []       = .keyword, .white, .type, .white, .type, .white, .white;
+   }
+   
+   // Color all "new CUSTOM_TYPE" and "typdef CUSTOM_TYPE" (The latter to cover lambdas)
+   : pattern {
+      regex          \= (\bnew|\btypedef)(\s+)$${__IDENTIFIER}
       styles []       = .keyword, .white, .type;
    }
    
-   // Color all other keywords with the keyword color
+   // Color all "(typedef CUSTOM_TYPE = args) => KEYWORD;"
+   : pattern {
+      regex          \= (=>)(\s*)$${__KEYWORDS}(;)
+      styles []       = .keyword, .white, .keyword, .white;
+   }
+   
+   // Color all "(typedef CUSTOM_TYPE = args) => CUSTOM_TYPE;"
+   : pattern {
+      regex          \= (=>)(\s*)$${__IDENTIFIER}(;)
+      styles []       = .keyword, .white, .type, .white;
+   }
+   
+   // Color all special keywords with the keyword color
    : pattern {
       regex          \= $${__KEYWORDS}
       styles []       = .keyword;
    }
    
-   // Color custom typenames whenever possible
+   // Color "CUSTOM_TYPE VARIABLE" accordingly
    : pattern {
-      regex          \= $${__MY_CONSTANT}(\[\])*(\s+)$${__MY_CONSTANT}(\s*[,);=])
+      regex          \= $${__IDENTIFIER}(\[\])*(\s+)$${__IDENTIFIER}(\s*[,);=])
       styles []       = .type, .white, .white, .variable, .white;
    }
    
-   // Color custom typenames whenever possible
+   // Color "CUSTOM_TYPE func(" accordingly
    : pattern {
-      regex          \= $${__MY_CONSTANT}(\s+)$${__MY_CONSTANT}(\s*[(])
+      regex          \= $${__IDENTIFIER}(\s+)$${__IDENTIFIER}(\s*[(])
       styles []       = .type, .white, .func, .white;
    }
    
-   // Color all functions
+   // Color "func(" accordingly
    : pattern {
-      regex          \= $${__MY_CONSTANT}(\s*[(])
+      regex          \= $${__IDENTIFIER}(\s*[(])
       styles []       = .func, .white;
    }
    
-   // Color custom typenames in casting statements
+   // Color cast operation "(CUSTOM_TYPE) VARIABLE"
    : pattern {
-      regex          \= (\()$${__MY_CONSTANT}(\s*\)\s*)(?=\w)
+      regex          \= (\()$${__IDENTIFIER}(\s*\)\s*)(?=\w)
       styles []       = .white, .type, .white;
    }
    
-   // Color namespaces as a type
+   // Color namespaces as a type "ns::ns::"var
    : pattern {
-      regex          \= $${__MY_CONSTANT}(::)
+      regex          \= $${__IDENTIFIER}(::)
       styles []       = .type, .white;
    }
    
-   // Color all variables
+   // Color all remaining constants as variables
    : pattern {
-      regex          \= $${__MY_CONSTANT}
+      regex          \= $${__IDENTIFIER}
       styles []       = .variable;
    }
    
-   // Color numerics
+   // Color all numerics
    : pattern {
       regex          \= $${__NUMERIC}
       styles []       = .numeric;
    }
    
-   // Color strings
+   // Color all strings
    : inline_push {
       regex          \= (\")
       styles []       = .string;
