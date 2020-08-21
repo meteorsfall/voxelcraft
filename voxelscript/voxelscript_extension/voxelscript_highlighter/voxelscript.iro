@@ -195,9 +195,9 @@ main : context {
       styles []       = .func, .white;
    }
    
-   // Color cast operation "(CUSTOM_TYPE) VARIABLE"
+   // Color cast operation "<CUSTOM_TYPE> VARIABLE"
    : pattern {
-      regex          \= (\()$${__IDENTIFIER}(\s*\)\s*)(?=\w)
+      regex          \= (\<)$${__IDENTIFIER}(\s*\>\s*)(?=\w)
       styles []       = .white, .type, .white;
    }
    

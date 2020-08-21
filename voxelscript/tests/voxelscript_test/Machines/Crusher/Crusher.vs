@@ -53,7 +53,7 @@ implement Crusher {
             if (new_entity.same_entity_as(NullEntity)) {
                 this.to_crush_entity = NullEntity;
             } else {
-                this.to_crush_entity = ((Crushable)new_entity).crush().entity;
+                this.to_crush_entity = (<Crushable>new_entity).crush().entity;
             }
             if (!old_entity.same_entity_as(new_entity)) {
                 this.current_progress = 0;

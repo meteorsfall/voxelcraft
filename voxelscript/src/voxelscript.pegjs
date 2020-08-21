@@ -223,12 +223,12 @@ PREFIX_LOGICAL_NOT "prefix operator"
 PREFIX_BITWISE_NOT "prefix operator"
   = "~"
 
-CAST_LPAREN "explicit cast \"(\""
-  = "("
+CAST_L "explicit cast \"<\""
+  = "<"
 
 // Right Associative
 precedence_2
-  = CAST_LPAREN _ lhs:type _ ")" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
+  = CAST_L _ lhs:type _ ">" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
   / PREFIX_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
   / PREFIX_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
   / PREFIX_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
