@@ -8,6 +8,12 @@ import * as path from 'path';
 import * as childProcess from 'child_process';
 import uri_to_path = require('file-uri-to-path');
 
+function is_subdir(base:string, child:string):boolean {
+    let relative = path.relative(base, child);
+    const isSubdir = (relative != "") && !relative.startsWith('..') && !path.isAbsolute(relative);
+    return isSubdir;
+  }
+
 function recursivelyDelete(filePath) {
     //check if directory or file
     let stats = lstatSync(filePath);
@@ -31,6 +37,23 @@ interface vspackage {
   package_path:string,
   options: any
 };
+
+function create_generic_diagnostic(msg : string, severity) {
+    return {
+        severity: severity,
+        range: {
+            start: {
+                line: 0,
+                character: 0,
+            },
+            end: {
+                line: 0,
+                character: 0,
+            }
+        },
+        message: msg
+    }
+}
 
 const compiler_path = path.join(__dirname, "voxelscript_compiler", "voxelscript_compiler.js");
 
@@ -69,20 +92,7 @@ function compile(package_name : string, module_name : string) {
             }
             log("Timeout reached!");
             let diagnostics = [];
-            diagnostics.push({
-                severity: DiagnosticSeverity.Error,
-                range: {
-                    start: {
-                        line: 0,
-                        character: 0,
-                    },
-                    end: {
-                        line: 0,
-                        character: 0,
-                    }
-                },
-                message: 'Took too long to compile!'
-            });
+            diagnostics.push(create_generic_diagnostic('Took too long to compile!', DiagnosticSeverity.Error));
             resolve(diagnostics);
             promise_returned = true;
         }, 1500);
@@ -219,6 +229,10 @@ connection.onInitialize((params) => {
     if (existsSync(PROJECTS_PATH)) {
         recursivelyDelete(PROJECTS_PATH);
     }
+    if (existsSync(BUILD_PATH)) {
+        recursivelyDelete(BUILD_PATH);
+    }
+    mkdirSync(BUILD_PATH);
     mkdirSync(PROJECTS_PATH);
     workspaceRoot = params.rootPath;
     return {
@@ -258,20 +272,7 @@ async function update_document(uri, data) {
     let project_name = create_cloned_project_space(uri);
     if (project_name == null) {
         let diagnostics = [];
-        diagnostics.push({
-            severity: DiagnosticSeverity.Error,
-            range: {
-                start: {
-                    line: 0,
-                    character: 0,
-                },
-                end: {
-                    line: 0,
-                    character: 0,
-                }
-            },
-            message: "Error: No vspackage.json found in any parent directory!"
-        });
+        diagnostics.push(create_generic_diagnostic('Error: No vspackage.json found in any parent directory!', DiagnosticSeverity.Error));
         connection.sendDiagnostics({ uri: uri, diagnostics: diagnostics });
         return;
     }
@@ -323,6 +324,14 @@ setInterval(() => {
 }, 50);
 
 documents.onDidChangeContent(async (change) => {
+    
+    let docpath = uri_to_path(change.document.uri);
+    if (is_subdir(PROJECTS_PATH, docpath)) {
+        let diagnostics = [create_generic_diagnostic("Voxelscript file found inside of the internal projects directory", DiagnosticSeverity.Hint)];
+        connection.sendDiagnostics({ uri: change.document.uri, diagnostics: diagnostics });
+        return;
+    }
+
     let uri = change.document.uri;
     if (uri in pending_data) {
         pending.splice(pending.indexOf(uri), 1);

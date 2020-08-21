@@ -33,7 +33,7 @@
 
 // A set of top level statements make up a module 
 module
-  = root:(top_level)+ e:export { return {type:"module", body:root.concat([e])}; }
+  = _ root:(top_level)* e:export { return {type:"module", body:root.concat([e])}; }
 
 // A top level statement is any of the following
 top_level
@@ -83,7 +83,7 @@ class_block
 
 // A class implementation block includes private variables/functions, along with public function implementations
 class_implementation_block
-  = "{" _ decls:((init_implementation / function_implementation / private_variable_declaration / private_variable_definition / private_function_implementation))* _ "}" { return decls; }
+  = "{" _ decls:((init_implementation / function_implementation / variable_declaration / variable_definition / function_implementation))* _ "}" { return decls; }
 
 // A trait implementation block consists of a set of function implementations
 trait_implementation_block
@@ -281,13 +281,6 @@ init_declaration
 
 init_implementation
   = INIT _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"init_implementation", arguments:args, body:b}; }
-
-private_variable_declaration
-  = PRIVATE __ v:variable_declaration { return {...v, private:true}; }
-private_variable_definition
-  = PRIVATE __ v:variable_definition { return {...v, private:true}; }
-private_function_implementation
-  = PRIVATE __ v:function_implementation { return {...v, private:true}; }
 
 // *************************
 // All Statements

@@ -6,6 +6,12 @@ import { VSCompilerContext } from './voxelscript_compiler_context';
 import minimist from 'minimist';
 import { pathToFileURL } from 'url';
 
+function is_subdir(base:string, child:string):boolean {
+  let relative = path.relative(base, child);
+  const isSubdir = (relative != "") && !relative.startsWith('..') && !path.isAbsolute(relative);
+  return isSubdir;
+}
+
 interface vspackage {
   package_name:string,
   package_path:string,
@@ -103,7 +109,7 @@ function error_to_string(module_name : string, file_path : string, code : string
     }
     // Print line
     output += " | ";
-    for(let c = left_col; c <= right_col && c < line.length; c++) {
+    for(let c = left_col; c <= right_col && c - 1 < line.length; c++) {
       let ch = line[c-1];
       if (ch == '\r') {
         ch = ' ';
@@ -162,7 +168,11 @@ function error_to_string(module_name : string, file_path : string, code : string
       expected_arr[expected_arr.length - 1] = "or " + expected_arr[expected_arr.length - 1];
     }
     output += expected_arr.join(", ");
-    output += ", but character \"" + err.found + "\" found instead.\n";
+    if (err.found) {
+      output += ", but character \"" + err.found + "\" found instead.\n";
+    } else {
+      output += ", but end of file was reached.\n";
+    }
   }
 
   return output;
@@ -253,11 +263,7 @@ for(let file_data of subfiles) {
   let voxelscript_data = file_data.data;
   if (voxelscripts[voxelscript_module_name]) {
     if (override) {
-      let filepath = file_data.filename;
-      let relative = path.relative(override, filepath);
-      const isSubdir = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
-      console.log(override, filepath, relative, isSubdir);
-      if (!isSubdir) {
+      if (!is_subdir(override, file_data.filename)) {
         // Ignoring because it's not in override
         continue;
       }
@@ -294,9 +300,6 @@ for(let file_data of subfiles) {
       voxelscript_data, err
     );
     console.log(err_str);
-    if (voxelscript_module_name == desired_module) {
-      process.exit(1);
-    }
     parsing_errors[voxelscript_module_name] = err_str;
   }
 
@@ -307,6 +310,12 @@ for(let file_data of subfiles) {
     console.log();
     voxelscripts[voxelscript_module_name].parsed = true;
   }
+}
+
+if (desired_module && !voxelscripts[desired_module].parsed) {
+  console.log("Could not parse desired module " + desired_module + "!");
+  console.log(parsing_errors[desired_module]);
+  process.exit(1);
 }
 
 const BASE = `
