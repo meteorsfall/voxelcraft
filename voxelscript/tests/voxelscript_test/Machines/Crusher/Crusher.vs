@@ -99,7 +99,7 @@ implement Crusher {
         if (this.can_crush()) {
             // Check if we need fuel and can start burning the next fuel
             if (this.fuel.exists() && !burnt_energy) {
-                int energy_of_fuel = ((Combustible)this.fuel.entity).get_energy();
+                int energy_of_fuel = (<Combustible>this.fuel.entity).get_energy();
                 this.fuel.take(1);
                 this.energy_in_crusher = energy_of_fuel * TICKS_PER_UNIT_ENERGY;
 
@@ -113,9 +113,9 @@ implement Crusher {
             }
 
             // If we've progressed enough to crush the Entity, then we crush it
-            if (this.current_progress == ((Crushable)this.crushing.entity).ticks_needed_to_crush()) {
+            if (this.current_progress == (<Crushable>this.crushing.entity).ticks_needed_to_crush()) {
                 this.current_progress = 0;
-                Crushable to_crush = (Crushable)this.crushing.take(1);
+                Crushable to_crush = <Crushable>this.crushing.take(1);
                 Entity newly_crushed = to_crush.crush().entity;
                 if (!this.crushed.can_give(newly_crushed, 1)) {
                     throw "Could not give recipe result with newly crushed object!";

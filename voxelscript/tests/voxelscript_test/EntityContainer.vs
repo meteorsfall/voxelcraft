@@ -83,7 +83,7 @@ implement EntityContainer {
         if (qty > 1 && e is not Stackable) {
             return false;
         }
-        if (qty > 1 && e is Stackable && qty > ((Stackable)e).max_stack_size()) {
+        if (qty > 1 && e is Stackable && qty > (<Stackable>e).max_stack_size()) {
             return false;
         }
 
@@ -187,7 +187,7 @@ implement EntityContainer {
         if (this.entity is not Stackable) {
             return 1;
         } else {
-            return ((Stackable)this.entity).max_stack_size();
+            return (<Stackable>this.entity).max_stack_size();
         }
     }
 }
