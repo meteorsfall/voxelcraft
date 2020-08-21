@@ -7,9 +7,7 @@ trait Stackable  {
 }
 
 typedef fn_can_change = (Entity old_entity, int old_qty, Entity new_entity, int new_qty) => bool;
-typedef fn_on_change = (Entity old_entity, int old_qty, Entity new_entity, int new_qty) => Entity;
-typedef ll = i64;
-typedef l = int;
+typedef fn_on_change = (Entity old_entity, int old_qty, Entity new_entity, int new_qty) => void;
 
 class EntityContainer {
 	Entity entity;

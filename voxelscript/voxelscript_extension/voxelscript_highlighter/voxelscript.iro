@@ -165,6 +165,12 @@ main : context {
       styles []       = .keyword, .white, .type, .white;
    }
    
+   // Color all "VARIABLE is (not)? CUSTOM_TYPE;"
+   : pattern {
+      regex          \= $${__IDENTIFIER}(\s*is\s*)(not\s*)?$${__IDENTIFIER}
+      styles []       = .variable, .keyword, .keyword, .type;
+   }
+   
    // Color all special keywords with the keyword color
    : pattern {
       regex          \= $${__KEYWORDS}
