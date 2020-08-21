@@ -4,6 +4,7 @@ import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
 import minimist from 'minimist';
 import { pathToFileURL } from 'url';
+import { log } from 'util';
 const Tracer = require('pegjs-backtrace');
 
 const TRACE_PARSER = false;
@@ -169,7 +170,7 @@ function error_to_string(module_name : string, file_path : string, code : string
     if (expected_arr.length > 1) {
       expected_arr[expected_arr.length - 1] = "or " + expected_arr[expected_arr.length - 1];
     }
-    output += expected_arr.join(", ") + ", but";
+    output += expected_arr.join(", ") + ", but ";
     if (err.found) {
       output += "character \"" + err.found + "\" found instead.\n";
     } else {

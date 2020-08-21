@@ -385,7 +385,7 @@ multi_line_comment
 // *************************
 
 // Optional whitespace
-_
+_ "whitespace"
   = ([ \t\r\n] / multi_line_comment / single_line_comment)*
 
 // Mandatory whitespace
