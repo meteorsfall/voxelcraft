@@ -405,12 +405,17 @@ class VSCompilerContext {
       this.render_subexpression(data.value);
       this.write_output(";\n");
       break;
-    case "typedef":
-      let function_decaration = data.value;
-      let typedef_name = this.parse_identifier(function_decaration.identifier);
+    case "typedef_function":
+      var typedef_name = this.parse_type(data.identifier);
+      let function_args = data.args;
       this.write_output("type " + typedef_name + " = ");
-      this.render_typed_args(function_decaration.arguments);
-      this.write_output(" => " + this.parse_type(function_decaration.return_type) + ";\n");
+      this.render_typed_args(function_args);
+      this.write_output(" => " + this.parse_type(data.return_type) + ";\n");
+      break;
+    case "typedef_statement":
+      var typedef_name = this.parse_type(data.lhs);
+      var typedef_value = this.parse_identifier(data.rhs);
+      this.write_output("type " + typedef_name + " = " + typedef_value + ";\n");
       break;
     case "export":
       this.write_output("export {");

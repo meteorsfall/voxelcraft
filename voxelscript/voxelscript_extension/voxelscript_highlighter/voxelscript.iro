@@ -138,7 +138,7 @@ main : context {
    
    // Color all new calls with type colors
    : pattern {
-      regex          \= (new)(\s+)$${__MY_CONSTANT}
+      regex          \= (\bnew)(\s+)$${__MY_CONSTANT}
       styles []       = .keyword, .white, .type;
    }
    
@@ -150,8 +150,8 @@ main : context {
    
    // Color custom typenames whenever possible
    : pattern {
-      regex          \= $${__MY_CONSTANT}(\s+)$${__MY_CONSTANT}(\s*[,);=])
-      styles []       = .type, .white, .variable, .white;
+      regex          \= $${__MY_CONSTANT}(\[\])*(\s+)$${__MY_CONSTANT}(\s*[,);=])
+      styles []       = .type, .white, .white, .variable, .white;
    }
    
    // Color custom typenames whenever possible

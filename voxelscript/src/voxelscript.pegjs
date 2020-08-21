@@ -67,7 +67,8 @@ trait_implementation
   = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b}; }
 
 typedef
-  = TYPEDEF __ f:function_declaration { return {type:"typedef", value: f}; }
+  = TYPEDEF __ lhs:type _ EQUAL _ args:typed_argument_list _ ARROW _ r:type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r}; }
+  / TYPEDEF __ lhs:type _ EQUAL _ rhs:type ENDSTATEMENT { return {type:"typedef_statement", lhs: lhs, rhs: rhs}; }
 
 // *************************
 // Blocks

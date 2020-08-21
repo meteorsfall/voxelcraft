@@ -376,15 +376,11 @@ if (!existsSync(build_target)){
   mkdirSync(build_target);
 }
 writeFileSync(path.join(build_target, "Base.ts"), BASE);
-let modules_to_compile = [];
-if (desired_module) {
-  modules_to_compile.push(desired_module);
-} else {
-  modules_to_compile = compiler_context.get_modules();
-}
-for (let module_name of modules_to_compile) {
+for (let module_name of compiler_context.get_modules()) {
   let compiled_data = compiler_context.get_compiled_module(module_name)!;
-  writeFileSync(path.join(build_target, "_VS_" + module_name + ".ts"), compiled_data);
+  if (compiled_data) {
+    writeFileSync(path.join(build_target, "_VS_" + module_name + ".ts"), compiled_data);
+  }
 }
 console.log();
 console.log("Compilation Succeeded!");

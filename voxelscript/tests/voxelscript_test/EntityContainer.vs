@@ -1,13 +1,14 @@
 import Entity;
 import Ores;
 import Fuels;
- 
+
 trait Stackable  {
     int max_stack_size();
 }
 
-typedef bool fn_can_change(Entity old_entity, int old_qty, Entity new_entity, int new_qty);
-typedef void fn_on_change(Entity old_entity, int old_qty, Entity new_entity, int new_qty);
+typedef fn_can_change = (Entity old_entity, int old_qty, Entity new_entity, int new_qty) => bool;
+typedef fn_on_change = (Entity old_entity, int old_qty, Entity new_entity, int new_qty) => void;
+typedef ll = i64;
 
 class EntityContainer {
 	Entity entity;

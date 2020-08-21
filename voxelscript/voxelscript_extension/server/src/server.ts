@@ -12,7 +12,7 @@ function is_subdir(base:string, child:string):boolean {
     let relative = path.relative(base, child);
     const isSubdir = (relative != "") && !relative.startsWith('..') && !path.isAbsolute(relative);
     return isSubdir;
-  }
+}
 
 function recursivelyDelete(filePath) {
     //check if directory or file
@@ -97,9 +97,15 @@ function compile(package_name : string, module_name : string) {
             promise_returned = true;
         }, 1500);
 
+        let build_path = path.join(BUILD_PATH, package_name);
+        if (!existsSync(build_path)) {
+            mkdirSync(build_path);
+            log("Created build path: " + build_path);
+        }
+
         log("Compiling: " + module_name + " with " + compiler_path);
         const child_argv = [
-            '--build-target=' + path.join(BUILD_PATH, package_name),
+            '--build-target=' + build_path,
             '--source=' + path.join(PROJECTS_PATH, package_name),
             '--override=' + path.join(PROJECTS_PATH, package_name, 'open_files'),
             '--module=' + module_name
@@ -234,6 +240,7 @@ connection.onInitialize((params) => {
     }
     mkdirSync(BUILD_PATH);
     mkdirSync(PROJECTS_PATH);
+    log("Initialized Server");
     workspaceRoot = params.rootPath;
     return {
         capabilities: {
