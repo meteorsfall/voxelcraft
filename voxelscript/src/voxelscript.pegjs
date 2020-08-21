@@ -58,7 +58,7 @@ trait
 class
   = CLASS __ id:identifier _ b:class_block { return {type:"class", identifier:id, body:b}; }
 
-// A class implementation is a set of private variable declarations, and function implementations
+// A class implementation is a set of variable declarations / definition, and function implementations
 class_implementation
   = IMPLEMENT __ id:identifier _ b:class_implementation_block { return {type:"class_implementation", identifier:id, body:b}} 
 
@@ -81,7 +81,7 @@ trait_block
 class_block
   = "{" _ decls:(variable_declaration / function_declaration / init_declaration)* _ "}" { return decls; }
 
-// A class implementation block includes private variables/functions, along with public function implementations
+// A class implementation block includes variables declaration/declarations, and functions implementations
 class_implementation_block
   = "{" _ decls:((init_implementation / function_implementation / variable_declaration / variable_definition / function_implementation))* _ "}" { return decls; }
 
@@ -384,11 +384,11 @@ multi_line_comment
 // *************************
 
 // Optional whitespace
-_ ""
+_
   = ([ \t\r\n] / multi_line_comment / single_line_comment)*
 
 // Mandatory whitespace
-__ ""
+__ "whitespace"
   = ([ \t\r\n] / multi_line_comment / single_line_comment)+
 
 // *************************

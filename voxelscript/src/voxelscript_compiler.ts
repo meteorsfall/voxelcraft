@@ -1,10 +1,12 @@
 import * as peg from 'pegjs';
-import * as Tracer from 'pegjs-backtrace';
 import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'fs';
 import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
 import minimist from 'minimist';
 import { pathToFileURL } from 'url';
+const Tracer = require('pegjs-backtrace');
+
+const TRACE_PARSER = false;
 
 function is_subdir(base:string, child:string):boolean {
   let relative = path.relative(base, child);
@@ -45,8 +47,6 @@ if (argv['override']) {
   override = path.resolve(argv['override']);
 }
 
-const TRACE_PARSER = false;
-
 function error_to_string(module_name : string, file_path : string, code : string, err : any) {
   const width = 80;
   const height = 6;
@@ -79,7 +79,7 @@ function error_to_string(module_name : string, file_path : string, code : string
   let top_line = start_line - height / 2;
   if (top_line < 1) top_line = 1;
   let bottom_line = end_line + height / 2;
-  if (bottom_line >= lines.length) bottom_line = lines.length - 1;
+  if (bottom_line > lines.length) bottom_line = lines.length;
 
   let max_num_digits = ("" + bottom_line).length;
 
@@ -157,7 +157,9 @@ function error_to_string(module_name : string, file_path : string, code : string
     // Format list of expected symbols
     let expected_arr : string[] = [];
     for(let e of err.expected) {
-      if (e.text) {
+      if (e.type == 'end') {
+        expected_arr.push("end of file");
+      } else if (e.text) {
         expected_arr.push("\"" + e.text + "\"");
       } else {
         expected_arr.push(e.description);
@@ -167,11 +169,11 @@ function error_to_string(module_name : string, file_path : string, code : string
     if (expected_arr.length > 1) {
       expected_arr[expected_arr.length - 1] = "or " + expected_arr[expected_arr.length - 1];
     }
-    output += expected_arr.join(", ");
+    output += expected_arr.join(", ") + ", but";
     if (err.found) {
-      output += ", but character \"" + err.found + "\" found instead.\n";
+      output += "character \"" + err.found + "\" found instead.\n";
     } else {
-      output += ", but end of file was reached.\n";
+      output += "end of file was reached.\n";
     }
   }
 
@@ -238,15 +240,11 @@ function get_package_json(pathname : string) : vspackage | null {
   }
 }
 
-// Get all voxelscript subfiles
-console.log("SOURCE", source);
-
 let pkg = get_package_json(source);
 if (pkg == null) {
   console.log('Error: vspackage.json not found in any parent directory.');
   process.exit(2);
 }
-console.log('Package: ', pkg);
 let subfiles = getAllSubfiles(pkg.package_path);
 
 // Create PegJs parser for .vs files

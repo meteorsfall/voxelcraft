@@ -31,7 +31,7 @@ class Crusher {
 
 // The Crucher object
 implement Crusher {
-    private Entity to_crush_entity = NullEntity;
+    Entity to_crush_entity = NullEntity;
 
     // Initialize a crusher
     init() {
@@ -77,13 +77,13 @@ implement Crusher {
     }
 
     // Check if we can crush
-    private bool can_crush() {
+    bool can_crush() {
         bool exists_something_to_crush = this.crushing.exists();
         bool somewhere_to_put_crushed_Entity = this.crushed.can_give(this.to_crush_entity, 1);
         return exists_something_to_crush && somewhere_to_put_crushed_Entity;
     }
 
-    private bool had_burnt_energy;
+    bool had_burnt_energy;
 
     void iterate() {
         this.crushed.unlock();

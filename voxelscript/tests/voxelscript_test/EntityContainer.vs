@@ -48,10 +48,10 @@ class EntityContainer {
 }
 
 implement EntityContainer {
-    private fn_can_change[] registered_can_change = [];
-    private fn_on_change[] registered_on_change = [];
+    fn_can_change[] registered_can_change = [];
+    fn_on_change[] registered_on_change = [];
 
-    private bool is_locked = true;
+    bool is_locked = true;
 
     init() {
         this.entity = NullEntity;
