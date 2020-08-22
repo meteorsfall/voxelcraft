@@ -175,7 +175,6 @@ function compile(package_name : string, module_name : string) {
                 // Grab the last line for the error
                 let lines = response.split("\n");
                 let accumulated_lines = [];
-                log(JSON.stringify(lines));
                 while(lines.length > 0) {
                     let line = lines.pop();
                     accumulated_lines.push(line);

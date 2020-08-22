@@ -9,6 +9,7 @@ interface module {
   name: string,
   voxelscript_ast: any,
   compiled: string,
+  mapping: string,
   dependencies: dependency[],
   exports: Record<string, symbl>,
   imports: module[],
@@ -86,7 +87,6 @@ class VSContext {
       }
     }
 
-    console.log("Could not find " + identifier);
     return null;
   }
 
@@ -151,6 +151,7 @@ class VSCompiler {
   // Rendering Context
   tabs = 0;
   output = "";
+  mapping = "";
 
   // Compilation Context
   is_currently_implementing : string | null = null;
@@ -190,6 +191,7 @@ class VSCompiler {
       name: module_name,
       voxelscript_ast: voxelscript_ast,
       compiled: "",
+      mapping: "",
       dependencies: [],
       imports: [],
       exports: {},
@@ -227,6 +229,13 @@ class VSCompiler {
         }
       }
       this.output += c;
+    }
+  }
+
+  // Track mapping
+  map_point(location : any) {
+    if (location) {
+      this.mapping += this.output.length + ":" + location.end.offset + ";";
     }
   }
   
@@ -279,8 +288,6 @@ class VSCompiler {
   register_variable(variable_identifier : string, t : any | null) {
     this.verify_not_registered(variable_identifier);
 
-    console.log("VARIABLE: " + variable_identifier);
-
     this.get_current_context().register_variable(variable_identifier, this.parse_type(t));
   }
 
@@ -291,7 +298,6 @@ class VSCompiler {
     }
     let m : module = this.modules[this.compiling_module!];
     m.exports[export_identifier] = sym;
-    console.log("Module " + m.name + " setting export " + export_identifier + " to " + sym.identifier);
   }
   
   // Register the trait identifier in the current context,
@@ -300,8 +306,6 @@ class VSCompiler {
     // Don't register twice
     this.verify_not_registered(trait_identifier);
 
-    console.log("TRAIT: " + trait_identifier.value);
-
     this.get_current_context().register_trait(trait_identifier.value);
   }
 
@@ -309,8 +313,6 @@ class VSCompiler {
   // so that we know that this identifier refers to a class
   register_class(class_identifier : any) {
     this.verify_not_registered(class_identifier);
-
-    console.log("CLASS: " + class_identifier.value);
 
     this.get_current_context().register_class(class_identifier.value);
   }
@@ -527,6 +529,7 @@ class VSCompiler {
     if (with_parens) {
       this.write_output(")");
     }
+    this.map_point(e.location);
   }
 
   // Render function bodies as sets of variable definitions / declarations / statements
@@ -714,12 +717,9 @@ class VSCompiler {
       this.write_output("class " + class_name + " extends ABSTRACT_" + class_name + " {\n");
       this.tab(1);
 
-      console.log("IMPLEMENTING " + data.identifier.value);
       let cls = this.get_current_context().get_symbol(data.identifier.value)!;
-      console.log("CLASS: " + cls.class_data);
       for(let e in cls.class_data) {
         let v = cls.class_data[e];
-        console.log(v.type_name);
         this.write_output(v.identifier + " : " + v.type_name + ";\n");
       }
   
@@ -766,9 +766,7 @@ class VSCompiler {
       if (!class_symbl) {
         //console.log(JSON.stringify(this.modules[this.compiling_module!].imports));
         for(let i of this.modules[this.compiling_module!].imports) {
-          console.log("IMPORT: " + i.name);
           for(let e in i.exports) {
-            console.log("- EXPORT: " + e);
           }
         }
         throw new Error("Class " + data["class"].value + " not found!");
@@ -808,7 +806,10 @@ class VSCompiler {
         this.write_output("private ");
       }
       this.register_variable(data.var_identifier.value, data.var_type);
-      this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + " = ");
+      this.write_output(this.parse_identifier(data.var_identifier));
+      this.write_output(" : ")
+      this.write_output(this.parse_type(data.var_type));
+      this.write_output(" = ")
       this.render_expression(data.var_definition);
       this.write_output(";\n");
       break;
@@ -859,6 +860,7 @@ class VSCompiler {
     default:
       throw new Error("type did not match in render_statement: " + data.type);
     }
+    this.map_point(data.location);
   }
 
   public remove_module(module_name : string) {
@@ -888,6 +890,7 @@ class VSCompiler {
     try {
       // Init context
       this.output = "";
+      this.mapping = "0:0;";
       this.compiling_module = module_name;
       this.reset_unused_variable_name();
       this.compiler_context = new VSContext(m);
@@ -902,6 +905,8 @@ class VSCompiler {
       this.compiler_context = null;
       this.compiling_module = null;
       m.compiled = this.output;
+      this.map_point(m.voxelscript_ast.location);
+      m.mapping = this.mapping;
       this.loaded_modules[module_name] = true;
     } catch(e) {
       // Print any thrown errors
@@ -1027,11 +1032,11 @@ class VSCompiler {
     return all_modules;
   }
 
-  get_compiled_module(module_name : string) : string | null {
+  get_compiled_module(module_name : string) : module | null {
     module_name = "_VS_" + module_name;
     let m = this.get_module(module_name);
     if (m) {
-      return m.compiled;
+      return m;
     } else {
       return null;
     }

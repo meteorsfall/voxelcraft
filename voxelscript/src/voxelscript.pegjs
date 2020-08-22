@@ -33,7 +33,7 @@
 
 // A set of top level statements make up a module 
 module
-  = _ root:(top_level)* e:export { return {type:"module", body:root.concat([e])}; }
+  = _ root:(top_level)* e:export { return {type:"module", body:root.concat([e]), location:location()}; }
 
 // A top level statement is any of the following
 top_level
@@ -44,7 +44,7 @@ comma_identifier
 
 // Export statement lists the public-facing objects of the module
 export
-  = EXPORT __ "{" _ args:(identifier comma_identifier*)? _"}" ENDSTATEMENT { return {type:"export", args:flatten_comma(args)}; };
+  = EXPORT __ "{" _ args:(identifier comma_identifier*)? _"}" ENDSTATEMENT { return {type:"export", args:flatten_comma(args), location:location()}; }
 
 // *************************
 // Top-Level named blocks
@@ -52,11 +52,11 @@ export
 
 // A trait is a set of function declarations
 trait
-  = TRAIT __ id:identifier _ b:trait_block { return {type:"trait", identifier:id, body:b}; }
+  = TRAIT __ id:identifier _ b:trait_block { return {type:"trait", identifier:id, body:b, location:location()}; }
 
 // A class is a set of function and variable declarations, with an optional init declaration
 class
-  = CLASS __ id:identifier _ b:class_block { return {type:"class", identifier:id, body:b}; }
+  = CLASS __ id:identifier _ b:class_block { return {type:"class", identifier:id, body:b, location:location()}; }
 
 // A class implementation is a set of variable declarations / definition, and function implementations
 class_implementation
@@ -64,11 +64,11 @@ class_implementation
 
 // A trait implementation consists of a set of function implementations
 trait_implementation
-  = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b}; }
+  = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b, location:location()}; }
 
 typedef
-  = TYPEDEF __ lhs:type _ EQUAL _ args:typed_argument_list _ ARROW _ r:type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r}; }
-  / TYPEDEF __ lhs:type _ EQUAL _ rhs:type ENDSTATEMENT { return {type:"typedef_statement", lhs: lhs, rhs: rhs}; }
+  = TYPEDEF __ lhs:type _ EQUAL _ args:typed_argument_list _ ARROW _ r:type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r, location:location()}; }
+  / TYPEDEF __ lhs:type _ EQUAL _ rhs:type ENDSTATEMENT { return {type:"typedef_statement", lhs: lhs, rhs: rhs, location:location()}; }
 
 // *************************
 // Blocks
@@ -99,7 +99,7 @@ function_block
 // *************************
 
 typed_argument
-  = t:type __ id:identifier { return {type: "typed_arg", "arg_type": t, "arg_identifier": id}; }
+  = t:type __ id:identifier { return {type: "typed_arg", "arg_type": t, "arg_identifier": id, location:location()}; }
 typed_argument_with_comma
   = _ "," _ arg:typed_argument { return arg; }
 
@@ -131,13 +131,13 @@ argument_list
   = START_OF_ARGUMENT_LIST _ args:(argument argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 expression
-  = e:(precedence_15) { return {type: "expression", value:e}; }
+  = e:(precedence_15) { return {type: "expression", value:e, location:location()}; }
 
 // Operator Precedence from https://en.cppreference.com/w/c/language/operator_precedence
 
 precedence_15
-  = lhs:precedence_14 _ EQUAL _ rhs:precedence_15 { return {type: "assignment", lhs: lhs, rhs: rhs}; }
-  / lhs:precedence_14 _ s:ARITHMETIC_SYMBOL EQUAL _ rhs:precedence_15 { return {type: "operator_assignment", operator: s, lhs: lhs, rhs: rhs}; }
+  = lhs:precedence_14 _ EQUAL _ rhs:precedence_15 { return {type: "assignment", lhs: lhs, rhs: rhs, location:location()}; }
+  / lhs:precedence_14 _ s:ARITHMETIC_SYMBOL EQUAL _ rhs:precedence_15 { return {type: "operator_assignment", operator: s, lhs: lhs, rhs: rhs, location:location()}; }
   / precedence_14
 
 precedence_14
@@ -146,66 +146,66 @@ precedence_14
 
 precedence_13
   = lhs:precedence_12 _ "?" _ if_true:precedence_15 _ ":" _ if_false:precedence_13 {
-    return {type: "ternary", condition: lhs, if_true: if_true, if_false: if_false};
+    return {type: "ternary", condition: lhs, if_true: if_true, if_false: if_false, location:location()};
   }
   / precedence_12
 
-precedence_12_extensions = _ LOGICAL_OR _ rhs:precedence_11 { return {type: "logical_or", capture_lhs: "lhs", rhs: rhs}; }
+precedence_12_extensions = _ LOGICAL_OR _ rhs:precedence_11 { return {type: "logical_or", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 precedence_12
   = lhs:precedence_11 many_rhs:precedence_12_extensions* { return leftAssoc(lhs, many_rhs) }
 
-precedence_11_extensions = _ LOGICAL_AND _ rhs:precedence_10 { return {type: "logical_and", capture_lhs: "lhs", rhs: rhs}; }
+precedence_11_extensions = _ LOGICAL_AND _ rhs:precedence_10 { return {type: "logical_and", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 precedence_11
   = lhs:precedence_10 many_rhs:precedence_11_extensions* { return leftAssoc(lhs, many_rhs); }
 
-precedence_10_extensions = _ BITWISE_OR _ rhs:precedence_9 { return {type: "bitwise_or", capture_lhs: "lhs", rhs: rhs}; }
+precedence_10_extensions = _ BITWISE_OR _ rhs:precedence_9 { return {type: "bitwise_or", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 precedence_10
   = lhs:precedence_9 many_rhs:precedence_10_extensions* { return leftAssoc(lhs, many_rhs); }
 
-precedence_9_extensions = _ BITWISE_XOR _ rhs:precedence_8 { return {type: "bitwise_xor", capture_lhs: "lhs", rhs: rhs}; }
+precedence_9_extensions = _ BITWISE_XOR _ rhs:precedence_8 { return {type: "bitwise_xor", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 precedence_9
   = lhs:precedence_8 many_rhs:precedence_9_extensions* { return leftAssoc(lhs, many_rhs); }
 
-precedence_8_extensions = _ BITWISE_AND _ rhs:precedence_7 { return {type: "bitwise_and", capture_lhs: "lhs", rhs: rhs}; }
+precedence_8_extensions = _ BITWISE_AND _ rhs:precedence_7 { return {type: "bitwise_and", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 precedence_8
   = lhs:precedence_7 many_rhs:precedence_8_extensions* { return leftAssoc(lhs, many_rhs); }
 
 precedence_7_extensions
-  = _ LOGICAL_EQUAL _ rhs:precedence_6 { return {type: "logical_equal", capture_lhs: "lhs", rhs: rhs}; }
-  / _ LOGICAL_UNEQUAL _ rhs:precedence_6 { return {type: "logical_unequal", capture_lhs: "lhs", rhs: rhs}; }
+  = _ LOGICAL_EQUAL _ rhs:precedence_6 { return {type: "logical_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ LOGICAL_UNEQUAL _ rhs:precedence_6 { return {type: "logical_unequal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_7
   = lhs:precedence_6 many_rhs:precedence_7_extensions* { return leftAssoc(lhs, many_rhs); }
 
 precedence_6_extensions
-  = _ GREATER_THAN _ rhs:precedence_5 { return {type: "greater_than", capture_lhs: "lhs", rhs: rhs}; }
-  / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
-  / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs}; }
-  / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs}; }
-  / __ IS_NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs}; }
-  / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs}; }
+  = _ GREATER_THAN _ rhs:precedence_5 { return {type: "greater_than", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / __ IS_NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_6
   = lhs:precedence_5 many_rhs:precedence_6_extensions* { return leftAssoc(lhs, many_rhs); }
 
 precedence_5_extensions
-  = _ LEFT_SHIFT _ rhs:precedence_4 { return {type: "left_shift", capture_lhs: "lhs", rhs: rhs}; }
-  / _ RIGHT_SHIFT _ rhs:precedence_4 { return {type: "right_shift", capture_lhs: "lhs", rhs: rhs}; }
+  = _ LEFT_SHIFT _ rhs:precedence_4 { return {type: "left_shift", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ RIGHT_SHIFT _ rhs:precedence_4 { return {type: "right_shift", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_5
   = lhs:precedence_4 many_rhs:precedence_5_extensions* { return leftAssoc(lhs, many_rhs); }
 
 precedence_4_extensions
-  = _ PLUS _ rhs:precedence_3 { return {type: "add", capture_lhs: "lhs", rhs: rhs}; }
-  / _ MINUS _ rhs:precedence_3 { return {type: "subtract", capture_lhs: "lhs", rhs: rhs}; }
+  = _ PLUS _ rhs:precedence_3 { return {type: "add", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ MINUS _ rhs:precedence_3 { return {type: "subtract", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_4
   = lhs:precedence_3 many_rhs:precedence_4_extensions* { return leftAssoc(lhs, many_rhs); }
 
 precedence_3_extensions
-  = _ ASTERISK _ rhs:precedence_2 { return {type: "multiply", capture_lhs: "lhs", rhs: rhs}; }
-  / _ DIVIDE _ rhs:precedence_2 { return {type: "divide", capture_lhs: "lhs", rhs: rhs}; }
-  / _ MODULUS _ rhs:precedence_2 { return {type: "modulus", capture_lhs: "lhs", rhs: rhs}; }
+  = _ ASTERISK _ rhs:precedence_2 { return {type: "multiply", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ DIVIDE _ rhs:precedence_2 { return {type: "divide", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ MODULUS _ rhs:precedence_2 { return {type: "modulus", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_3
   = lhs:precedence_2 many_rhs:precedence_3_extensions* { return leftAssoc(lhs, many_rhs); }
@@ -228,13 +228,13 @@ CAST_L "explicit cast \"<\""
 
 // Right Associative
 precedence_2
-  = CAST_L _ lhs:type _ ">" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs}; }
-  / PREFIX_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args}; }
-  / PREFIX_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs}; }
-  / PREFIX_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs}; }
-  / PREFIX_MINUSMINUS _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs}; }
-  / PREFIX_LOGICAL_NOT _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs}; }
-  / PREFIX_BITWISE_NOT _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs}; }
+  = CAST_L _ lhs:type _ ">" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs, location:location()}; }
+  / PREFIX_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args, location:location()}; }
+  / PREFIX_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs, location:location()}; }
+  / PREFIX_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs, location:location()}; }
+  / PREFIX_MINUSMINUS _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs, location:location()}; }
+  / PREFIX_LOGICAL_NOT _ rhs:precedence_2 { return {type: "logical_not", rhs: rhs, location:location()}; }
+  / PREFIX_BITWISE_NOT _ rhs:precedence_2 { return {type: "bitwise_not", rhs: rhs, location:location()}; }
   / precedence_1
 
 POSTFIX_PLUSPLUS "postfix operator"
@@ -243,11 +243,11 @@ POSTFIX_MINUSMINUS "postfix operator"
   = "--"
 
 precedence_1_extensions
-  = _ "." _ rhs:value { return {type: "member_of", capture_lhs: "lhs", rhs: rhs}; }
-  / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs}; }
-  / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args}; }
-  / _ POSTFIX_PLUSPLUS { return {type: "postfix_plus", capture_lhs: "lhs"}; }
-  / _ POSTFIX_MINUSMINUS { return {type: "postfix_minus", capture_lhs: "lhs"}; }
+  = _ "." _ rhs:value { return {type: "member_of", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args, location:location()}; }
+  / _ POSTFIX_PLUSPLUS { return {type: "postfix_plus", capture_lhs: "lhs", location:location()}; }
+  / _ POSTFIX_MINUSMINUS { return {type: "postfix_minus", capture_lhs: "lhs", location:location()}; }
 
 precedence_1
   = lhs:precedence_0 many_rhs:precedence_1_extensions* { return leftAssoc(lhs, many_rhs); }
@@ -261,27 +261,27 @@ precedence_0 "expression"
 // *************************
 
 import
-  = IMPORT __ id:identifier ENDSTATEMENT { return {type:"import", identifier: id}; }
+  = IMPORT __ id:identifier ENDSTATEMENT { return {type:"import", identifier: id, location:location()}; }
 
 const
-  = CONST __ id:identifier _ EQUAL _ val:value ENDSTATEMENT { return {type:"const", identifier:id, value:val}; }
+  = CONST __ id:identifier _ EQUAL _ val:value ENDSTATEMENT { return {type:"const", identifier:id, value:val, location:location()}; }
 
 // *************************
 // Class-level Statements
 // *************************
 
 function_declaration
-  = r:type __ id:identifier _ args:typed_argument_list ENDSTATEMENT { return {type:"function_declaration", arguments:args, "identifier":id, "return_type":r}; }
+  = r:type __ id:identifier _ args:typed_argument_list ENDSTATEMENT { return {type:"function_declaration", arguments:args, "identifier":id, "return_type":r, location:location()}; }
 
 // A function implementation
 function_implementation
-  = r:type __ id:identifier _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"function_implementation",arguments:args, identifier:id, "return_type":r, body:b}; }
+  = r:type __ id:identifier _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"function_implementation",arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
 
 init_declaration
-  = INIT _ args:typed_argument_list ENDSTATEMENT { return {type:"init_declaration", arguments:args}; }
+  = INIT _ args:typed_argument_list ENDSTATEMENT { return {type:"init_declaration", arguments:args, location:location()}; }
 
 init_implementation
-  = INIT _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"init_implementation", arguments:args, body:b}; }
+  = INIT _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"init_implementation", arguments:args, body:b, location:location()}; }
 
 // *************************
 // All Statements
@@ -294,34 +294,34 @@ null_statement
   = ENDSTATEMENT { return {type:"null_statement"} }
 
 block_statement
-  = b:function_block { return {type:"block_statement", body:b}; }
+  = b:function_block { return {type:"block_statement", body:b, location:location()}; }
 
 simple_statement
-  = e:expression ENDSTATEMENT { return {type:"simple_statement", value:e}; }
+  = e:expression ENDSTATEMENT { return {type:"simple_statement", value:e, location:location()}; }
 
 if
   = IF _ "(" _ c:expression _ ")" _ b:statement otherwise:(_ ELSE _ statement)? _ {
-    return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[3] : null};
+    return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[3] : null, location:location()};
   }
   
 for
-  = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b}; }
-  / FOR _ "("  _ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_identifier":id, "collection":e, body:b}; }
+  = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b, location:location()}; }
+  / FOR _ "("  _ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_identifier":id, "collection":e, body:b, location:location()}; }
 
 while
-  = WHILE _ "(" _ c:expression _ ")" _ b:statement _ { return {type:"while", condition: c, body:b}; }
+  = WHILE _ "(" _ c:expression _ ")" _ b:statement _ { return {type:"while", condition: c, body:b, location:location()}; }
 
 variable_declaration
-  = t:type __ id:identifier ENDSTATEMENT { return {type:"variable_declaration", "var_identifier":id, "var_type":t}; }
+  = t:type __ id:identifier ENDSTATEMENT { return {type:"variable_declaration", "var_identifier":id, "var_type":t, location:location()}; }
 
 variable_definition
-  = t:type __ id:identifier _ EQUAL _ e:expression ENDSTATEMENT { return {type:"variable_definition", "var_identifier":id, "var_type":t, "var_definition": e}; }
+  = t:type __ id:identifier _ EQUAL _ e:expression ENDSTATEMENT { return {type:"variable_definition", "var_identifier":id, "var_type":t, "var_definition": e, location:location()}; }
 
 return
-  = RETURN __ e:expression ENDSTATEMENT { return {type:"return", value:e}; }
+  = RETURN __ e:expression ENDSTATEMENT { return {type:"return", value:e, location:location()}; }
 
 throw
-  = THROW __ e:expression ENDSTATEMENT { return {type:"throw", value:e}; }
+  = THROW __ e:expression ENDSTATEMENT { return {type:"throw", value:e, location:location()}; }
 
 // *************************
 // Types of Identifiers
@@ -338,26 +338,26 @@ general_identifier_with_namespace
   = "::" id:general_identifier { return "::" + id; }
 
 general_identifier_with_namespacing
-  = name:(general_identifier (general_identifier_with_namespace)*) { return {type:"identifier", value: flatten_comma(name).join("")}; }
+  = name:(general_identifier (general_identifier_with_namespace)*) { return {type:"identifier", value: flatten_comma(name).join(""), location:location()}; }
 
 identifier "identifier"
   = id:(this / general_identifier_with_namespacing) ![:] { return {...id, location: location()}; }
 
 // Boolean
 bool
-  = b:(TRUE / FALSE) ![a-zA-Z_0-9] { return {type:"bool", value: b}; }
+  = b:(TRUE / FALSE) ![a-zA-Z_0-9] { return {type:"bool", value: b, location:location()}; }
 
 // Integer
 integer
-  = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join("")}; }
+  = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join(""), location:location()}; }
 
 // Double
 double
-  = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"double", value: num.join("")}; }
+  = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"double", value: num.join(""), location:location()}; }
 
 // String
 string
-  = "\"" str:([^"]*) "\"" { return {type: "string", value: str.join("")}; }
+  = "\"" str:([^"]*) "\"" { return {type: "string", value: str.join(""), location:location()}; }
 
 value_comma
   = _ "," _ v:value { return v; }
@@ -365,20 +365,20 @@ value_comma
 // Values can be constants, identifiers, or arrays of identifiers
 value "value"
   = v:(bool / double / integer / string / identifier) { return v; }
-  / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals)}; }
+  / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
 
 type "type"
-  = t:(VOID / INT / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value:t}; }
+  = t:(VOID / INT / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value:t, location:location()}; }
 
 // *************************
 // Comments
 // *************************
 
 single_line_comment
-  = "//" c:([^\n]*) ([\n] / !.) { return {type:"single_line_comment", value:c.join("")}; }
+  = "//" c:([^\n]*) ([\n] / !.) { return {type:"single_line_comment", value:c.join(""), location:location()}; }
 
 multi_line_comment
-  = "/*" c:(!"*/" .)* "*/" { return {type:"multi_line_comment", value:c.join("")}; }
+  = "/*" c:(!"*/" .)* "*/" { return {type:"multi_line_comment", value:c.join(""), location:location()}; }
 
 // *************************
 // Whitespace

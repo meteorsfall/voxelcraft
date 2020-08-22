@@ -169,11 +169,13 @@ if (options.build_target) {
   for (let module_name of compiler_context.get_modules()) {
     let compiled_data = compiler_context.get_compiled_module(module_name)!;
     if (compiled_data) {
-      writeFileSync(path.join(options.build_target, "_VS_" + module_name + ".ts"), compiled_data);
+      writeFileSync(path.join(options.build_target, "_VS_" + module_name + ".ts"), compiled_data.compiled);
+      writeFileSync(path.join(options.build_target, "_VS_" + module_name + ".ts.vsmap"), compiled_data.mapping);
     }
   }
 
   // Compile the resulting typescript files
+  console.log();
   tsc.compile({project: options.build_target})
   .then(() => {
     // Print success message!
@@ -181,8 +183,60 @@ if (options.build_target) {
     console.log("Compilation Succeeded!");
   })
   .catch((err : any) => {
-    // Print failure method!
-    console.log("Error: Typescript transpilation filed!");
+    // Try to parse typescript error
+    let top_line = err.stdout.split("\n")[0];
+    let regex = /^([\w/\.]*)\((\d+),(\d+)\): error (.*)$/g;
+    let ts_error = "";
+    if (top_line && top_line.match(regex)) {
+      let line_data = top_line.replace(regex, "$1 $2 $3").split(" ");
+      let filename = line_data[0];
+      let row = parseInt(line_data[1]);
+      let col = parseInt(line_data[2]);
+      ts_error = top_line.replace(regex, "$4");
+      let file_data = readFileSync(filename).toString();
+      let file_offset = 0;
+      let file_lines = file_data.split("\n");
+      for(let i = 1; i < row; i++) {
+        file_offset += file_lines[i-1].length + 1;
+      }
+      file_offset += col;
+      //console.log("Was on location " + row + " " + col + " " + file_offset);
+      let filename_regex = /(.*)\.ts$/g;
+      if (filename.match(filename_regex)) {
+        let mapping_file = filename.replace(filename_regex, '$1.ts.vsmap');
+        let mapping = readFileSync(mapping_file).toString();
+        let mappings = mapping.split(";");
+        let prev_offset = 0;
+        let end_offset = 0;
+        for(let m of mappings) {
+          let lhs = parseInt(m.split(":")[0]);
+          let rhs = parseInt(m.split(":")[1]);
+          if (lhs >= file_offset) {
+            end_offset = rhs;
+            break;
+          }
+          prev_offset = rhs;
+        }
+        let module_name = filename.replace(/^[\w\/]*\/_VS_([\w]*)\.ts.*$/, "$1");
+        let err = error_to_string(module_name, voxelscripts[module_name].filepath, voxelscripts[module_name].code, {
+          typescript_error: true,
+          location: {
+            start: {
+              offset: prev_offset
+            },
+            end: {
+              offset: end_offset
+            }
+          },
+          message: ts_error
+        });
+        console.log(err);
+        process.exit(1);
+      }
+    }
+
+    // If can't parse, post the typescript transpilation error
+    console.log("Error: Typescript transpilation failed!");
     console.log(err.stdout);
     process.exit(2);
   });

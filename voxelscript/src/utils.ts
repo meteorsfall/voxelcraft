@@ -2,6 +2,7 @@
 import * as path from "path";
 import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'fs';
 import minimist from 'minimist';
+import { start } from "repl";
 
 interface file_information {
   filepath:string,
@@ -110,6 +111,9 @@ function get_package_json(pathname : string) : vspackage | null {
 //     \--- Expected ".", "[","(", postfix operator, binary operator, "?", or ";", but character "t" found instead.
 //
 function error_to_string(module_name : string, file_path : string, code : string, err : any) {
+  // Create function to go from 1-indexed line and columns, to 0-indexed javascript arrays
+  let zero_index = (i : number) => i-1;
+
   // Padding of lines/columns around the ^'ed error message
   
   // How many lines above and below the ^ to print
@@ -129,6 +133,22 @@ function error_to_string(module_name : string, file_path : string, code : string
   // Otherwise, we just grab the standard one
     start_data = err.location.start;
     end_data = err.location.end;
+    if (!start_data.line) {
+      let lines = code.split("\n");
+      let running_offset = 0;
+      for(let i = 1; i <= lines.length; i++) {
+        let line = lines[zero_index(i)];
+        if (!start_data.line && running_offset + line.length + 1 >= start_data.offset) {
+          start_data.line = i;
+          start_data.column = start_data.offset - running_offset;
+        }
+        if (!end_data.line && running_offset + line.length + 1 >= end_data.offset) {
+          end_data.line = i;
+          end_data.column = end_data.offset - running_offset;
+        }
+        running_offset += line.length + 1;
+      }
+    }
   }
 
   // Get the lines of code in an array
@@ -136,6 +156,7 @@ function error_to_string(module_name : string, file_path : string, code : string
 
   // Get the start/end line and column for error messages
   // This will show where to underline in red
+  // Note that these are 1-indexed
   let error_top_line = start_data.line;
   let error_left_col = start_data.column;
   let error_bottom_line = end_data.line;
@@ -144,8 +165,8 @@ function error_to_string(module_name : string, file_path : string, code : string
   // Make a window around the error location
 
   // Calculate the leftmost column and rightmost column to display in the error message window
-  let left_col = error_left_col - column_padding;
-  let right_col = error_right_col + column_padding;
+  let left_col = Math.min(error_left_col, error_right_col) - column_padding;
+  let right_col = Math.min(error_right_col, error_left_col) + column_padding;
   if (left_col < 1) left_col = 1;
 
   // Calculate the topmost line and bottommost line to display in the error message window
@@ -182,9 +203,6 @@ function error_to_string(module_name : string, file_path : string, code : string
     output += ">";
   }
   output += " " + file_path + ":" + error_top_line + ":" + error_left_col + ' -> ' + error_bottom_line + ':' + error_right_col + "\n";
-
-  // Create function to go from 1-indexed line and columns, to 0-indexed javascript arrays
-  let zero_index = (i : number) => i-1;
 
   // Print each line individually
   // 101 |     bool exists() {
@@ -266,8 +284,12 @@ function error_to_string(module_name : string, file_path : string, code : string
   output += " \\--- ";
   if (err.missing_dependency) {
     // Print the missing dependency error message
-    output += 'Missing Dependency: ' + err.missing_dependency.module_name + " (" + err.message + ")";;
-    output += "\n";
+    output += 'Missing Dependency: ' + err.missing_dependency.module_name + " (" + err.message + ")";
+    output += "\n";;
+  } else if (err.typescript_error) {
+      // Print the missing dependency error message
+      output += err.message;
+      output += "\n";
   } else {
     output += "Expected ";
 
