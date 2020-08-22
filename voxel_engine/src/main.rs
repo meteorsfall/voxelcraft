@@ -2,9 +2,9 @@
 use three_d::*;
 
 struct Block {
-    x: i32,
-    y: i32,
-    z: i32,
+    x: f32,
+    y: f32,
+    z: f32,
 }
 
 struct World {
@@ -18,8 +18,8 @@ impl World {
         };
     }
 
-    pub fn set_block(x : i32, y : i32, z : i32) {
-        blocks.push(Block {x, y, z});
+    pub fn set_block(&mut self, x : f32, y : f32, z : f32) {
+        self.blocks.push(Block {x, y, z});
     }
 
     fn create_block() {
@@ -28,7 +28,9 @@ impl World {
 }
 
 fn main() {
-    let world = World::new();
+    let mut world = World::new();
+    world.set_block(0.0, 0.0, 0.0);
+    world.set_block(5.0, 0.0, 0.0);
 
     let args: Vec<String> = std::env::args().collect();
     let screenshot_path = if args.len() > 1 { Some(args[1].clone()) } else {None};
@@ -99,8 +101,13 @@ fn main() {
         // Draw all geometry
         renderer.geometry_pass(width, height, &|| {
             // Draw box
-            for (block in &world.blocks) {
-                let transformation = Mat4::from_translation(vec3(block.x, block.y, block.z));
+            for block in &world.blocks {
+                let transformation = Mat4::new(
+                    1.0, 0.0, 0.0, 0.0,
+                    0.0, 1.0, 0.0, 0.0,
+                    0.0, 0.0, 1.0, 0.0,
+                    block.x, 0.0, 0.0, 1.0
+                );
                 box_mesh.render(&transformation, &camera);
             }
         }).unwrap();
