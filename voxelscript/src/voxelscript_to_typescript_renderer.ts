@@ -1,152 +1,27 @@
-import { stringify } from 'querystring';
 
 interface dependency {
   module_name : string,
   location: any
-}
+};
 
 interface module {
   name: string,
   voxelscript_ast: any,
   compiled: string,
   dependencies: dependency[],
-  exports: Record<string, symbl>,
-  imports: module[],
-}
+  exports: string[] | null,
+};
 
-interface symbl {
-  type: string,
-  type_name: string | null,
-  identifier: string,
-  module: module,
-  class_data: Record<string, symbl> | null,
-}
-
-interface context {
-  module : module,
-  symbols : Record<string, symbl>,
-  parent_context : context | null,
-  current_scope : symbl | null
-}
-
-class VSContext {
-  context_stack : context[] = [];
-  module : module;
-
-  constructor(module : module) {
-    this.module = module;
-  }
-
-  current_context() : context | null {
-    return this.context_stack[this.context_stack.length - 1];
-  }
-
-  push_context() {
-    let prev_context = this.current_context();
-
-    this.context_stack.push({
-      symbols: {},
-      module: this.module,
-      parent_context: prev_context,
-      current_scope: null
-    });
-  }
-
-  push_context_class(class_id : string) {
-    this.push_context();
-    this.current_context()!.current_scope = this.get_symbol(class_id);
-  }
-
-  pop_context() {
-    let scope = this.current_context()!.current_scope;
-    if (scope) {
-      switch(scope.type) {
-      case 'class':
-        scope.class_data = this.current_context()!.symbols;
-        break;
-      }
-    }
-    this.context_stack.pop();
-  }
-
-  get_symbol(identifier : string) : symbl | null {
-    let cur = this.current_context();
-    while(cur != null) {
-      if (identifier in cur.symbols) {
-        return cur.symbols[identifier];
-      }
-      cur = cur.parent_context;
-    }
-
-    for (let imported_module of this.module.imports) {
-      for(let e in imported_module.exports) {
-        if (identifier == e) {
-          return imported_module.exports[e];
-        }
-      }
-    }
-
-    console.log("Could not find " + identifier);
-    return null;
-  }
-
-  register_class(identifier : string) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "class",
-      identifier,
-      class_data: {},
-      type_name: null
-    };
-  }
-
-  register_trait(identifier : string) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "trait",
-      identifier,
-      class_data: null,
-      type_name: null
-    };
-  }
-
-  register_type(identifier : string) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "type",
-      identifier,
-      class_data: null,
-      type_name: null
-    };
-  }
-
-  register_variable(identifier : string, t : string | null) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "variable",
-      type_name: t,
-      identifier,
-      class_data: null,
-    };
-  }
-}
-
-class VSCompiler {
+class VSToTypeScriptRenderer {
   // Global Context
   modules : any = {};
+  traits : any = {};
+  classes : any = {};
   loaded_modules : any = {};
   compiling_module : string | null = null;
+  origin_module_of : any = {};
   // This variable will be used in place of voxelscript underscores in lambda expressions
   unused_variable_name : string = "UNUSED_";
-  compiler_context : VSContext | null = null;
-
-  private get_current_context() : VSContext {
-    return this.compiler_context!;
-  }
-
-  private get_keyword() {
-
-  }
 
   // Rendering Context
   tabs = 0;
@@ -191,17 +66,16 @@ class VSCompiler {
       voxelscript_ast: voxelscript_ast,
       compiled: "",
       dependencies: [],
-      imports: [],
-      exports: {},
+      exports: null,
     };
 
-    // Store the module class
+    // Store hte module class
     this.modules[module_name] = m;
 
     // Check all imports of the module to keep track of dependencies
     for(let top_level of voxelscript_ast.body) {
       if (top_level.type == "import") {
-        let dep = top_level.identifier.value;
+        let dep = this.parse_identifier(top_level.identifier);
         m.dependencies.push({
           module_name: dep,
           location: top_level.identifier.location
@@ -270,49 +144,40 @@ class VSCompiler {
   // Verify that the given identifier has not yet been registered as a class or trait in the context yet
   verify_not_registered(id : any) {
     let unparsed_name = id.value;
-    let parsed_name = this.get_current_context().get_symbol(unparsed_name);
-    if (parsed_name) {
+    let parsed_name = this.parse_identifier(id);
+    if (parsed_name != unparsed_name) {
       throw new Error("identifier <" + unparsed_name + "> is already registered to <" + parsed_name + ">! ");
     }
-  }
-
-  register_variable(variable_identifier : string, t : any | null) {
-    this.verify_not_registered(variable_identifier);
-
-    console.log("VARIABLE: " + variable_identifier);
-
-    this.get_current_context().register_variable(variable_identifier, this.parse_type(t));
-  }
-
-  register_export(export_identifier : string) {
-    let sym = this.get_current_context().get_symbol(export_identifier);
-    if (!sym) {
-      throw new Error("Export identifier " + export_identifier);
-    }
-    let m : module = this.modules[this.compiling_module!];
-    m.exports[export_identifier] = sym;
-    console.log("Module " + m.name + " setting export " + export_identifier + " to " + sym.identifier);
   }
   
   // Register the trait identifier in the current context,
   // so that we know that this identifier refers to a trait
   register_trait(trait_identifier : any) {
+    let trait : any = {};
+    let original_name = trait_identifier.value;
+    // Prepend trait names with TRAIT_ in the transpiled typescript
+    let new_name = "TRAIT_" + original_name;
+
     // Don't register twice
-    this.verify_not_registered(trait_identifier);
+    this.verify_not_registered(original_name);
 
-    console.log("TRAIT: " + trait_identifier.value);
-
-    this.get_current_context().register_trait(trait_identifier.value);
+    this.traits[original_name] = trait;
+    trait.name = new_name;
   }
 
   // Register the class trait in the current context,
   // so that we know that this identifier refers to a class
   register_class(class_identifier : any) {
-    this.verify_not_registered(class_identifier);
+    let cls : any = {};
+    let original_name = class_identifier.value;
+    // Prepend class names with CLASS_ in the transpiled typescript
+    let new_name = "CLASS_" + original_name;
 
-    console.log("CLASS: " + class_identifier.value);
+    // Don't register twice
+    this.verify_not_registered(original_name);
 
-    this.get_current_context().register_class(class_identifier.value);
+    this.classes[original_name] = cls;
+    cls.name = new_name;
   }
   
   // Parse type into a typescript string
@@ -331,25 +196,16 @@ class VSCompiler {
     }
     return val + suffix;
   }
-
-  parse_symbl(sym : symbl) : string {
-    if (sym.type == 'trait') {
-      return 'TRAIT_' + sym.identifier;
-    }
-    if (sym.type == 'class') {
-      return 'CLASS_' + sym.identifier;
-    }
-    return sym.identifier;
-  }
   
   // Parse identifier into a typescript string (Checking for trait/class status)
   parse_identifier(id : any) {
-    let sym = this.get_current_context().get_symbol(id.value);
-    if (!sym) {
-      return id.value;
-    } else {
-      return this.parse_symbl(sym);
+    if (id.value in this.traits) {
+      return this.traits[id.value].name;
     }
+    if (id.value in this.classes) {
+      return this.classes[id.value].name;
+    }
+    return id.value;
   }
   
   // Create is_TRAIT__VS_MyTrait function,
@@ -571,23 +427,19 @@ class VSCompiler {
       break;
     case "import":
       let raw_import_id = data.identifier.value;
-      let module : module = this.modules[raw_import_id];
+      let module = this.modules[raw_import_id];
       if (!module) {
         // SHOULD BE UNREACHABLE!
         throw new Error("Bad Import!" + raw_import_id);
       }
-      this.modules[this.compiling_module!].imports.push(module);
 
       let import_location = "";
+      let exports = null;
 
       // Get path to import, and get list of exports so that we know what to import explicitly
-      //import_location = module.url;
-      let export_arr = [];
-      for(let export_name in module.exports) {
-        let e = module.exports[export_name];
-        export_arr.push(this.parse_symbl(e));
-      }
-      this.write_output("import {" + export_arr.join(",") + "} from \"./" + raw_import_id + "\";\n");
+      import_location = module.url;
+      exports = module.exports;
+      this.write_output("import {" + exports + "} from \"./" + raw_import_id + "\";\n");
       break;
     case "const":
       this.write_output("const " + this.parse_identifier(data.identifier) + " = ");
@@ -614,14 +466,15 @@ class VSCompiler {
         if (!first) {
           export_args += ", ";
         }
-        // Keep track of which module has exported a given argument, for later usage
-        this.register_export(arg.value);
         let export_arg = this.parse_identifier(arg);
+        // Keep track of which module has exported a given argument, for later usage
+        this.origin_module_of[export_arg] = this.compiling_module;
         export_args += export_arg;
         first = false;
       }
 
-      // Save exports = export_args;
+      // Save exports
+      this.modules[this.compiling_module!].exports = export_args;
       this.write_output(export_args);
       this.write_output("};\n");
       break;
@@ -647,14 +500,10 @@ class VSCompiler {
   
       this.write_output("abstract class ABSTRACT_" + this.parse_identifier(data.identifier) + " {\n");
       this.tab(1);
-
-      this.get_current_context().push_context_class(data.identifier.value);
   
       for(let statement of data.body) {
         this.render_statement(statement);
       }
-
-      this.get_current_context().pop_context();
       
       this.tab(-1);
       this.write_output("}\n");
@@ -713,15 +562,6 @@ class VSCompiler {
       var class_name = this.parse_identifier(data.identifier);
       this.write_output("class " + class_name + " extends ABSTRACT_" + class_name + " {\n");
       this.tab(1);
-
-      console.log("IMPLEMENTING " + data.identifier.value);
-      let cls = this.get_current_context().get_symbol(data.identifier.value)!;
-      console.log("CLASS: " + cls.class_data);
-      for(let e in cls.class_data) {
-        let v = cls.class_data[e];
-        console.log(v.type_name);
-        this.write_output(v.identifier + " : " + v.type_name + ";\n");
-      }
   
       for(let statement of data.body) {
         this.render_statement(statement);
@@ -762,26 +602,15 @@ class VSCompiler {
       //   }
       // }
 
-      let class_symbl = this.get_current_context().get_symbol(data["class"].value);
-      if (!class_symbl) {
-        //console.log(JSON.stringify(this.modules[this.compiling_module!].imports));
-        for(let i of this.modules[this.compiling_module!].imports) {
-          console.log("IMPORT: " + i.name);
-          for(let e in i.exports) {
-            console.log("- EXPORT: " + e);
-          }
-        }
-        throw new Error("Class " + data["class"].value + " not found!");
-      }
-      let origin_module = this.get_current_context().get_symbol(data["class"].value)!.module.name;
-      if (origin_module == this.compiling_module) {
-        this.write_output("interface " + class_name + " extends " + trait_implementation_name + " {};\n");
-      } else {
+      let origin_module = this.origin_module_of[class_name];
+      if (origin_module) {
         this.write_output("declare module \"./" + origin_module + "\" {\n");
         this.tab(1);
         this.write_output("interface " + class_name + " extends " + trait_implementation_name + " {}\n");
         this.tab(-1);
         this.write_output("}\n");
+      } else {
+        this.write_output("interface " + class_name + " extends " + trait_implementation_name + " {};\n");
       }
       this.write_output("applyMixins(" + class_name + ", [" + trait_implementation_name + "]);\n");
       break;
@@ -794,20 +623,12 @@ class VSCompiler {
       if (data.private) {
         this.write_output("private ");
       }
-      let scope = this.get_current_context().current_context()?.current_scope;
-      let var_name = data.var_identifier.value;
-      this.register_variable(var_name, data.var_type);
-      if (scope && scope.type == 'class') {
-        this.write_output("abstract ");
-        scope.class_data![var_name] = this.get_current_context().get_symbol(var_name)!; 
-      }
       this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + ";\n");
       break;
     case "variable_definition":
       if (data.private) {
         this.write_output("private ");
       }
-      this.register_variable(data.var_identifier.value, data.var_type);
       this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + " = ");
       this.render_expression(data.var_definition);
       this.write_output(";\n");
@@ -890,23 +711,18 @@ class VSCompiler {
       this.output = "";
       this.compiling_module = module_name;
       this.reset_unused_variable_name();
-      this.compiler_context = new VSContext(m);
-      this.get_current_context().push_context();
-      this.get_current_context().module = m;
 
       // Render the root of the abstract syntax tree
       this.render_statement(m.voxelscript_ast);
 
       // Close context, and save results
-      this.get_current_context().pop_context();
-      this.compiler_context = null;
       this.compiling_module = null;
       m.compiled = this.output;
       this.loaded_modules[module_name] = true;
     } catch(e) {
       // Print any thrown errors
       // THIS CODE SHOULD NOT BE REACHED
-      //console.log(JSON.stringify(m.voxelscript_ast, null, 4));
+      console.log(JSON.stringify(m.voxelscript_ast, null, 4));
       console.log(e);
       throw new Error("FATAL ERROR: IN MODULE " + module_name)
     }
@@ -1004,43 +820,6 @@ class VSCompiler {
     
     return true;
   }
-
-  compile_single_module(module_name : string) {
-    module_name = "_VS_" + module_name;
-    return this.compile_internal_module(module_name);
-  }
-
-  compile_all_modules() {
-    for(let module_name in this.modules) {
-      if (!this.compile_internal_module(module_name)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  get_modules() : string[] {
-    let all_modules = [];
-    for (let m in this.modules) {
-      all_modules.push(m.slice(4));
-    }
-    return all_modules;
-  }
-
-  get_compiled_module(module_name : string) : string | null {
-    module_name = "_VS_" + module_name;
-    let m = this.get_module(module_name);
-    if (m) {
-      return m.compiled;
-    } else {
-      return null;
-    }
-  }
-
-  register_failed_module(module_name: string) : void {
-    module_name = "_VS_" + module_name;
-    this.failed_modules[module_name] = true;
-  }
 }
 
-export { VSCompiler };
+export { VSToTypeScriptRenderer };

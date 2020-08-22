@@ -1,7 +1,7 @@
 import * as peg from 'pegjs';
 import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'fs';
 import * as path from "path";
-import { VSCompilerContext } from './voxelscript_compiler_context';
+import { VSCompiler } from './voxelscript_compiler_context';
 import { is_subdir, getAllVoxelScriptSubfiles, get_package_json, error_to_string, parse_args } from './utils';
 const Tracer = require('pegjs-backtrace');
 const tsc = require('node-typescript-compiler');
@@ -32,7 +32,7 @@ let pegjs_data = readFileSync(PEGJS_FILE, 'utf8');
 let parser = peg.generate(pegjs_data, {cache:true, trace:TRACE_PARSER});
 
 // Create compiler context
-let compiler_context = new VSCompilerContext();
+let compiler_context = new VSCompiler();
 let parsing_errors : any = {};
 let voxelscripts : any = {};
 
@@ -118,7 +118,7 @@ if (options.desired_module) {
     process.exit(2);
   }
   if (!voxelscripts[options.desired_module].parsed) {
-    console.log("Could not parse desired module " + options.desired_module + "!");
+    console.log("Error: Could not parse desired module " + options.desired_module + "!");
     console.log(parsing_errors[options.desired_module]);
     process.exit(1);
   }
@@ -138,14 +138,14 @@ if (options.desired_module) {
       console.log(err_string);
       process.exit(1);
     } else {
-      console.log("Unknown compiler error!");
+      console.log("Error: Unknown compiler error!");
       process.exit(2);
     }
   }
 } else {
   // Otherwise, compile all of them
   if (!compiler_context.compile_all_modules()) {
-    console.log("Failed to compile!");
+    console.log("Error: Failed to compile!");
     process.exit(2);
   }
 }
@@ -174,9 +174,21 @@ if (options.build_target) {
   }
 
   // Compile the resulting typescript files
-  tsc.compile({project: options.build_target});
+  tsc.compile({project: options.build_target})
+  .then(() => {
+    // Print success message!
+    console.log();
+    console.log("Compilation Succeeded!");
+  })
+  .catch((err : any) => {
+    // Print failure method!
+    console.log("Error: Typescript transpilation filed!");
+    console.log(err.stdout);
+    process.exit(2);
+  });
+} else {
+  // Print success message!
+  console.log();
+  console.log("Compilation Succeeded!");
 }
 
-// Print success message!
-console.log();
-console.log("Compilation Succeeded!");

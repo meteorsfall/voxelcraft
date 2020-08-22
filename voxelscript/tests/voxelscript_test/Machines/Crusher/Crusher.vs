@@ -74,6 +74,7 @@ implement Crusher {
 
         this.current_progress = 0;
         this.energy_in_crusher = 0;
+        this.had_burnt_energy = false;
     }
 
     // Check if we can crush

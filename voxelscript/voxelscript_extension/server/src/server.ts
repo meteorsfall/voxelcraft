@@ -129,7 +129,8 @@ function compile(package_name : string, module_name : string) {
         cp.on('close', function (code) {
             let diagnostics = [];
 
-            if (code != 0) {
+            log("CODE: " + code);
+            if (code == 1) {
                 log("Failure!");
                 log(response);
                 log("++++++++++++++++++++++++++");
@@ -170,6 +171,22 @@ function compile(package_name : string, module_name : string) {
                     },
                     message: error
                 });
+            } else if (code == 2) {
+                // Grab the last line for the error
+                let lines = response.split("\n");
+                let accumulated_lines = [];
+                log(JSON.stringify(lines));
+                while(lines.length > 0) {
+                    let line = lines.pop();
+                    accumulated_lines.push(line);
+                    if (line.match(/^Error: /g)) {
+                        break;
+                    }
+                }
+                accumulated_lines.reverse();
+                let error_message = accumulated_lines.join("\n");
+                log(error_message);
+                diagnostics.push(create_generic_diagnostic(error_message, DiagnosticSeverity.Error));
             }
 
             if (promise_returned) {
