@@ -8,6 +8,8 @@ import * as path from 'path';
 import * as childProcess from 'child_process';
 import uri_to_path = require('file-uri-to-path');
 
+const DEBUG_LOG = false;
+
 function is_subdir(base:string, child:string):boolean {
     let relative = path.relative(base, child);
     const isSubdir = (relative != "") && !relative.startsWith('..') && !path.isAbsolute(relative);
@@ -59,10 +61,11 @@ const compiler_path = path.join(__dirname, "voxelscript_compiler", "voxelscript_
 
 var access = createWriteStream(__dirname + '/stderr_log.txt');
 process.stderr.write = access.write.bind(access);
-console.error("TEST STDERR!");
 
 function log(log : string) : void {
-    appendFileSync(__dirname + '/log.txt', log + "\n");
+    if (DEBUG_LOG) {
+        appendFileSync(__dirname + '/log.txt', log + "\n");
+    }
 }
 
 log("TEST!");
