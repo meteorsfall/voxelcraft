@@ -153,10 +153,12 @@ implement Stackable on Crusher {
 
 import Ores;
 
+typedef FnEntityToEntity = (Entity a) => Entity;
+
 // Implement Crushable on all the main ores
 implement Crushable on IronOre {
     EntityContainer crush() {
-        Function ToDust = (Entity a) => {return a;};
+        FnEntityToEntity ToDust = (Entity a) => {return a;};
         Entity ret = ToDust(this);
         EntityContainer stack = new EntityContainer();
         stack.change(ret, 2);

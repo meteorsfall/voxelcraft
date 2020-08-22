@@ -3,5 +3,6 @@
     "title": "Base and IC2",
     "author": "VoxelCraft",
     "description": "Includes Ores, Fuels, and Crushers",
+    "main": "Main",
     "dependencies": []
 }

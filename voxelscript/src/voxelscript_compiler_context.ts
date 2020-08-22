@@ -379,7 +379,7 @@ class VSCompilerContext {
   
     switch (data.type) {
     case "module":
-      this.write_output("import {int, double, bool, applyMixins, cast} from \"./Base\";\n");
+      this.write_output("import {int, double, bool, applyMixins, cast, _VS_console} from \"./Base\";\n");
       for(let top_level of data.body) {
         if (top_level.type == "variable_definition" || top_level.type == "variable_declaration") {
           this.write_output("let ");

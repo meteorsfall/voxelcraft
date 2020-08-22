@@ -4,6 +4,7 @@ import * as path from "path";
 import { VSCompilerContext } from './voxelscript_compiler_context';
 import { is_subdir, getAllVoxelScriptSubfiles, get_package_json, error_to_string, parse_args } from './utils';
 const Tracer = require('pegjs-backtrace');
+const tsc = require('node-typescript-compiler');
 
 const TRACE_PARSER = false;
 
@@ -158,6 +159,10 @@ if (options.build_target) {
   let base_ts_file = readFileSync(path.join(__dirname, 'base_ts.ts'));
   writeFileSync(path.join(options.build_target, "Base.ts"), base_ts_file);
 
+  // Get standard tsconfig file, for the resulting typescript transpilation to use
+  let tsconfig_file = readFileSync(path.join(__dirname, 'build_tsconfig.json'));
+  writeFileSync(path.join(options.build_target, "tsconfig.json"), tsconfig_file);
+
   // Write the remaining compiled files to the build target directory
   for (let module_name of compiler_context.get_modules()) {
     let compiled_data = compiler_context.get_compiled_module(module_name)!;
@@ -165,6 +170,9 @@ if (options.build_target) {
       writeFileSync(path.join(options.build_target, "_VS_" + module_name + ".ts"), compiled_data);
     }
   }
+
+  // Compile the resulting typescript files
+  tsc.compile({project: options.build_target});
 }
 
 // Print success message!

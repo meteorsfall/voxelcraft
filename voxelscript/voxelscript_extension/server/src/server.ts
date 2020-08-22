@@ -95,9 +95,10 @@ function compile(package_name : string, module_name : string) {
             diagnostics.push(create_generic_diagnostic('Took too long to compile!', DiagnosticSeverity.Error));
             resolve(diagnostics);
             promise_returned = true;
-        }, 1500);
+        }, 15000);
 
         let build_path = path.join(BUILD_PATH, package_name);
+        log("Build path: " + build_path + " " + existsSync(build_path));
         if (!existsSync(build_path)) {
             mkdirSync(build_path);
             log("Created build path: " + build_path);

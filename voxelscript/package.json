@@ -8,6 +8,7 @@
     "@types/node": "^14.6.0",
     "@types/pegjs": "^0.10.2",
     "minimist": "^1.2.5",
+    "node-typescript-compiler": "^2.1.2",
     "pegjs": "^0.10.0",
     "pegjs-backtrace": "^0.2.0",
     "typescript": "^3.9.7"
@@ -16,7 +17,9 @@
     "@types/node": "^14.6.0"
   },
   "scripts": {
-    "compile": "cd voxelscript_extension && echo Compiling VoxelScript Extension && npm run compile && cd .. && cd src && echo Compiling VoxelScript Compiler && npx tsc && cp voxelscript.pegjs base_ts.ts build && cd .. && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
+    "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs base_ts.ts build_tsconfig.json build && cd ..",
+    "compile_extension": "echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd ..",
+    "compile": "npm run compile_extension && npm run compile_compiler && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
     "test": "npm run compile; node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
   },
   "author": "VoxelCraft",
