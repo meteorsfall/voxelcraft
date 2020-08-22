@@ -19,7 +19,7 @@ class VSCompilerContext {
   loaded_modules : any = {};
   compiling_module : string | null = null;
   origin_module_of : any = {};
-  // Reset back to underscore whenever a new module has loaded
+  // This variable will be used in place of voxelscript underscores in lambda expressions
   unused_variable_name : string = "UNUSED_";
 
   // Rendering Context
@@ -33,26 +33,33 @@ class VSCompilerContext {
   // Error holding
   missing_dependency : dependency | null = null;
   error_reason : string = "";
+  // Keep track of modules that failed to parse
+  failed_modules : any = {};
 
+  // Reset the variable in every module, so that the underscores don't grow too long
   private reset_unused_variable_name() {
     this.unused_variable_name = "UNUSED_";
   }
 
+  // In order to make sure that every "unused" variable is unique, add an underscore
   private get_unused_variable_name() {
     let var_name = this.unused_variable_name;
     this.unused_variable_name += "_";
     return var_name;
   }
 
+  // Return the module, given the module name
   private get_module(module_name : string) : module | null {
     return this.modules[module_name];
   }
 
-  private set_module(module_name : string, voxelscript_ast : any) : void {
+  // Set a module to a given voxelscript abstract syntax tree
+  private create_module(module_name : string, voxelscript_ast : any) : void {
     if (voxelscript_ast.type != 'module') {
       throw new Error("syntax tree provided is not a module!");
     }
 
+    // Create a new module class
     let m : module = {
       name: module_name,
       voxelscript_ast: voxelscript_ast,
@@ -60,7 +67,11 @@ class VSCompilerContext {
       dependencies: [],
       exports: null,
     };
+
+    // Store hte module class
     this.modules[module_name] = m;
+
+    // Check all imports of the module to keep track of dependencies
     for(let top_level of voxelscript_ast.body) {
       if (top_level.type == "import") {
         let dep = this.parse_identifier(top_level.identifier);
@@ -72,6 +83,7 @@ class VSCompilerContext {
     }
   }
   
+  // Increase/Decrease the current tab amount, so that the resulting typescript is tabbed properly (Will be easier to look through)
   tab(change_tab : number) {
     this.tabs += change_tab;
     if (this.tabs < 0) {
@@ -79,6 +91,7 @@ class VSCompilerContext {
     }
   }
   
+  // Write the output to the output string, but tab the line based on the current tab value
   write_output(str : string) {
     for(let c of str) {
       if (this.output[this.output.length - 1] == '\n') {
@@ -90,6 +103,7 @@ class VSCompilerContext {
     }
   }
   
+  // Render typed_args as (Obj1 : Type1, Obj2 : Type2, _, _, Obj3 : Type 3)
   render_typed_args(typed_args : any[]) {
     this.write_output("(");
     let first = true;
@@ -110,6 +124,8 @@ class VSCompilerContext {
     this.write_output(")");
   }
 
+  // Render normal args as (arg1, arg2, arg3),
+  // Rendering each expression accordingly
   render_args(args : any[]) {
     this.write_output("(");
     let first = true;
@@ -117,12 +133,14 @@ class VSCompilerContext {
       if (!first) {
         this.write_output(", ");
       }
+      // Arguments are arrays of expressions
       this.render_expression(arg);
       first = false;
     }
     this.write_output(")");
   }
 
+  // Verify that the given identifier has not yet been registered as a class or trait in the context yet
   verify_not_registered(id : any) {
     let unparsed_name = id.value;
     let parsed_name = this.parse_identifier(id);
@@ -131,34 +149,44 @@ class VSCompilerContext {
     }
   }
   
+  // Register the trait identifier in the current context,
+  // so that we know that this identifier refers to a trait
   register_trait(trait_identifier : any) {
     let trait : any = {};
     let original_name = trait_identifier.value;
+    // Prepend trait names with TRAIT_ in the transpiled typescript
     let new_name = "TRAIT_" + original_name;
 
+    // Don't register twice
     this.verify_not_registered(original_name);
 
     this.traits[original_name] = trait;
     trait.name = new_name;
   }
 
+  // Register the class trait in the current context,
+  // so that we know that this identifier refers to a class
   register_class(class_identifier : any) {
     let cls : any = {};
     let original_name = class_identifier.value;
+    // Prepend class names with CLASS_ in the transpiled typescript
     let new_name = "CLASS_" + original_name;
 
+    // Don't register twice
     this.verify_not_registered(original_name);
 
     this.classes[original_name] = cls;
     cls.name = new_name;
   }
   
+  // Parse type into a typescript string
   parse_type(type : any) {
     let val;
     if (type.value.type == "identifier") {
       // If type is an identifier, we should parse it as such
       val = this.parse_identifier(type.value);
     } else {
+      // Otherwise type.value already contains the type name
       val = type.value;
     }
     let suffix = "";
@@ -168,6 +196,7 @@ class VSCompilerContext {
     return val + suffix;
   }
   
+  // Parse identifier into a typescript string (Checking for trait/class status)
   parse_identifier(id : any) {
     if (id.value in this.traits) {
       return this.traits[id.value].name;
@@ -178,6 +207,8 @@ class VSCompilerContext {
     return id.value;
   }
   
+  // Create is_TRAIT__VS_MyTrait function,
+  // so that cast<> can verify if a given object has implemented that trait
   create_is_trait_function(trait_name : string) {
     return {
       type: "function_implementation",
@@ -205,6 +236,7 @@ class VSCompilerContext {
     }
   }
 
+  // Render expression by unwrapping the subexpression
   render_expression(e : any) {
     if (e.type != "expression") {
       throw new Error("e is not an expression!");
@@ -212,6 +244,7 @@ class VSCompilerContext {
     this.render_subexpression(e.value);
   }
 
+  // Recursively render subexpressions
   render_subexpression(e : any, with_parens=true) {
     switch(e.type) {
     case "assignment":
@@ -351,6 +384,7 @@ class VSCompilerContext {
     }
   }
 
+  // Render function bodies as sets of variable definitions / declarations / statements
   render_function_body(statements : any[]) {
     for(let statement of statements) {
       if (statement.type == "variable_definition" || statement.type == "variable_declaration") {
@@ -360,6 +394,7 @@ class VSCompilerContext {
     }
   }
 
+  // Keep track of trait context
   set_trait_implementing_on(trait : string, cls : string) {
     this.is_currently_implementing = trait;
     this.is_currently_implementing_on = cls;
@@ -370,10 +405,12 @@ class VSCompilerContext {
     this.is_currently_implementing_on = null;
   }
   
+  // Render a statement to typescript
   render_statement(data : any) {
     // Help find bugs in render_statement calls
     if (!data.type) {
-      console.log(data.type);
+      // THIS CODE SHOULD NOT BE REACHED!
+      console.log("FATAL ERROR: ", data);
       throw new Error("data does not have type!");
     }
   
@@ -388,16 +425,19 @@ class VSCompilerContext {
       }
       break;
     case "import":
-      let import_location = "";
       let raw_import_id = data.identifier.value;
-      let exports = null;
-      if (raw_import_id in this.modules) {
-        import_location = this.modules[raw_import_id].url;
-        exports = this.modules[raw_import_id].exports;
-      } else {
+      let module = this.modules[raw_import_id];
+      if (!module) {
         // SHOULD BE UNREACHABLE!
         throw new Error("Bad Import!" + raw_import_id);
       }
+
+      let import_location = "";
+      let exports = null;
+
+      // Get path to import, and get list of exports so that we know what to import explicitly
+      import_location = module.url;
+      exports = module.exports;
       this.write_output("import {" + exports + "} from \"./" + raw_import_id + "\";\n");
       break;
     case "const":
@@ -426,10 +466,13 @@ class VSCompilerContext {
           export_args += ", ";
         }
         let export_arg = this.parse_identifier(arg);
+        // Keep track of which module has exported a given argument, for later usage
         this.origin_module_of[export_arg] = this.compiling_module;
         export_args += export_arg;
         first = false;
       }
+
+      // Save exports
       this.modules[this.compiling_module!].exports = export_args;
       this.write_output(export_args);
       this.write_output("};\n");
@@ -441,6 +484,7 @@ class VSCompilerContext {
       this.write_output("abstract class " + this.parse_identifier(data.identifier) + " {\n");
       this.tab(1);
   
+      // Render is_trait_function, and all trait implementation functions
       data.body = [this.create_is_trait_function(this.parse_identifier(data.identifier))].concat(data.body);
       for(let statement of data.body) {
         this.render_statement(statement);
@@ -511,6 +555,9 @@ class VSCompilerContext {
       this.write_output(" : " + this.parse_type(data.return_type) + ";\n");
       break;
     case "class_implementation":
+      // implement MyClass {
+      // }
+
       var class_name = this.parse_identifier(data.identifier);
       this.write_output("class " + class_name + " extends ABSTRACT_" + class_name + " {\n");
       this.tab(1);
@@ -523,6 +570,10 @@ class VSCompilerContext {
       this.write_output("}\n");
       break;
     case "trait_implementation":
+      // implement MyTrait on MyClass {
+      //
+      // }
+
       let trait_name = this.parse_identifier(data.trait);
       var class_name = this.parse_identifier(data["class"]);
       let trait_implementation_name = trait_name + "_ON_" + class_name;
@@ -539,6 +590,17 @@ class VSCompilerContext {
       this.tab(-1);
       this.write_output("}\n");
       
+      // Apply traits to already existing classes via:
+      //
+      // https://www.digitalocean.com/community/tutorials/typescript-module-augmentation
+      //
+      // declare module "./pet" {
+      //   interface Pet {
+      //     age: number;
+      //     walk(location: string);
+      //   }
+      // }
+
       let origin_module = this.origin_module_of[class_name];
       if (origin_module) {
         this.write_output("declare module \"./" + origin_module + "\" {\n");
@@ -619,7 +681,8 @@ class VSCompilerContext {
     }
   }
 
-  remove_module(module_name : string) {
+  public remove_module(module_name : string) {
+    // Remove an already parsed module 
     module_name = "_VS_" + module_name;
     if (!(module_name in this.modules)) {
       throw new Error("Cannot remove module that doesn't exist!");
@@ -627,36 +690,49 @@ class VSCompilerContext {
     delete this.modules[module_name];
   }
 
-  add_module(module_name : string, voxelscript_ast : any) {
+  public add_module(module_name : string, voxelscript_ast : any) {
+    // Check that module hasn't been added twice, and then create that module based on the ast
     module_name = "_VS_" + module_name;
     if (this.get_module(module_name)) {
       throw new Error("Module of name <" + module_name + "> has already been added to this compilation target!");
     }
-    this.set_module(module_name, voxelscript_ast);
+    this.create_module(module_name, voxelscript_ast);
   }
 
+  // Compile modules
   private compile_module(module_name : string) {
     let m = this.get_module(module_name);
     if (!m) {
       throw new Error("Cannot compile module that doesn't exist! " + module_name);
     }
-    this.output = "";
     try {
+      // Init context
+      this.output = "";
       this.compiling_module = module_name;
       this.reset_unused_variable_name();
+
+      // Render the root of the abstract syntax tree
       this.render_statement(m.voxelscript_ast);
+
+      // Close context, and save results
       this.compiling_module = null;
       m.compiled = this.output;
       this.loaded_modules[module_name] = true;
     } catch(e) {
-      console.log("Error: ", e, " in module " + module_name);
+      // Print any thrown errors
+      // THIS CODE SHOULD NOT BE REACHED
       console.log(JSON.stringify(m.voxelscript_ast, null, 4));
+      console.log(e);
+      throw new Error("FATAL ERROR: IN MODULE " + module_name)
     }
   }
 
-  private missing_dependencies(module_name : string) : dependency | null {
+  // Get missing dependencies of the given module name, if there are any (Return null if there are none)
+  private find_missing_dependency(module_name : string) : dependency | null {
     let m = this.get_module(module_name);
+    // Loop over all dependencies of the module
     for (let dep of m!.dependencies) {
+      // If we haven't loaded that dependency, return it
       if (!(dep.module_name in this.loaded_modules)) {
         return dep;
       }
@@ -664,49 +740,83 @@ class VSCompilerContext {
     return null;
   }
 
+  // Compile module
   private compile_internal_module(module_name : string) : boolean {
+    // Return if the module has already been compiled
     if (module_name in this.loaded_modules) {
       return true;
     }
     this.missing_dependency = null;
-    while (!this.loaded_modules[module_name]) {
-      let m = this.get_module(module_name);
-      let prev : dependency | null = null;
-      let cur : dependency | null = {
-        module_name,
-        location: null
-      };
-      let original_missing_dependency = null;
-      let full_dependency_chain : any = {};
-      while(cur != null) {
-        if (full_dependency_chain[cur.module_name]) {
-          console.log("Recursive Dependency!");
+
+    // Here we will loop and compile all dependencies
+    // Each iteration of this while loop will find a missing dependency and then try to compile it
+    while (true) {
+      // The import whose dependency tree we are exploring right now
+      let import_being_explored = this.find_missing_dependency(module_name);
+      // Keep track of all visited dependencies so that recursive depedencies can be found
+      let visited_modules : any = {};
+
+      // If there are no missing dependencies, then break out of the for loop
+      if (import_being_explored == null) {
+        break;
+      }
+
+      // This while loop will recursively find uncompiled depencies of
+      // the given uncompiled depenency, until it either finds a dependency that has no dependencies,
+      // or it finds a recursive dependency and exits with an error.
+      let dependency_being_explored : dependency = import_being_explored;
+      while(true) {
+        // If we want to explore a missing dependency, but that dependency isn't in the module list,...
+        if (!(dependency_being_explored.module_name in this.modules)) {
+          // Then we have a dependency that failed to parse, and need to
+          // Mark an error from the import that caused it
           this.missing_dependency = {
-            module_name: original_missing_dependency!.module_name.slice(4),
-            location: original_missing_dependency!.location,
+            module_name: import_being_explored!.module_name.slice(4),
+            location: import_being_explored!.location,
+          };
+          if (dependency_being_explored.module_name in this.failed_modules) {
+            this.error_reason = "Dependency failed to parse";
+          } else {
+            this.error_reason = "Dependency not found";
+          }
+          return false;
+        }
+
+        // If this module has already been visited, then we have a recursive dependency,
+        // so we should error out
+        if (visited_modules[dependency_being_explored.module_name]) {
+          // Mark an error from the import that caused it
+          this.missing_dependency = {
+            module_name: import_being_explored!.module_name.slice(4),
+            location: import_being_explored!.location,
           };
           this.error_reason = "Recursive Dependency Found";
           return false;
         }
-        full_dependency_chain[cur.module_name] = true;
-        let was_first = prev == null;
-        prev = cur;
-        cur = this.missing_dependencies(prev.module_name);
-        if (was_first) {
-          original_missing_dependency = cur;
+        // Mark visited module so that we know to trigger an error if we visit it twice
+        visited_modules[dependency_being_explored.module_name] = true;
+
+        // Find a dependency of the given dependency, if any
+        let next_missing_dependency = this.find_missing_dependency(dependency_being_explored.module_name);
+        if (next_missing_dependency == null) {
+          // If the dependency that we're exploring, has no missing dependencies,
+          // then we break out of the loop so that we can compile the dependency
+          break;
         }
-        if (cur != null && !(cur.module_name in this.modules)) {
-          this.missing_dependency = {
-            module_name: original_missing_dependency!.module_name.slice(4),
-            location: original_missing_dependency!.location,
-          };
-          this.error_reason = "Dependency failed to compile";
-          return false;
-        }
+        // Otherwise, we explore the next missing dependency
+        dependency_being_explored = next_missing_dependency;
       }
-      console.log("Compiling " + prev?.module_name);
-      this.compile_module(prev!.module_name);
+
+      // Compile the discovered dependency
+      console.log("Compiling " + dependency_being_explored!.module_name);
+      this.compile_module(dependency_being_explored!.module_name);
     }
+
+    // After we compiled all of the missing dependencies,
+    // We should now compile the real dependency
+    console.log("Compiling " + module_name);
+    this.compile_module(module_name);
+    
     return true;
   }
 
@@ -740,6 +850,11 @@ class VSCompilerContext {
     } else {
       return null;
     }
+  }
+
+  register_failed_module(module_name: string) : void {
+    module_name = "_VS_" + module_name;
+    this.failed_modules[module_name] = true;
   }
 }
 

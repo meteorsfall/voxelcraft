@@ -106,6 +106,8 @@ for(let file_data of vs_files) {
     console.log("Added Module: " + voxelscript_module_name + " (" + file_data.filepath + ")");
     console.log();
     voxelscripts[voxelscript_module_name].parsed = true;
+  } else {
+    compiler_context.register_failed_module(voxelscript_module_name);
   }
 }
 
