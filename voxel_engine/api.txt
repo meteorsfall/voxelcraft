@@ -1,0 +1,37 @@
+World
+ |- set_block(int x, int y, int z, int block_id)
+ |- get_block(int x, int y, int z) -> int block_id)
+ |- unset_block(int x, int y, int z)
+ |- chunk_size = 16
+ |- set_skybox(int texture_id)
+ |- set_position(double x, double y, double z, mesh_id);
+
+Chunk
+ |- set_active(bool is_active) // Load chunk
+ 
+Texture
+ |- create_texture('./grass_block.tx') -> int texture_id
+ |- delete_texture(int texture_id)
+
+Block
+ |- create_block() -> int block_id
+ |- delete_block(int block_id)
+ |- set_texture(int texture_id)
+ |- is_opaque
+
+Mesh
+ |- create_mesh('./cow.obj') -> int mesh_id
+ |- set_texture(int texture_id)
+
+Camera
+ |- set_location(int x, int y, int z)
+ |- set_angle(int a, int b, int c)
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+UI
+ |- create_ui() -> int ui_id
+ |- 
+
+ParticleEffect
+ |- create_particle_effect(int texture_id)
