@@ -59,7 +59,8 @@ impl World {
         return b_id;
     }
 
-    pub fn render(&mut self, renderer : &mut DeferredPipeline, width: usize, height: usize, camera : &Camera) {
+    pub fn render(&self, width: usize, height: usize, camera : &Camera) {
+        /*
         renderer.geometry_pass(width, height, &|| {
             // Draw box
             for block_instance in &self.chunk {
@@ -77,6 +78,23 @@ impl World {
                 }
             }
         }).unwrap();
+        */
+        // Draw box
+        for block_instance in &self.chunk {
+            let transformation = Mat4::new(
+                1.0, 0.0, 0.0, 0.0,
+                0.0, 1.0, 0.0, 0.0,
+                0.0, 0.0, 1.0, 0.0,
+                (2 * block_instance.x) as f32, (2 * block_instance.y) as f32, (2 * block_instance.z) as f32, 1.0
+            );
+            let block_id = block_instance.block_id;
+            for block in &self.blocks {
+                if block.block_id == block_id {
+                    block.mesh.render(&transformation, &camera);
+                }
+            }
+        }
+
     }
 }
 
@@ -89,9 +107,6 @@ fn main() {
     let mut window = Window::new_default("Texture").unwrap();
     let (width, height) = window.framebuffer_size();
     let gl = window.gl();
-
-    // Makes and Renderer
-    let mut renderer = DeferredPipeline::new(&gl).unwrap();
 
     // Makes a new camera with the given location and direction
     let mut camera = Camera::new_perspective(&gl, vec3(5.0, -3.0, 5.0), vec3(0.0, 0.0, 0.0), vec3(0.0, 1.0, 0.0),
@@ -114,6 +129,8 @@ fn main() {
                                                        include_bytes!("../assets/textures/skybox_evening/right.jpg")).unwrap();
     // Makes a skybox from the texture cube
     let skybox = objects::Skybox::new(&gl, texture3d);
+
+    let ambient_light_effect = ImageEffect::new(&gl, include_str!("../assets/shaders/ambient_light.frag")).unwrap();
 
     // Create ambient light
     let ambient_light = AmbientLight::new(&gl, 0.4, &vec3(1.0, 1.0, 1.0)).unwrap();
@@ -191,16 +208,47 @@ fn main() {
                 _ => {}
             }
         }
-
+        
         // Draw all geometry
-        world.render(&mut renderer, width, height, &camera);
+        let geometry_pass_texture = Texture2DArray::new(&gl, width, height, 2,
+            Interpolation::Nearest, Interpolation::Nearest, None, Wrapping::ClampToEdge,
+            Wrapping::ClampToEdge, Format::RGBA8).unwrap();
+        let geometry_pass_depth_texture = Texture2DArray::new(&gl, width, height, 1,
+            Interpolation::Nearest, Interpolation::Nearest, None, Wrapping::ClampToEdge,
+            Wrapping::ClampToEdge, Format::Depth32F).unwrap();
 
-        Screen::write(&gl, 0, 0, width, height, Some(&vec4(0.8, 0.0, 0.0, 1.0)), None, &|| {
-            // Draw the skybox
-            skybox.render(&camera).unwrap();
+        RenderTarget::write_array(&gl,0, 0, width, height,
+            Some(&vec4(0.0, 0.0, 0.0, 0.0)), Some(1.0),
+            Some(&geometry_pass_texture), Some(&geometry_pass_depth_texture),
+            2, &|channel| {channel},
+            0, &|| {
+            world.render(width, height, &camera);
+        });
+        
+        // Clear frame and set parameters
+        gl.viewport(0, 0, width, height);
+        gl.bind_framebuffer(consts::DRAW_FRAMEBUFFER, None);
+        gl.clear_color(0.8, 0.0, 0.0, 1.0);
+        gl.clear(consts::COLOR_BUFFER_BIT);
+        
+        // Draw the skybox
+        skybox.render(&camera).unwrap();
 
-            // Draw light
-            renderer.light_pass(&camera, Some(&ambient_light), &[&directional_light], &[], &[]).unwrap();
-        }).unwrap();
+        // Draw light
+        state::depth_write(&gl, false);
+        state::depth_test(&gl, state::DepthTestType::None);
+        state::blend(&gl, state::BlendType::None);
+        
+        ambient_light_effect.program().use_texture(&geometry_pass_texture, "gbuffer").unwrap();
+        ambient_light_effect.program().use_texture(&geometry_pass_depth_texture, "depthMap").unwrap();
+        ambient_light_effect.program().add_uniform_vec3("ambientLight.base.color", &ambient_light.color()).unwrap();
+        ambient_light_effect.program().add_uniform_float("ambientLight.base.intensity", &ambient_light.intensity()).unwrap();
+        ambient_light_effect.apply();
+        state::blend(&gl, state::BlendType::OneOne);
+        
+        state::depth_write(&gl, true);
+        state::depth_test(&gl, state::DepthTestType::LessOrEqual);
+        state::cull(&gl, state::CullType::None);
+        state::blend(&gl, state::BlendType::None);
     }).unwrap();
 }
