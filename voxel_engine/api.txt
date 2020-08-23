@@ -27,6 +27,12 @@ Camera
  |- set_location(int x, int y, int z)
  |- set_angle(int a, int b, int c)
 
+Player
+ |- move(Vector3 velocity, Vector3 forces) 
+ |- get_position()
+ |- rotate(float theta)
+ |- get_direction() => float theta
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 UI
