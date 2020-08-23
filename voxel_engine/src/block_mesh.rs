@@ -21,6 +21,20 @@ impl BlockMesh
         let normal_buffer = VertexBuffer::new_with_static_f32(gl, normals)?;
         let index_buffer = ElementBuffer::new_with_u32(gl, indices)?;
 
+        let frag_shader = gl.create_shader(consts::FRAGMENT_SHADER)
+        .ok_or(Error::FailedToCreateShader{ shader_type: "Fragment shader".to_string(), message:"Unable to create shader object".to_string() })?;
+        gl.compile_shader(include_str!("../assets/shaders/block.frag"), &frag_shader);
+
+        let isCompiled;
+        gl.GetShaderiv(&frag_shader, consts::COMPILE_STATUS, &isCompiled);
+        if isCompiled == consts::FALSE
+        {
+            if let Some(log) = gl.get_shader_info_log(&frag_shader) {
+                println!("Error: {}", log);
+            }
+            return;
+        }
+
         let shaders = program::Program::from_source(&gl,
                                                     include_str!("../assets/shaders/block.vert"),
                                                     include_str!("../assets/shaders/block.frag"))?;
@@ -47,15 +61,7 @@ impl BlockMesh
         self.shaders.add_uniform_float("specular_intensity", &self.specular_intensity).unwrap();
         self.shaders.add_uniform_float("specular_power", &self.specular_power).unwrap();
 
-        if let Some(ref tex) = self.texture
-        {
-            self.shaders.add_uniform_int("use_texture", &1).unwrap();
-            self.shaders.use_texture(tex,"tex").unwrap();
-        }
-        else {
-            self.shaders.add_uniform_int("use_texture", &0).unwrap();
-            self.shaders.add_uniform_vec3("color", &self.color).unwrap();
-        }
+        self.shaders.use_texture(self.texture.as_ref().unwrap(),"tex").unwrap();
 
         self.shaders.add_uniform_mat4("modelMatrix", &transformation).unwrap();
         self.shaders.use_uniform_block(camera.matrix_buffer(), "Camera");
