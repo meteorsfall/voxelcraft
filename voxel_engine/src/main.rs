@@ -1,5 +1,6 @@
 
 use three_d::*;
+mod block_mesh;
 
 struct Block {
     x: f32,
@@ -49,7 +50,7 @@ fn main() {
     // Make an "unconnected cube" tri_mesh
     let box_mesh = tri_mesh::MeshBuilder::new().unconnected_cube().build().unwrap();
     // Makes a new mesh from the box tri_mesh
-    let mut box_mesh = Mesh::new(&gl, &box_mesh.indices_buffer(), &box_mesh.positions_buffer_f32(), &box_mesh.normals_buffer_f32()).unwrap();
+    let mut box_mesh = block_mesh::BlockMesh::new(&gl, &box_mesh.indices_buffer(), &box_mesh.positions_buffer_f32(), &box_mesh.normals_buffer_f32()).unwrap();
     
     // Sets the texture of the box tri_mesh
     box_mesh.texture = Some(texture::Texture2D::new_from_bytes(&gl, Interpolation::Linear, Interpolation::Linear, Some(Interpolation::Linear),
@@ -107,7 +108,7 @@ fn main() {
                     0.0, 1.0, 0.0, 0.0,
                     0.0, 0.0, 1.0, 0.0,
                     block.x, 0.0, 0.0, 1.0
-                );
+                ); 
                 box_mesh.render(&transformation, &camera);
             }
         }).unwrap();
