@@ -5,7 +5,7 @@ pub struct BlockMesh {
     position_buffer: VertexBuffer,
     normal_buffer: VertexBuffer,
     index_buffer: ElementBuffer,
-    program: program::Program,
+    shaders: program::Program,
     pub color: Vec3,
     pub texture: Option<texture::Texture2D>,
     pub diffuse_intensity: f32,
@@ -21,11 +21,11 @@ impl BlockMesh
         let normal_buffer = VertexBuffer::new_with_static_f32(gl, normals)?;
         let index_buffer = ElementBuffer::new_with_u32(gl, indices)?;
 
-        let program = program::Program::from_source(&gl,
-                                                    include_str!("../assets/shaders/mesh_shaded.vert"),
-                                                    include_str!("../assets/shaders/shaded.frag"))?;
+        let shaders = program::Program::from_source(&gl,
+                                                    include_str!("../assets/shaders/block.vert"),
+                                                    include_str!("../assets/shaders/block.frag"))?;
 
-        Ok(BlockMesh { index_buffer, position_buffer, normal_buffer, program, color: vec3(1.0, 1.0, 1.0), texture: None,
+        Ok(BlockMesh { index_buffer, position_buffer, normal_buffer, shaders, color: vec3(1.0, 1.0, 1.0), texture: None,
             diffuse_intensity: 0.5, specular_intensity: 0.2, specular_power: 6.0 })
     }
 
@@ -43,28 +43,28 @@ impl BlockMesh
 
     pub fn render(&self, transformation: &Mat4, camera: &camera::Camera)
     {
-        self.program.add_uniform_float("diffuse_intensity", &self.diffuse_intensity).unwrap();
-        self.program.add_uniform_float("specular_intensity", &self.specular_intensity).unwrap();
-        self.program.add_uniform_float("specular_power", &self.specular_power).unwrap();
+        self.shaders.add_uniform_float("diffuse_intensity", &self.diffuse_intensity).unwrap();
+        self.shaders.add_uniform_float("specular_intensity", &self.specular_intensity).unwrap();
+        self.shaders.add_uniform_float("specular_power", &self.specular_power).unwrap();
 
         if let Some(ref tex) = self.texture
         {
-            self.program.add_uniform_int("use_texture", &1).unwrap();
-            self.program.use_texture(tex,"tex").unwrap();
+            self.shaders.add_uniform_int("use_texture", &1).unwrap();
+            self.shaders.use_texture(tex,"tex").unwrap();
         }
         else {
-            self.program.add_uniform_int("use_texture", &0).unwrap();
-            self.program.add_uniform_vec3("color", &self.color).unwrap();
+            self.shaders.add_uniform_int("use_texture", &0).unwrap();
+            self.shaders.add_uniform_vec3("color", &self.color).unwrap();
         }
 
-        self.program.add_uniform_mat4("modelMatrix", &transformation).unwrap();
-        self.program.use_uniform_block(camera.matrix_buffer(), "Camera");
+        self.shaders.add_uniform_mat4("modelMatrix", &transformation).unwrap();
+        self.shaders.use_uniform_block(camera.matrix_buffer(), "Camera");
 
-        self.program.add_uniform_mat4("normalMatrix", &transformation.invert().unwrap().transpose()).unwrap();
+        self.shaders.add_uniform_mat4("normalMatrix", &transformation.invert().unwrap().transpose()).unwrap();
 
-        self.program.use_attribute_vec3_float(&self.position_buffer, "position").unwrap();
-        self.program.use_attribute_vec3_float(&self.normal_buffer, "normal").unwrap();
+        self.shaders.use_attribute_vec3_float(&self.position_buffer, "position").unwrap();
+        self.shaders.use_attribute_vec3_float(&self.normal_buffer, "normal").unwrap();
 
-        self.program.draw_elements(&self.index_buffer);
+        self.shaders.draw_elements(&self.index_buffer);
     }
 }
