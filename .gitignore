@@ -2,7 +2,8 @@ voxelscript/voxelscript_highlighter/syntaxes
 
 **/package-lock.json
 **/node_modules
+**/.vscode
 **/build
-*.swp
-*.log
+**/*.swp
+**/*.log
 

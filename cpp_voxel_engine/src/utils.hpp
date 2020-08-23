@@ -1,5 +1,5 @@
-#ifndef _UTILS_H
-#define _UTILS_H
+#ifndef _UTILS_HPP_
+#define _UTILS_HPP_
 
 // Include GLEW
 #include <GL/glew.h>
@@ -9,6 +9,7 @@
 
 // Include GLM
 #include <glm/glm.hpp>
+using namespace glm;
 
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path);
 
