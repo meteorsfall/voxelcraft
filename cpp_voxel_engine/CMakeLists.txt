@@ -29,5 +29,5 @@ message(STATUS "Found GLFW3 in ${GLFW3_INCLUDE_DIR}")
 
 include_directories(${OPENGL_INCLUDE_DIR})
 
-add_executable(voxelscript src/main.cpp src/utils.cpp src/player.cpp src/world.cpp)
+add_executable(voxelscript src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp)
 target_link_libraries(voxelscript ${OPENGL_LIBRARY} glfw GLEW ${GLFW_LIBRARIES})

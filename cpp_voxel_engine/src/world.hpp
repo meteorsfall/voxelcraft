@@ -21,7 +21,7 @@ class World {
 
 class Universe {
     Texture textures[128];
-    Block blocks[1024];
+    Block blocks[128];
     World worlds[16];
 
     int texture_id;

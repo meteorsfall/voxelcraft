@@ -1,9 +1,11 @@
 #version 330 core
 
-in vec3 per_vertex_color;
+in vec2 uv;
 
 out vec3 color;
 
+uniform sampler2D myTextureSampler;
+
 void main() {
-    color = per_vertex_color;
+    color = texture(myTextureSampler, uv).rgb;
 }
