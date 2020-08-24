@@ -1,7 +1,4 @@
 ogl-master
-**/CMakeFiles
-**/*.cmake
-**/CMakeCache.txt
-**/Makefile
 voxelscript
+assets/*.bmp
 
