@@ -10,6 +10,7 @@
 // Include GLM
 #include <glm/glm.hpp>
 using namespace glm;
+using namespace std;
 
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 
@@ -17,8 +18,9 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 
 GLuint loadBMP(const char * imagepath);
 
+// COORDINATES FOR BLOCKS
 
-	static GLfloat g_vertex_buffer_data[] = {
+	static GLfloat g_cube_vertex_buffer_data[] = {
          -1.0f,-1.0f,-1.0f, // triangle 1 : begin
 		-1.0f,-1.0f, 1.0f,
 		-1.0f, 1.0f, 1.0f, // triangle 1 : end
@@ -57,7 +59,7 @@ GLuint loadBMP(const char * imagepath);
 		1.0f,-1.0f, 1.0f
     };
 
-    static GLfloat g_uv_buffer_data[] = {
+    static GLfloat g_cube_uv_buffer_data[] = {
         0.000059f, 1.0f-0.000004f,
         0.000103f, 1.0f-0.336048f,
         0.335973f, 1.0f-0.335903f,

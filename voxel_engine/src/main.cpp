@@ -1,10 +1,9 @@
-// Include standard headers
 #include <stdio.h>
 #include <stdlib.h>
 
-// Include Util file
 #include "utils.hpp"
 #include "camera.hpp"
+#include "world.hpp"
 
 #define WIDTH 1024
 #define HEIGHT 768
@@ -53,44 +52,11 @@ int main( void )
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
 
-    for(int i = 0; i < len(g_uv_buffer_data); i++) {
-        if (g_uv_buffer_data[i] < 0.1) {
-            g_uv_buffer_data[i] = 0;
-        } else if (g_uv_buffer_data[i] < 0.4) {
-            g_uv_buffer_data[i] = 1.0f / 3.0f;
-        } else if (g_uv_buffer_data[i] < 0.7) {
-            g_uv_buffer_data[i] = 2.0f / 3.0f;
-        } else {
-            g_uv_buffer_data[i] = 1.0f;
-        }
-    }
-
-	// This will identify our vertex buffer
-	GLuint vertexbuffer;
-	// Generate 1 buffer, put the resulting identifier in vertexbuffer
-    glGenBuffers(1, &vertexbuffer);
-    // Make GL_ARRAY_BUFFER point to vertexbuffer
-    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    // Give our vertices to GL_ARRAY_BUFFER (ie, vertexbuffer)
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-
-	GLuint colorbuffer;
-	glGenBuffers(1, &colorbuffer);
-    // Make GL_ARRAY_BUFFER point to colorbuffer
-	glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-    // Give our vertices to GL_ARRAY_BUFFER (ie, colorbuffer)
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_uv_buffer_data), g_uv_buffer_data, GL_STATIC_DRAW);
-
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-	
-	// Create and compile our GLSL program from the shaders
-	GLuint programID = LoadShaders( "assets/simple.vert", "assets/simple.frag" );
 
     float camera_x = 3;
 	float fov = 45.0;
-
-    GLuint my_texture_id = loadBMP("assets/stone.bmp");
 
     Camera camera;
 
@@ -100,6 +66,8 @@ int main( void )
     double lastTime = glfwGetTime();
 
     glEnable(GL_CULL_FACE);
+
+    World world;
 
     // START MAIN GAME LOOP
 	do {
@@ -114,65 +82,11 @@ int main( void )
 
 		// Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        glUseProgram(programID);
 
-        // Calculate MVP Matrix
+        // RENDER ALL THE THINGS HERE
         mat4 PV = camera.get_camera_matrix();
-        
-        // Model matrix : an identity matrix (model will be at the origin)
-        glm::mat4 Model = glm::mat4(1.0f);
-        // Our ModelViewProjection : multiplication of our 3 matrices
-        glm::mat4 mvp = PV * Model; // Remember, matrix multiplication is the other way around
 
-		// Get a handle for our "MVP" uniform
-        // Only during the initialisation
-        GLuint MatrixID = glGetUniformLocation(programID, "MVP");
-        
-        // Send our transformation to the currently bound shader, in the "MVP" uniform
-        // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-        glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
-        //"vertex_shader.MVP = &mvp[0][0]"
-
-        GLuint shader_texture_id = glGetUniformLocation(programID, "myTextureSampler");
-        // shader_texture_id = &fragment_shader.myTextureSampler;
-        
-        glActiveTexture(GL_TEXTURE0);
-        // gl_internal_texture = 0;
-        glBindTexture(GL_TEXTURE_2D, my_texture_id);
-        // GL_TEXTURE_2D[gl_internal_texture] = my_texture_id;
-        glUniform1i(shader_texture_id, 0);
-        // *shader_texture_id = GL_TEXTURE_2D[0]
-
-		// Draw nothing, see you in tutorial 2 !
-		// 1st attribute buffer : vertices
-		glEnableVertexAttribArray(0);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-		glVertexAttribPointer(
-			0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-			3,                  // size
-			GL_FLOAT,           // type
-			GL_FALSE,           // normalized?
-			0,                  // stride
-			(void*)0            // array buffer offset
-		);
-
-		// 2nd attribute buffer : colors
-		glEnableVertexAttribArray(1);
-        glBindBuffer(GL_ARRAY_BUFFER, colorbuffer);
-        glVertexAttribPointer(
-            1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-            2,                                // size
-            GL_FLOAT,                         // type
-            GL_FALSE,                         // normalized?
-            0,                                // stride
-            (void*)0                          // array buffer offset
-        );
-		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, 12*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
-		glDisableVertexAttribArray(0);
-		
-		// Swap buffers
+		// Swap buffers, shows the image
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
