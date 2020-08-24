@@ -68,7 +68,7 @@ int main( void )
     glEnable(GL_CULL_FACE);
 
     Texture my_texture("assets/stone.bmp", "assets/simple.vert", "assets/simple.frag");
-
+ 
     Block my_block = Block(&my_texture);
     World my_world;
 
