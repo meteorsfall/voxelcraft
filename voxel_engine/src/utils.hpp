@@ -9,6 +9,7 @@
 
 // Include GLM
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 using namespace std;
 
@@ -21,42 +22,42 @@ GLuint loadBMP(const char * imagepath);
 // COORDINATES FOR BLOCKS
 
 	static GLfloat g_cube_vertex_buffer_data[] = {
-         -1.0f,-1.0f,-1.0f, // triangle 1 : begin
-		-1.0f,-1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f, // triangle 1 : end
-		1.0f, 1.0f,-1.0f, // triangle 2 : begin
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f,-1.0f, // triangle 2 : end
-		1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f,
-		1.0f,-1.0f,-1.0f,
-		1.0f, 1.0f,-1.0f,
-		1.0f,-1.0f,-1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f,
-		1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f,
-		1.0f,-1.0f, 1.0f,
+         0.0f,0.0f,0.0f, // triangle 1 : begin
+		0.0f,0.0f, 1.0f,
+		0.0f, 1.0f, 1.0f, // triangle 1 : end
+		1.0f, 1.0f,0.0f, // triangle 2 : begin
+		0.0f,0.0f,0.0f,
+		0.0f, 1.0f,0.0f, // triangle 2 : end
+		1.0f,0.0f, 1.0f,
+		0.0f,0.0f,0.0f,
+		1.0f,0.0f,0.0f,
+		1.0f, 1.0f,0.0f,
+		1.0f,0.0f,0.0f,
+		0.0f,0.0f,0.0f,
+		0.0f,0.0f,0.0f,
+		0.0f, 1.0f, 1.0f,
+		0.0f, 1.0f,0.0f,
+		1.0f,0.0f, 1.0f,
+		0.0f,0.0f, 1.0f,
+		0.0f,0.0f,0.0f,
+		0.0f, 1.0f, 1.0f,
+		0.0f,0.0f, 1.0f,
+		1.0f,0.0f, 1.0f,
 		1.0f, 1.0f, 1.0f,
-		1.0f,-1.0f,-1.0f,
-		1.0f, 1.0f,-1.0f,
-		1.0f,-1.0f,-1.0f,
+		1.0f,0.0f,0.0f,
+		1.0f, 1.0f,0.0f,
+		1.0f,0.0f,0.0f,
 		1.0f, 1.0f, 1.0f,
-		1.0f,-1.0f, 1.0f,
+		1.0f,0.0f, 1.0f,
 		1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f,-1.0f,
-		-1.0f, 1.0f,-1.0f,
+		1.0f, 1.0f,0.0f,
+		0.0f, 1.0f,0.0f,
 		1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f,
-		-1.0f, 1.0f, 1.0f,
+		0.0f, 1.0f,0.0f,
+		0.0f, 1.0f, 1.0f,
 		1.0f, 1.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f,
-		1.0f,-1.0f, 1.0f
+		0.0f, 1.0f, 1.0f,
+		1.0f,0.0f, 1.0f
     };
 
     static GLfloat g_cube_uv_buffer_data[] = {

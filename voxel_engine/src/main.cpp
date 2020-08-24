@@ -67,8 +67,15 @@ int main( void )
 
     glEnable(GL_CULL_FACE);
 
-    World world;
+    Texture my_texture("assets/stone.bmp", "assets/simple.vert", "assets/simple.frag");
 
+    Block my_block = Block(&my_texture);
+    World my_world;
+
+    my_world.set_block(0,0,0, &my_block);
+    my_world.set_block(0,1,0, &my_block);
+    my_world.set_block(1,0,0, &my_block);
+    
     // START MAIN GAME LOOP
 	do {
         double currentTime = glfwGetTime();
@@ -85,6 +92,7 @@ int main( void )
 
         // RENDER ALL THE THINGS HERE
         mat4 PV = camera.get_camera_matrix();
+        my_world.render(PV);
 
 		// Swap buffers, shows the image
 		glfwSwapBuffers(window);

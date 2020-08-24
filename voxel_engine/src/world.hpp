@@ -14,7 +14,7 @@ public:
         this->shader_texture_id = loadBMP(filename);
         
         // Create and compile our GLSL program from the shaders
-        this->shader_id = LoadShaders( "assets/simple.vert", "assets/simple.frag" );
+        this->shader_id = LoadShaders(vertex_shader, fragment_shader);
     }
 };
 
@@ -63,7 +63,7 @@ public:
         glUseProgram(this->texture->shader_id);
         
         // Model matrix : an identity matrix (model will be at the origin)
-        glm::mat4 Model = glm::mat4(1.0f);
+        glm::mat4 Model = glm::translate(glm::mat4(1.0f), position);
         // Our ModelViewProjection : multiplication of our 3 matrices
         glm::mat4 mvp = PV * Model; // Remember, matrix multiplication is the other way around
 
@@ -111,9 +111,34 @@ public:
     int world_id;
     Block* blocks[16][16][16];
 
+    World() {
+        for(int i = 0; i < 16; i++) {
+            for(int j = 0; j < 16; j++) {
+                for(int k = 0; k < 16; k++) {
+                    blocks[i][j][k] = nullptr;
+                }
+            }
+        }
+    }
+
     void set_block(int x, int y, int z, Block* b);
 
     Block* get_block(int x, int y, int z);
+
+    void render(mat4 &PV) {
+        for(int i = 0; i < 16; i++) {
+            for(int j = 0; j < 16; j++) {
+                for(int k = 0; k < 16; k++) {
+                    // If the block exists
+                    if (blocks[i][j][k]) {
+                        // Render it at i, j, k
+                        vec3 position((float)i, (float)j, (float)k);
+                        blocks[i][j][k]->render(position, PV);
+                    }
+                }
+            }
+        }
+    }
 };
 
 class Universe {
