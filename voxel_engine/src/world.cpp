@@ -162,9 +162,6 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
                     optional<vec3> movement_o = static_box.collide(collision_box);
                     if (movement_o) {
                         vec3 movement = movement_o.value();
-                        printf("Collide! Move %f %f %f\n", movement.x, movement.y, movement.z);
-                        printf("Voxel: %f %f %f\n", box.x, box.y, box.z);
-                        printf("Box: %f %f %f\n", collision_box.min_point.x, collision_box.min_point.y, collision_box.min_point.z);
                         total_movement += movement;
                         collision_box.translate(movement);
                     }
@@ -173,69 +170,7 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
         }
     }
     if (length(total_movement) > 0.0) {
+        // Call the listener if a collision occured
         on_collide(total_movement);
     }
-    /*
-    if (is_in_block(position)) {
-        // Round to the nearest block
-        vec3 rounded_position = round(position);
-        vec3 diff = abs(rounded_position - position);
-
-        float gap = 0.001;
-        optional<vec3> pending_potential_move;
-        auto try_potential_move = [&pending_potential_move, this, position](vec3 potential_position) -> bool {
-            if (!this->is_in_block(potential_position)) {
-                if (!pending_potential_move || length(position - potential_position) < length(position - pending_potential_move.value())) {
-                    printf("Going from %f %f %f to %f %f %f\n", position.x, position.y, position.z, potential_position.x, potential_position.y, potential_position.z);
-                    pending_potential_move = optional<vec3>{potential_position};
-                }
-                return true;
-            } else {
-                return false;
-            }
-        };
-
-        for(int i = 0; i < 3 && is_in_block(position); i++) {
-            // Check x direction
-            float smallest_escape = 100.0;
-
-            float potential_x = position.x;
-            printf("Position: %f %f %f\n", position.x, position.y, position.z);
-            try_potential_move(vec3(floor(position.x) - gap, position.y, position.z));
-            try_potential_move(vec3(ceil(position.x) + gap, position.y, position.z));
-            try_potential_move(vec3(position.x, floor(position.y) - gap, position.z));
-            try_potential_move(vec3(position.x, ceil(position.y) + gap, position.z));
-            try_potential_move(vec3(position.x, position.y, floor(position.z) - gap));
-            try_potential_move(vec3(position.x, position.y, ceil(position.z) + gap));
-            try_potential_move(position + try_direction);
-            /*
-            vec3 pos = position;
-            vec3 increment = normalize(try_direction) * 0.05f;
-            for(int i = 0; i < 20; i++) {
-                pos += increment;
-                if (try_potential_move(pos))
-                    break;
-            }
-
-            if (pending_potential_move) {
-                position = pending_potential_move.value();
-            }
-            //printf("Position: %f %f %f\n", position.x, position.y, position.z);
-            // Check z direction
-
-            if (!is_in_block(position - vec3(0.0, 0.0, 1.0)) && abs(position.z - floor(position.z)) < smallest_escape) {
-                smallest_escape = abs(position.z - floor(position.z));
-                new_position.z = floor(position.z) + gap;
-            }
-            if (!is_in_block(position + vec3(0.0, 0.0, 1.0)) && abs(position.z - ceil(position.z)) < smallest_escape) {
-                smallest_escape = abs(position.z - ceil(position.z));
-                new_position.z = ceil(position.z) - gap;
-            }
-            position = new_position;
-        }
-
-        // Call the listener
-        on_collide(position);
-    }
-    */
 }

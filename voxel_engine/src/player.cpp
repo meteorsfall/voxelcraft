@@ -66,7 +66,6 @@ void Player::rotate(vec2 change) {
 }
 
 AABB Player::get_collision_box() {
-    printf("Height: %f\n", this->position.y);
     float width = 0.35;
     //float breadth = 0.15;
     return AABB(this->position - vec3(width, 0.0, width), this->camera.position + vec3(width, 0.0, width));

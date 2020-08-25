@@ -32,9 +32,6 @@ optional<double> AABB::test_aabb_plane(vec3 point, vec3 normal) {
 }
 
 bool AABB::is_colliding(AABB other) {
-    if (this->min_point.x == 16.0 && this->min_point.y == 31.0 && this->min_point.z == 16.0) {
-        printf("Collide: %f %f %f\n", other.min_point.x, other.min_point.y, other.min_point.z);
-    }
     bool max_valid = other.min_point.x < this->max_point.x
                   && other.min_point.y < this->max_point.y
                   && other.min_point.z < this->max_point.z;
@@ -58,7 +55,6 @@ optional<vec3> AABB::collide(AABB other) {
     vec3 dimensions = this->max_point - this->min_point;
 
     float left_needed_change = -min(this->min_point.x - other.max_point.x, 0.0f);
-    printf("Left: %f %f %f\n", this->min_point.x, other.max_point.x, left_needed_change);
     float right_needed_change =  max(this->max_point.x - other.min_point.x, 0.0f);
     float top_needed_change = -min(this->min_point.y - other.max_point.y, 0.0f);
     float bottom_needed_change = max(this->max_point.y - other.min_point.y, 0.0f);
