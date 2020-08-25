@@ -14,7 +14,11 @@ public:
 
     bool is_on_floor;
 
+    bool is_flying;
+
     Player();
+
+    void set_fly(bool is_flying);
 
     // Move in the direction of the camera
     void move_toward(vec3 velocity, GLfloat delta);

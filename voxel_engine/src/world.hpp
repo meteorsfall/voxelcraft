@@ -5,6 +5,8 @@
 #include <vector>
 #include <functional>
 
+#define CHUNK_SIZE 32
+
 using fn_on_collide = std::function<void(vec3)>;
 
 class Texture {
@@ -122,12 +124,12 @@ public:
 class World {
 public:
     int world_id;
-    Block* blocks[16][16][16];
+    Block* blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
     World() {
-        for(int i = 0; i < 16; i++) {
-            for(int j = 0; j < 16; j++) {
-                for(int k = 0; k < 16; k++) {
+        for(int i = 0; i < CHUNK_SIZE; i++) {
+            for(int j = 0; j < CHUNK_SIZE; j++) {
+                for(int k = 0; k < CHUNK_SIZE; k++) {
                     blocks[i][j][k] = nullptr;
                 }
             }
@@ -139,9 +141,9 @@ public:
     Block* get_block(int x, int y, int z);
 
     void render(mat4 &PV) {
-        for(int i = 0; i < 16; i++) {
-            for(int j = 0; j < 16; j++) {
-                for(int k = 0; k < 16; k++) {
+        for(int i = 0; i < CHUNK_SIZE; i++) {
+            for(int j = 0; j < CHUNK_SIZE; j++) {
+                for(int k = 0; k < CHUNK_SIZE; k++) {
                     // If the block exists
                     if (blocks[i][j][k]) {
                         // Render it at i, j, k
@@ -157,7 +159,7 @@ public:
         int x = position.x;
         int y = position.y;
         int z = position.z;
-        if (x < 0 || x >= 16 || y < 0 || y >= 16 || z < 0 || z >= 16) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
             return false;
         }
         return blocks[x][y][z];
@@ -182,22 +184,22 @@ public:
                 new_position.x = ceil(position.x);
             }
             // Check y direction
-            if (!is_in_block(position + vec3(0.0, 1.0, 0.0)) && abs(position.y - ceil(position.y)) < smallest_escape) {
-                smallest_escape = abs(position.y - ceil(position.y));
-                new_position.y = ceil(position.y);
-            }
             if (!is_in_block(position - vec3(0.0, 1.0, 0.0)) && abs(position.y - floor(position.y)) < smallest_escape) {
                 smallest_escape = abs(position.y - floor(position.y));
                 new_position.y = floor(position.y);
             }
-            // Check z direction
-            if (!is_in_block(position + vec3(0.0, 0.0, 1.0)) && abs(position.z - ceil(position.z)) < smallest_escape) {
-                smallest_escape = abs(position.z - ceil(position.z));
-                new_position.z = ceil(position.z);
+            if (!is_in_block(position + vec3(0.0, 1.0, 0.0)) && abs(position.y - ceil(position.y)) < smallest_escape) {
+                smallest_escape = abs(position.y - ceil(position.y));
+                new_position.y = ceil(position.y);
             }
+            // Check z direction
             if (!is_in_block(position - vec3(0.0, 0.0, 1.0)) && abs(position.z - floor(position.z)) < smallest_escape) {
                 smallest_escape = abs(position.z - floor(position.z));
                 new_position.z = floor(position.z);
+            }
+            if (!is_in_block(position + vec3(0.0, 0.0, 1.0)) && abs(position.z - ceil(position.z)) < smallest_escape) {
+                smallest_escape = abs(position.z - ceil(position.z));
+                new_position.z = ceil(position.z);
             }
 
             // Call the listener

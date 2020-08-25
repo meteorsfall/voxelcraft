@@ -15,8 +15,10 @@ public:
     void set_position(vec3 position);
 
     vec3 get_direction();
+    vec3 get_right();
+    vec3 get_up();
 
-    void move(vec3 change);
+    void move_toward(vec3 change, bool clip_y);
 
     void rotate(vec2 delta);
 

@@ -8,7 +8,7 @@ Camera::Camera() {
     // vertical angle : 0, look at the horizon
     this->vertical_angle = 0.0f;
     // Initial Field of View
-    this->fov = 45.0f;
+    this->fov = 55.0f;
 }
 
 void Camera::set_position(vec3 position) {
@@ -24,16 +24,28 @@ vec3 Camera::get_direction() {
     return normalize(direction);
 }
 
-//moves in direction camera is looking
-void Camera::move(vec3 change) {
-    vec3 direction = this->get_direction();
-    vec3 right = vec3(
+vec3 Camera::get_right() {
+    return vec3(
         sin(this->horizontal_angle - 3.14f/2.0f),
         0,
         cos(this->horizontal_angle - 3.14f/2.0f)
     );
+}
 
-    this->position += direction * change.x + right * change.y + vec3(0.0, 1.0, 0.0) * change.z;
+vec3 Camera::get_up() {
+    return cross( get_right(), get_direction() );   
+}
+
+//moves in direction camera is looking
+void Camera::move_toward(vec3 change, bool clip_y) {
+    vec3 direction = this->get_direction();
+    vec3 right = this->get_right();
+
+    vec3 change_pos = direction * change.x + vec3(0.0, 1.0, 0.0) * change.y + right * change.z;
+    if (clip_y) {
+        change_pos.y = 0;
+    }
+    this->position += change_pos;
 }
 
 void Camera::rotate(vec2 change) {
@@ -45,11 +57,7 @@ void Camera::rotate(vec2 change) {
 
 mat4 Camera::get_camera_matrix() {
     vec3 direction = this->get_direction();
-    vec3 right = vec3(
-        sin(this->horizontal_angle - 3.14f/2.0f),
-        0,
-        cos(this->horizontal_angle - 3.14f/2.0f)
-    );
+    vec3 right = this->get_right();
     vec3 up = cross( right, direction );
 
 	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
