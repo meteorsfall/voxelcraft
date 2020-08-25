@@ -44,9 +44,6 @@ int main( void )
 		return -1;
 	}
 
-	// Ensure we can capture the escape key being pressed below
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-
     // Seems legit
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
@@ -54,9 +51,6 @@ int main( void )
 
 	// Dark blue background
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-	// Hide cursor
-	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     glEnable(GL_CULL_FACE);
 
@@ -85,6 +79,7 @@ int main( void )
     }
 
     Player my_player;
+	my_player.hand = &stone_block;
     Input input_handler(window, &my_world, &my_player);
     
     // START MAIN GAME LOOP

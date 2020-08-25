@@ -27,7 +27,7 @@ using std::pair;
 
 GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path);
 
-GLuint loadBMP(const char * imagepath);
+GLuint loadBMP(const char * imagepath, ivec3 color_key = ivec3(-1.0));
 
 // COORDINATES FOR BLOCKS
 

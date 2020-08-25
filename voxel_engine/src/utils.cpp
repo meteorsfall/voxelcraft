@@ -98,18 +98,23 @@ GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path
 	return ProgramID;
 }
 
-GLuint loadBMP(const char * imagepath) {
+GLuint loadBMP(const char* imagepath, ivec3 color_key) {
+	bool using_color_key = false;
+	if (color_key.x >= 0) {
+		using_color_key = true;
+	}
+
 	// Data read from the header of the BMP file
 	unsigned char header[54];
 	unsigned int dataPos;
 	unsigned int imageSize;
 	unsigned int width, height;
 	// Actual RGB data
-	unsigned char * data;
+	unsigned char* data;
 
 	// Open the file
 	FILE * file = fopen(imagepath,"rb");
-	if (!file){
+	if (!file) {
 		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
 		getchar();
 		return 0;
@@ -160,23 +165,42 @@ GLuint loadBMP(const char * imagepath) {
 	// "Bind" the newly created texture : all future texture functions will modify this texture
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-	// Give the image to OpenGL
-	glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+	if (using_color_key) {
+		unsigned char* alpha_data = new unsigned char [width*height*4];
+		for(int i = 0; i < width*height; i++) {
+			alpha_data[4*i+0] = data[3*i+2];
+			alpha_data[4*i+1] = data[3*i+1];
+			alpha_data[4*i+2] = data[3*i+0];
+			if (data[3*i+2] == color_key.x && data[3*i+1] == color_key.y && data[3*i+0] == color_key.z) {
+				alpha_data[4*i+3] = 0;
+			} else {
+				alpha_data[4*i+3] = 255;
+			}
+		}
+		// Give the image to OpenGL
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, alpha_data);
+		delete[] alpha_data;
+	} else {
+		// Give the image to OpenGL
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, data);
+	}
 
 	// OpenGL has now copied the data. Free our own version
-	delete [] data;
+	delete[] data;
 
 	// Poor filtering, or ...
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
 
+	/*
 	// ... nice trilinear filtering ...
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 	// ... which requires mipmaps. Generate them automatically.
 	glGenerateMipmap(GL_TEXTURE_2D);
+	*/
 
 	// Return the ID of the texture we just created
 	return textureID;

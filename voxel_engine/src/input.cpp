@@ -19,6 +19,11 @@ Input::Input(GLFWwindow* window, World* world, Player* player) {
     this->world = world;
     this->player = player;
 
+	// Ensure we can capture the escape key being pressed below
+	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+	// Hide cursor
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
     lastTime = glfwGetTime();
 }
 
@@ -31,21 +36,20 @@ void Input::mine_block() {
     }
 }
 
-void Input::handle_input() {
-    double currentTime = glfwGetTime();
-    // If there hasn't been a frame yet, we skip this one and save lastTime
-    float deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
-
-    float mouseSpeed = 0.1;
+vec2 Input::get_mouse_rotation() {
+    const float MOUSE_SPEED = 0.1;
     
-    vec2 mouse_rotation;
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
     glfwSetCursorPos(window, WIDTH/2, HEIGHT/2);
-    mouse_rotation.x = mouseSpeed * deltaTime * float(WIDTH/2 - xpos );
-    mouse_rotation.y = mouseSpeed * deltaTime * float( HEIGHT/2 - ypos );
 
+    vec2 mouse_rotation;
+    mouse_rotation.x = MOUSE_SPEED * float(WIDTH/2 - xpos );
+    mouse_rotation.y = MOUSE_SPEED * float( HEIGHT/2 - ypos );
+    return mouse_rotation;
+}
+
+vec3 Input::get_keyboard_movement() {
     vec3 movement = vec3(0.0, 0.0, 0.0);
     if (glfwGetKey(window, GLFW_KEY_W)) {
         movement.x += 1;
@@ -67,6 +71,29 @@ void Input::handle_input() {
             movement.y -= 1;
         }
     }
+
+    return movement;
+}
+
+void Input::place_block(Block* block) {
+    optional<ivec3> target_block = world->raycast(player->camera.position, player->camera.get_direction(), 6.0, true);
+    
+    if (target_block) {
+        ivec3 loc = target_block.value();
+        if (ivec3(floor(player->position)) != loc) {
+            world->set_block(loc.x, loc.y, loc.z, block);
+        }
+    }
+}
+
+void Input::handle_input() {
+    double currentTime = glfwGetTime();
+    // If there hasn't been a frame yet, we skip this one and save lastTime
+    float deltaTime = currentTime - lastTime;
+    lastTime = currentTime;
+
+    vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
+
     const float MOVEMENT_SPEED = 5.0;
 
     const float FLYING_ACCEL_SPEED = 6.0;
@@ -75,23 +102,25 @@ void Input::handle_input() {
 
     vec3 original_position = player->position;
 
+    vec3 keyboard_movement = get_keyboard_movement();
+
     if (player->is_flying) {
-        if (movement.x == 0.0 && movement.z == 0.0 && movement.y == 0.0) {
+        if (keyboard_movement.x == 0.0 && keyboard_movement.z == 0.0 && keyboard_movement.y == 0.0) {
             player->velocity = vec3(0.0);
             flying_speed = MOVEMENT_SPEED;
         } else {
             flying_speed += FLYING_ACCEL_SPEED * deltaTime;
             flying_speed = min(flying_speed, FLYING_MAX_SPEED);
-            movement = normalize(movement) * flying_speed;
+            keyboard_movement = normalize(keyboard_movement) * flying_speed;
         }
     } else {
-        movement.y = 0.0;
-        if (length(movement) > 0.0) {
-            movement = normalize(movement) * MOVEMENT_SPEED;
+        keyboard_movement.y = 0.0;
+        if (length(keyboard_movement) > 0.0) {
+            keyboard_movement = normalize(keyboard_movement) * MOVEMENT_SPEED;
         }
     }
 
-    player->move_toward(movement, deltaTime);
+    player->move_toward(keyboard_movement, deltaTime);
     vec3 dir = player->position - original_position;
     const float JUMP_INITIAL_VELOCITY = 4.0;
     vec3 jump_velocity = vec3(0.0);
@@ -115,15 +144,22 @@ void Input::handle_input() {
     player->rotate(mouse_rotation);
     world->collide(player->get_collision_box(), player->get_on_collide());
 
+    // If left click has been held for 1 second, then mine the block in-front of you
     static double last_left_click_release = 0.0;
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-        //printf("Release!\n");
         last_left_click_release = currentTime;
     } else {
-        //printf("Press! %f vs %f\n", currentTime, last_right_click_release);
         if (currentTime - last_left_click_release > 1.0) {
             mine_block();
             last_left_click_release = currentTime;
+        }
+    }
+    
+    static double last_right_click_press = 0.0;
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+        if (currentTime - last_right_click_press > 0.25) {
+            place_block(player->hand);
+            last_right_click_press = currentTime;
         }
     }
 }

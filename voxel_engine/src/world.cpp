@@ -95,6 +95,16 @@ void Block::render(vec3 &position, mat4 &PV) {
     glDisableVertexAttribArray(0);
 }
 
+World::World() {
+    for(int i = 0; i < CHUNK_SIZE; i++) {
+        for(int j = 0; j < CHUNK_SIZE; j++) {
+            for(int k = 0; k < CHUNK_SIZE; k++) {
+                blocks[i][j][k] = nullptr;
+            }
+        }
+    }
+}
+
 void World::set_block(int x, int y, int z, Block* b) {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         return;
@@ -137,12 +147,16 @@ bool World::is_in_block(vec3 position) {
     return blocks[x][y][z];
 }
 
-optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance) {
+optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance, bool nextblock) {
     float ray = 0.01;
     direction = normalize(direction);
     for(int i = 0; i < max_distance/ray; i++){
         vec3 n = position + direction*ray*(float)i;
         if(is_in_block(position + direction*ray*(float)i)){
+            if(nextblock){
+                ivec3 loc = floor(position + direction*ray*(float)(i-1));
+                return {loc};
+            }
             return { ivec3(floor(position + direction*ray*(float)i)) };
         }
     }

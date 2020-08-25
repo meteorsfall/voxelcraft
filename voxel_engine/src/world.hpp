@@ -36,15 +36,7 @@ public:
     int world_id;
     Block* blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
-    World() {
-        for(int i = 0; i < CHUNK_SIZE; i++) {
-            for(int j = 0; j < CHUNK_SIZE; j++) {
-                for(int k = 0; k < CHUNK_SIZE; k++) {
-                    blocks[i][j][k] = nullptr;
-                }
-            }
-        }
-    }
+    World();
 
     void set_block(int x, int y, int z, Block* b);
 
@@ -54,7 +46,7 @@ public:
 
     bool is_in_block(vec3 position);
 
-    optional<ivec3> raycast(vec3 position, vec3 direction, float max_distance);
+    optional<ivec3> raycast(vec3 position, vec3 direction, float max_distance, bool nextblock = false);
 
     void collide(AABB collision_box, fn_on_collide on_collide);
 };
