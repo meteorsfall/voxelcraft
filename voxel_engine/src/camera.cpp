@@ -11,12 +11,22 @@ Camera::Camera() {
     this->fov = 45.0f;
 }
 
-void Camera::move(vec3 change) {
+void Camera::set_position(vec3 position) {
+    this->position = position;
+}
+
+vec3 Camera::get_direction() {
     vec3 direction = vec3(
         cos(this->vertical_angle) * sin(this->horizontal_angle),
         sin(this->vertical_angle),
         cos(this->vertical_angle) * cos(this->horizontal_angle)
     );
+    return normalize(direction);
+}
+
+//moves in direction camera is looking
+void Camera::move(vec3 change) {
+    vec3 direction = this->get_direction();
     vec3 right = vec3(
         sin(this->horizontal_angle - 3.14f/2.0f),
         0,
@@ -34,11 +44,7 @@ void Camera::rotate(vec2 change) {
 }
 
 mat4 Camera::get_camera_matrix() {
-    vec3 direction = vec3(
-        cos(this->vertical_angle) * sin(this->horizontal_angle),
-        sin(this->vertical_angle),
-        cos(this->vertical_angle) * cos(this->horizontal_angle)
-    );
+    vec3 direction = this->get_direction();
     vec3 right = vec3(
         sin(this->horizontal_angle - 3.14f/2.0f),
         0,

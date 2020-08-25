@@ -4,9 +4,10 @@
 #include "utils.hpp"
 #include "camera.hpp"
 #include "world.hpp"
+#include "player.hpp"
 
-#define WIDTH 1024
-#define HEIGHT 768
+#define WIDTH 1920
+#define HEIGHT 1080
 
 GLFWwindow* window;
 
@@ -53,12 +54,7 @@ int main( void )
     glBindVertexArray(VertexArrayID);
 
 	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-
-    float camera_x = 3;
-	float fov = 45.0;
-
-    Camera camera;
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 	// Hide cursor
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
@@ -67,14 +63,31 @@ int main( void )
 
     glEnable(GL_CULL_FACE);
 
-    Texture my_texture("assets/stone.bmp", "assets/simple.vert", "assets/simple.frag");
+    Texture stone_texture("assets/stone.bmp", "assets/simple.vert", "assets/simple.frag");
+    Texture dirt_texture("assets/dirt.bmp", "assets/simple.vert", "assets/simple.frag");
  
-    Block my_block = Block(&my_texture);
+    Block stone_block = Block(&stone_texture);
+    Block dirt_block = Block(&dirt_texture);
+    
     World my_world;
 
-    my_world.set_block(0,0,0, &my_block);
-    my_world.set_block(0,1,0, &my_block);
-    my_world.set_block(1,0,0, &my_block);
+    // 1-7, dirt 8-16 stone
+    my_world.set_block(0,0,0, &dirt_block);
+    my_world.set_block(0,1,0, &stone_block);
+    
+    for(int i = 0; i < 16; i++) {
+        for(int j = 0; j < 16; j++) {
+            for(int k = 0; k < 16; k++) {
+                if (j <= 7) {
+                    my_world.set_block(i,j,k, &stone_block);
+                } else {
+                    my_world.set_block(i,j,k, &dirt_block);
+                }
+            }
+        }
+    }
+
+    Player my_player;
     
     // START MAIN GAME LOOP
 	do {
@@ -91,7 +104,7 @@ int main( void )
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // RENDER ALL THE THINGS HERE
-        mat4 PV = camera.get_camera_matrix();
+        mat4 PV = my_player.camera.get_camera_matrix();
         my_world.render(PV);
 
 		// Swap buffers, shows the image
@@ -129,19 +142,22 @@ int main( void )
             movement.z -= 1;
         }
         float speed = 3.3;
-        movement.x *= speed * deltaTime;
-        movement.y *= speed * deltaTime;
-        movement.z *= speed * deltaTime;
-        camera.move(movement);
-        camera.rotate(mouse_rotation);
-
-		if(glfwGetKey(window, GLFW_KEY_N)) {
-            fov += 0.6;
+        movement.x *= speed;
+        movement.y *= speed;
+        movement.z *= speed;
+        vec3 old_position = my_player.position;
+        my_player.move_toward(movement, deltaTime);
+        const float JUMP_INITIAL_VELOCITY = 4.0;
+        vec3 jump_velocity = vec3(0.0);
+        if (glfwGetKey(window, GLFW_KEY_SPACE) && my_player.is_on_floor) {
+            vec3 dir = my_player.position - old_position;
+            jump_velocity = vec3(dir.x, 9.8, dir.z);
+            jump_velocity = normalize(jump_velocity) * JUMP_INITIAL_VELOCITY;
         }
-
-        if (glfwGetKey(window, GLFW_KEY_M)) {
-            fov -= 0.6;
-        }
+        my_player.move(jump_velocity, vec3(0.0, -9.8, 0.0), deltaTime);
+        my_player.rotate(mouse_rotation);
+        
+        my_world.collide(my_player.position, my_player.get_on_collide());
 	} // Check if the ESC key was pressed or the window was closed
 	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
 		   glfwWindowShouldClose(window) == 0 );

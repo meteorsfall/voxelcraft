@@ -3,15 +3,18 @@
 
 #include "utils.hpp"
 #include <vector>
+#include <functional>
+
+using fn_on_collide = std::function<void(vec3)>;
 
 class Texture {
 public:
     int texture_id;
-    GLuint shader_texture_id;
+    GLuint opengl_texture_id;
     GLuint shader_id;
 
     Texture(const char* filename, const char* vertex_shader, const char* fragment_shader) {
-        this->shader_texture_id = loadBMP(filename);
+        this->opengl_texture_id = loadBMP(filename);
         
         // Create and compile our GLSL program from the shaders
         this->shader_id = LoadShaders(vertex_shader, fragment_shader);
@@ -61,6 +64,16 @@ public:
 
     void render(vec3 &position, mat4 &PV){
         glUseProgram(this->texture->shader_id);
+        
+        GLuint shader_texture_id = glGetUniformLocation(this->texture->shader_id, "my_texture");
+        // shader_texture_id = &fragment_shader.myTextureSampler;
+        
+        glActiveTexture(GL_TEXTURE0);
+        // gl_internal_texture = 0;
+        glBindTexture(GL_TEXTURE_2D, this->texture->opengl_texture_id);
+        // GL_TEXTURE_2D[gl_internal_texture] = my_texture_id;
+        glUniform1i(shader_texture_id, 0);
+        // *shader_texture_id = GL_TEXTURE_2D[0]
         
         // Model matrix : an identity matrix (model will be at the origin)
         glm::mat4 Model = glm::translate(glm::mat4(1.0f), position);
@@ -137,6 +150,58 @@ public:
                     }
                 }
             }
+        }
+    }
+
+    bool is_in_block(vec3 position) {
+        int x = position.x;
+        int y = position.y;
+        int z = position.z;
+        if (x < 0 || x >= 16 || y < 0 || y >= 16 || z < 0 || z >= 16) {
+            return false;
+        }
+        return blocks[x][y][z];
+    }
+
+    void collide(vec3 position, fn_on_collide on_collide) {
+        if (is_in_block(position)) {
+            // Round to the nearest block
+            vec3 rounded_position = round(position);
+            vec3 diff = abs(rounded_position - position);
+            float smallest_escape = 1.0;
+
+            vec3 new_position = position;
+
+            // Check x direction
+            if (!is_in_block(position - vec3(1.0, 0.0, 0.0)) && abs(position.x - floor(position.x)) < smallest_escape) {
+                smallest_escape = abs(position.x - floor(position.x));
+                new_position.x = floor(position.x);
+            }
+            if (!is_in_block(position + vec3(1.0, 0.0, 0.0)) && abs(position.x - ceil(position.x)) < smallest_escape) {
+                smallest_escape = abs(position.x - ceil(position.x));
+                new_position.x = ceil(position.x);
+            }
+            // Check y direction
+            if (!is_in_block(position + vec3(0.0, 1.0, 0.0)) && abs(position.y - ceil(position.y)) < smallest_escape) {
+                smallest_escape = abs(position.y - ceil(position.y));
+                new_position.y = ceil(position.y);
+            }
+            if (!is_in_block(position - vec3(0.0, 1.0, 0.0)) && abs(position.y - floor(position.y)) < smallest_escape) {
+                smallest_escape = abs(position.y - floor(position.y));
+                new_position.y = floor(position.y);
+            }
+            // Check z direction
+            if (!is_in_block(position + vec3(0.0, 0.0, 1.0)) && abs(position.z - ceil(position.z)) < smallest_escape) {
+                smallest_escape = abs(position.z - ceil(position.z));
+                new_position.z = ceil(position.z);
+            }
+            if (!is_in_block(position - vec3(0.0, 0.0, 1.0)) && abs(position.z - floor(position.z)) < smallest_escape) {
+                smallest_escape = abs(position.z - floor(position.z));
+                new_position.z = floor(position.z);
+            }
+
+            // Call the listener
+            on_collide(new_position);
         }
     }
 };

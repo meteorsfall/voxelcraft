@@ -10,8 +10,11 @@
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <functional>
+#include <vector>
 using namespace glm;
-using namespace std;
+using std::function;
+using std::vector;
 
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 

@@ -12,6 +12,10 @@ public:
 
     Camera();
 
+    void set_position(vec3 position);
+
+    vec3 get_direction();
+
     void move(vec3 change);
 
     void rotate(vec2 delta);
