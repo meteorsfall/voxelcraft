@@ -52,7 +52,7 @@ void Camera::rotate(vec2 change) {
     this->horizontal_angle += change.x;
     this->vertical_angle += change.y;
 
-    this->vertical_angle = clamp(this->vertical_angle, -pi<float>()/2, pi<float>()/2);
+    this->vertical_angle = clamp(this->vertical_angle, -pi<float>()/2 + 0.01f, pi<float>()/2 - 0.01f);
 }
 
 mat4 Camera::get_camera_matrix() {

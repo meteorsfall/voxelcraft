@@ -29,6 +29,8 @@ public:
 
     void rotate(vec2 change);
 
+    AABB get_collision_box();
+
     fn_on_collide get_on_collide();
 };
 

@@ -67,8 +67,7 @@ void Input::handle_input() {
             movement.y -= 1;
         }
     }
-    const float MOVEMENT_SPEED = 3.3;
-    movement *= MOVEMENT_SPEED;
+    const float MOVEMENT_SPEED = 5.0;
 
     const float FLYING_ACCEL_SPEED = 6.0;
     const float FLYING_MAX_SPEED = 50.0;
@@ -84,6 +83,11 @@ void Input::handle_input() {
             flying_speed += FLYING_ACCEL_SPEED * deltaTime;
             flying_speed = min(flying_speed, FLYING_MAX_SPEED);
             movement = normalize(movement) * flying_speed;
+        }
+    } else {
+        movement.y = 0.0;
+        if (length(movement) > 0.0) {
+            movement = normalize(movement) * MOVEMENT_SPEED;
         }
     }
 
@@ -109,7 +113,7 @@ void Input::handle_input() {
 
     player->move(jump_velocity, player->is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
     player->rotate(mouse_rotation);
-    world->collide(player->position, -(player->position - original_position), player->get_on_collide());
+    world->collide(player->get_collision_box(), player->get_on_collide());
 
     static double last_left_click_release = 0.0;
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {

@@ -18,9 +18,10 @@ using std::function;
 using std::vector;
 using std::optional;
 using std::nullopt;
+using std::pair;
 
-#define WIDTH 1920
-#define HEIGHT 1080
+#define WIDTH 1440
+#define HEIGHT 920
 
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 

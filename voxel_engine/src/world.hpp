@@ -2,6 +2,7 @@
 #define _WORLD_HPP_
 
 #include "utils.hpp"
+#include "aabb.hpp"
 
 #define CHUNK_SIZE 32
 
@@ -55,7 +56,7 @@ public:
 
     optional<ivec3> raycast(vec3 position, vec3 direction, float max_distance);
 
-    void collide(vec3 position, vec3 try_direction, fn_on_collide on_collide);
+    void collide(AABB collision_box, fn_on_collide on_collide);
 };
 
 class Universe {

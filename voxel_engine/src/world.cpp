@@ -149,7 +149,33 @@ optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance
     return nullopt;
 }
 
-void World::collide(vec3 position, vec3 try_direction, fn_on_collide on_collide) {
+void World::collide(AABB collision_box, fn_on_collide on_collide) {
+    ivec3 bottom_left = ivec3(floor(collision_box.min_point) - vec3(1.0));
+    ivec3 top_right = ivec3(ceil(collision_box.max_point));
+    vec3 total_movement(0.0);
+    for(int x = bottom_left.x; x <= top_right.x; x++) {
+        for(int y = bottom_left.y; y <= top_right.y; y++) {
+            for(int z = bottom_left.z; z <= top_right.z; z++) {
+                if (get_block(x, y, z)) {
+                    vec3 box(x, y, z);
+                    AABB static_box(box, box + vec3(1.0));
+                    optional<vec3> movement_o = static_box.collide(collision_box);
+                    if (movement_o) {
+                        vec3 movement = movement_o.value();
+                        printf("Collide! Move %f %f %f\n", movement.x, movement.y, movement.z);
+                        printf("Voxel: %f %f %f\n", box.x, box.y, box.z);
+                        printf("Box: %f %f %f\n", collision_box.min_point.x, collision_box.min_point.y, collision_box.min_point.z);
+                        total_movement += movement;
+                        collision_box.translate(movement);
+                    }
+                }
+            }
+        }
+    }
+    if (length(total_movement) > 0.0) {
+        on_collide(total_movement);
+    }
+    /*
     if (is_in_block(position)) {
         // Round to the nearest block
         vec3 rounded_position = round(position);
@@ -189,14 +215,14 @@ void World::collide(vec3 position, vec3 try_direction, fn_on_collide on_collide)
                 pos += increment;
                 if (try_potential_move(pos))
                     break;
-            }*/
+            }
 
             if (pending_potential_move) {
                 position = pending_potential_move.value();
             }
             //printf("Position: %f %f %f\n", position.x, position.y, position.z);
             // Check z direction
-            /*
+
             if (!is_in_block(position - vec3(0.0, 0.0, 1.0)) && abs(position.z - floor(position.z)) < smallest_escape) {
                 smallest_escape = abs(position.z - floor(position.z));
                 new_position.z = floor(position.z) + gap;
@@ -205,10 +231,11 @@ void World::collide(vec3 position, vec3 try_direction, fn_on_collide on_collide)
                 smallest_escape = abs(position.z - ceil(position.z));
                 new_position.z = ceil(position.z) - gap;
             }
-            position = new_position;*/
+            position = new_position;
         }
 
         // Call the listener
         on_collide(position);
     }
+    */
 }

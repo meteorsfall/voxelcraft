@@ -6,6 +6,7 @@
 #include "world.hpp"
 #include "player.hpp"
 #include "input.hpp"
+#include "aabb.hpp"
 
 GLFWwindow* window = NULL;
 
