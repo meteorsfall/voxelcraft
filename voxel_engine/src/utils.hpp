@@ -12,9 +12,15 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <functional>
 #include <vector>
+#include <optional>
 using namespace glm;
 using std::function;
 using std::vector;
+using std::optional;
+using std::nullopt;
+
+#define WIDTH 1920
+#define HEIGHT 1080
 
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 

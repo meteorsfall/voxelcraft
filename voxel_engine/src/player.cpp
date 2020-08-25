@@ -43,6 +43,12 @@ void Player::move(vec3 change_velocity, vec3 accel, GLfloat delta) {
     this->is_on_floor = false;
 }
 
+void Player::set_position(vec3 position) {
+    this->position = position;
+    this->camera.set_position(this->position + camera_relative_to_player);
+    this->velocity = vec3(0.0);
+}
+
 void Player::rotate(vec2 change) {
     camera.rotate(change);
 }
@@ -57,3 +63,4 @@ fn_on_collide Player::get_on_collide() {
         this->camera.set_position(this->position + camera_relative_to_player);
     };
 }
+

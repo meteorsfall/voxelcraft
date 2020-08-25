@@ -20,6 +20,8 @@ public:
 
     void set_fly(bool is_flying);
 
+    void set_position(vec3 position);
+
     // Move in the direction of the camera
     void move_toward(vec3 velocity, GLfloat delta);
     // Move with newtonian mechanics
