@@ -3,44 +3,24 @@
 
 #include "utils.hpp"
 #include "aabb.hpp"
-
-#define CHUNK_SIZE 32
+#include "chunk.hpp"
 
 using fn_on_collide = std::function<void(vec3)>;
-
-class Texture {
-public:
-    int texture_id;
-    GLuint opengl_texture_id;
-    GLuint shader_id;
-
-    Texture(const char* filename, const char* vertex_shader, const char* fragment_shader);
-};
-
-class Block {
-public:
-    // This will identify our vertex buffer
-    GLuint vertex_buffer;
-    GLuint uv_buffer;
-
-    int block_id;
-    Texture* texture;
-
-    Block(Texture* texture);
-
-    void render(vec3 &position, mat4 &PV);
-};
 
 class World {
 public:
     int world_id;
-    Block* blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+
+    vector<Chunk> chunks;
 
     World();
 
     void set_block(int x, int y, int z, Block* b);
 
     Block* get_block(int x, int y, int z);
+
+    Chunk* get_chunk(int x, int y, int z);
+    Chunk* make_chunk(int x, int y, int z);
 
     void render(mat4 &PV);
 

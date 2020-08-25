@@ -77,8 +77,7 @@ vec3 Input::get_keyboard_movement() {
 
 void Input::place_block(Block* block) {
     optional<ivec3> target_block = world->raycast(player->camera.position, player->camera.get_direction(), 6.0, true);
-    
-    
+
     if (target_block) {
         ivec3 loc = target_block.value();
         if (ivec3(floor(player->position)) != loc) {
