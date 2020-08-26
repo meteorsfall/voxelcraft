@@ -11,11 +11,11 @@ public:
 // TODO: Remove location and put it back in world.cpp as an <int, int, int> -> <Chunk>
     ivec3 location; 
     
-    Block* blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
+    Block blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
     Chunk(ivec3 location);
 
-    void set_block(int x, int y, int z, Block* b);
+    void set_block(int x, int y, int z, BlockType* b);
 
     Block* get_block(int x, int y, int z);
 

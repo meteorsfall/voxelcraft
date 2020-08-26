@@ -27,12 +27,21 @@ Input::Input(GLFWwindow* window, World* world, Player* player) {
     lastTime = glfwGetTime();
 }
 
-void Input::mine_block() {
+bool Input::mining_block(float mining_time) {
     optional<ivec3> target_block = world->raycast(player->camera.position, player->camera.get_direction(), 4.0);
-    
     if (target_block) {
         ivec3 loc = target_block.value();
-        world->set_block(loc.x, loc.y, loc.z, nullptr);
+        mining_time += world->get_block(loc.x, loc.y, loc.z)->break_amount;
+        if (mining_time < 1.0) {
+            world->get_block(loc.x, loc.y, loc.z)->break_amount = mining_time;
+            return false;
+        } else {
+            world->set_block(loc.x, loc.y, loc.z, nullptr);
+            return true;
+        }
+    } else {
+        // Mining air happens instantly
+        return true;
     }
 }
 
@@ -75,7 +84,7 @@ vec3 Input::get_keyboard_movement() {
     return movement;
 }
 
-void Input::place_block(Block* block) {
+void Input::place_block(BlockType* block) {
     optional<ivec3> target_block = world->raycast(player->camera.position, player->camera.get_direction(), 6.0, true);
 
     if (target_block) {
@@ -149,10 +158,10 @@ void Input::handle_input() {
     if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
         last_left_click_release = currentTime;
     } else {
-        if (currentTime - last_left_click_release > 1.0) {
-            mine_block();
+        if (mining_block(deltaTime)) {
             last_left_click_release = currentTime;
         }
+        last_left_click_release = currentTime;
     }
     
     static double last_right_click_press = 0.0;

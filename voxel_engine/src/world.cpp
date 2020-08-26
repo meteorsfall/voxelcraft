@@ -28,7 +28,7 @@ Chunk* World::make_chunk(int x, int y, int z) {
     return &chunks.back();
 }
 
-void World::set_block(int x, int y, int z, Block* b) {
+void World::set_block(int x, int y, int z, BlockType* b) {
     Chunk* my_chunk = get_chunk(x,y,z);
     if (!my_chunk) {
         my_chunk = make_chunk(x, y, z);
@@ -52,6 +52,7 @@ void World::render(mat4 &PV) {
 }
 
 bool World::is_in_block(vec3 position) {
+    position = floor(position);
     int x = position.x;
     int y = position.y;
     int z = position.z;

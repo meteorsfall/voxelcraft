@@ -1,6 +1,20 @@
 #include "block.hpp"
 
-Block::Block(Texture* texture) {
+Block::Block() {
+    this->block_type = NULL;
+    this->break_amount = 0.0;
+}
+
+Block::Block(BlockType* b) {
+    this->block_type = b;
+    this->break_amount = 0.0;
+}
+
+void Block::render(vec3 &position, mat4 &PV) {
+    this->block_type->render(position, PV, this->break_amount);
+}
+
+BlockType::BlockType(Texture* texture) {
     this->texture = texture;
 
     // Save the cube vertex buffer data to this->vertex_buffer
@@ -32,7 +46,7 @@ Block::Block(Texture* texture) {
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_cube_uv_buffer_data), g_cube_uv_buffer_data, GL_STATIC_DRAW);
 }
 
-void Block::render(vec3 &position, mat4 &PV) {
+void BlockType::render(vec3 &position, mat4 &PV, float break_amount) {
     glUseProgram(this->texture->shader_id);
     
     GLuint shader_texture_id = glGetUniformLocation(this->texture->shader_id, "my_texture");
@@ -52,12 +66,15 @@ void Block::render(vec3 &position, mat4 &PV) {
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation
-    GLuint MatrixID = glGetUniformLocation(this->texture->shader_id, "MVP");
+    GLuint matrix_shader_pointer = glGetUniformLocation(this->texture->shader_id, "MVP");
     
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-    glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &mvp[0][0]);
     //"vertex_shader.MVP = &mvp[0][0]"
+
+    GLuint break_amount_shader_pointer = glGetUniformLocation(this->texture->shader_id, "break_amount");
+    glUniform1f(break_amount_shader_pointer, (GLfloat)break_amount);
 
     // Draw nothing, see you in tutorial 2 !
     // 1st attribute buffer : vertices

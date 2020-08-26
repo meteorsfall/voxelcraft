@@ -15,7 +15,7 @@ public:
 
     World();
 
-    void set_block(int x, int y, int z, Block* b);
+    void set_block(int x, int y, int z, BlockType* b);
 
     Block* get_block(int x, int y, int z);
 
@@ -27,6 +27,7 @@ public:
     bool is_in_block(vec3 position);
 
     optional<ivec3> raycast(vec3 position, vec3 direction, float max_distance, bool nextblock = false);
+    void set_break_amount(ivec3 location, float break_amount);
 
     void collide(AABB collision_box, fn_on_collide on_collide);
 };

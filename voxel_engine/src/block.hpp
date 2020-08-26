@@ -5,7 +5,7 @@
 #include "aabb.hpp"
 #include "texture.hpp"
 
-class Block {
+class BlockType {
 public:
     // This will identify our vertex buffer
     GLuint vertex_buffer;
@@ -14,7 +14,18 @@ public:
     int block_id;
     Texture* texture;
 
-    Block(Texture* texture);
+    BlockType(Texture* texture);
+
+    void render(vec3 &position, mat4 &PV, float break_amount);
+};
+
+class Block {
+public:
+    BlockType* block_type;
+    float break_amount;
+
+    Block();
+    Block(BlockType* b);
 
     void render(vec3 &position, mat4 &PV);
 };

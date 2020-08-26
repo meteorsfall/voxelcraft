@@ -57,8 +57,8 @@ int main( void )
     Texture stone_texture("assets/stone.bmp", "assets/simple.vert", "assets/simple.frag");
     Texture dirt_texture("assets/dirt.bmp", "assets/simple.vert", "assets/simple.frag");
  
-    Block stone_block = Block(&stone_texture);
-    Block dirt_block = Block(&dirt_texture);
+    BlockType stone_block = BlockType(&stone_texture);
+    BlockType dirt_block = BlockType(&dirt_texture);
     
     World my_world;
 
@@ -83,7 +83,18 @@ int main( void )
     Input input_handler(window, &my_world, &my_player);
     
     // START MAIN GAME LOOP
-	do {
+	while(true) {
+        // ********************
+        // Input Handling
+        // ********************
+        
+        input_handler.handle_input();
+		glfwPollEvents();
+
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS || glfwWindowShouldClose(window)) {
+			break;
+		}
+
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
 		// Accept fragment if it closer to the camera than the former one
@@ -92,24 +103,17 @@ int main( void )
 		// Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // RENDER ALL THE THINGS HERE
+        // ********************
+        // Rendering
+        // ********************
         mat4 PV = my_player.camera.get_camera_matrix();
         my_world.render(PV);
 
-		// Swap buffers, shows the image
+        // ********************
+        // Display the image buffer
+        // ********************
 		glfwSwapBuffers(window);
-		glfwPollEvents();
-
-        // ********************
-        // Input Handling
-        // ********************
-        // window, player, world
-
-        input_handler.handle_input();
-        
-	} // Check if the ESC key was pressed or the window was closed
-	while( glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS &&
-		   glfwWindowShouldClose(window) == 0 );
+	}
 
 	// Close OpenGL window and terminate GLFW
 	glfwTerminate();
