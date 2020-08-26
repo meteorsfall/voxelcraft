@@ -10,15 +10,20 @@
 // Include GLM
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+using namespace glm;
+
+// Include standard library
 #include <functional>
 #include <vector>
 #include <optional>
-using namespace glm;
+#include <map>
+#include <iostream>
 using std::function;
 using std::vector;
 using std::optional;
 using std::nullopt;
 using std::pair;
+using std::map;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))

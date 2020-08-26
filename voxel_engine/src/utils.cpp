@@ -159,6 +159,21 @@ GLuint loadBMP(const char* imagepath, ivec3 color_key) {
 		return 0;
 	}
 
+	// Shift bytes to remove padding
+	{
+		int index = 0;
+
+		int line_size = 3*width;
+		while (line_size % 4 != 0) line_size++;
+
+		for(uint i = 0; i < height; i++) {
+			for(uint j = 0; j < 3*width; j++) {
+				data[i*(3*width) + j] = data[index++];
+			}
+			index += line_size - 3*width;
+		}
+	}
+
 	// Everything is in memory now, the file can be closed.
 	fclose (file);
 

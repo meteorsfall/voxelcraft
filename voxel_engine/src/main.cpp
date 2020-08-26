@@ -8,6 +8,7 @@
 #include "input.hpp"
 #include "aabb.hpp"
 #include "UI.hpp"
+#include "text.hpp"
 
 GLFWwindow* window = NULL;
 
@@ -65,8 +66,8 @@ int main( void )
 
     glEnable(GL_CULL_FACE);
 
-    Texture stone_texture("assets/stone.bmp", "assets/simple.vert", "assets/simple.frag");
-    Texture dirt_texture("assets/dirt.bmp", "assets/simple.vert", "assets/simple.frag");
+    Texture stone_texture("assets/images/stone.bmp", "assets/shaders/simple.vert", "assets/shaders/simple.frag");
+    Texture dirt_texture("assets/images/dirt.bmp", "assets/shaders/simple.vert", "assets/shaders/simple.frag");
  
     BlockType stone_block = BlockType(&stone_texture);
     BlockType dirt_block = BlockType(&dirt_texture);
@@ -76,6 +77,8 @@ int main( void )
     // 1-7, dirt 8-16 stone
     my_world.set_block(0,0,0, &dirt_block);
     my_world.set_block(0,1,0, &stone_block);
+
+	Font f("assets/fonts/pixelated.ttf");
     
     for(int i = 0; i < 3*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
@@ -94,7 +97,8 @@ int main( void )
     Input input_handler(window, &my_world, &my_player);
 
 	UI ui;
-	Texture t("assets/crosshair.bmp", "assets/ui.vert", "assets/ui.frag", true);
+	Texture crosshair_texture("assets/images/crosshair.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
+	Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
 
 	int frames = 0;
 	double time = glfwGetTime();
@@ -137,7 +141,9 @@ int main( void )
 		printf("Time: %f\n", 1/(glfwGetTime() - t1));
 
 		float crosshair_size = 0.025;
-		ui.render(&t, vec2(0.0, 0.0), crosshair_size, crosshair_size * width / height);
+		ui.render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size * width / height);
+		//ui.render(&ui_test, vec2(0.0, 0.0), 0.2, 0.1);
+		//f.render(ivec2(width, height), ivec2(width/2, height/2), 1.0, "Hello!!!", ivec3(240, 0, 0));
 
         // ********************
         // Display the image buffer
