@@ -10,6 +10,14 @@
 
 GLFWwindow* window = NULL;
 
+static int width = 600;
+static int height = 400;
+
+void resize_callback(GLFWwindow* window, int w, int h) {
+	width = w;
+	height = h;
+}
+
 int main( void )
 {
 	// Initialise GLFW
@@ -27,7 +35,7 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	// Open a window and create its OpenGL context
-	window = glfwCreateWindow( WIDTH, HEIGHT, "VoxelCraft", NULL, NULL);
+	window = glfwCreateWindow( width, height, "VoxelCraft", NULL, NULL);
 	if( window == NULL ){
 		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
 		getchar();
@@ -35,6 +43,7 @@ int main( void )
 		return -1;
 	}
 	glfwMakeContextCurrent(window);
+	glfwSetWindowSizeCallback(window, resize_callback);
 
 	// Initialize GLEW
 	if (glewInit() != GLEW_OK) {
@@ -91,7 +100,7 @@ int main( void )
         input_handler.handle_input();
 		glfwPollEvents();
 
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE ) == GLFW_PRESS || glfwWindowShouldClose(window)) {
+		if (glfwWindowShouldClose(window)) {
 			break;
 		}
 
@@ -101,6 +110,7 @@ int main( void )
 		glDepthFunc(GL_LESS);
 
 		// Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
+		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // ********************

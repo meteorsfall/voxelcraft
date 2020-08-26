@@ -6,10 +6,19 @@ double last_space_release = 0;
 
 double lastTime = 0.0;
 
+bool paused = false;
+
+// Handle keyboard events
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         pressed_spacebar = true;
+    }
+    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+        paused = !paused;
+    }
+    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+        exit(0);
     }
 }
 
@@ -46,15 +55,24 @@ bool Input::mining_block(float mining_time) {
 }
 
 vec2 Input::get_mouse_rotation() {
+    if (paused) {
+        return vec2(0.0);
+    }
+
     const float MOUSE_SPEED = 0.1;
     
     double xpos, ypos;
+    // Get mouse position offset from center
     glfwGetCursorPos(window, &xpos, &ypos);
-    glfwSetCursorPos(window, WIDTH/2, HEIGHT/2);
+    // Get width and height
+    int w, h;
+    glfwGetWindowSize(window, &w, &h);
+    // Set mouse back to center
+    glfwSetCursorPos(window, w/2, h/2);
 
     vec2 mouse_rotation;
-    mouse_rotation.x = MOUSE_SPEED * float(WIDTH/2 - xpos );
-    mouse_rotation.y = MOUSE_SPEED * float( HEIGHT/2 - ypos );
+    mouse_rotation.x = MOUSE_SPEED * float(w/2 - xpos );
+    mouse_rotation.y = MOUSE_SPEED * float(h/2 - ypos );
     return mouse_rotation;
 }
 
@@ -100,7 +118,31 @@ void Input::handle_input() {
     // If there hasn't been a frame yet, we skip this one and save lastTime
     float deltaTime = currentTime - lastTime;
     lastTime = currentTime;
+    
 
+    handle_player_movement(currentTime, deltaTime);
+
+    // If left click has been held for 1 second, then mine the block in-front of you
+    static double last_left_click_release = 0.0;
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
+        last_left_click_release = currentTime;
+    } else {
+        if (mining_block(deltaTime)) {
+            last_left_click_release = currentTime;
+        }
+        last_left_click_release = currentTime;
+    }
+    
+    static double last_right_click_press = 0.0;
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
+        if (currentTime - last_right_click_press > 0.25) {
+            place_block(player->hand);
+            last_right_click_press = currentTime;
+        }
+    }
+}
+
+void Input::handle_player_movement(double currentTime, float deltaTime) {
     vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
 
     const float MOVEMENT_SPEED = 5.0;
@@ -152,23 +194,4 @@ void Input::handle_input() {
     player->move(jump_velocity, player->is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
     player->rotate(mouse_rotation);
     world->collide(player->get_collision_box(), player->get_on_collide());
-
-    // If left click has been held for 1 second, then mine the block in-front of you
-    static double last_left_click_release = 0.0;
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-        last_left_click_release = currentTime;
-    } else {
-        if (mining_block(deltaTime)) {
-            last_left_click_release = currentTime;
-        }
-        last_left_click_release = currentTime;
-    }
-    
-    static double last_right_click_press = 0.0;
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
-        if (currentTime - last_right_click_press > 0.25) {
-            place_block(player->hand);
-            last_right_click_press = currentTime;
-        }
-    }
 }

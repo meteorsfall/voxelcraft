@@ -20,12 +20,9 @@ using std::optional;
 using std::nullopt;
 using std::pair;
 
-#define WIDTH 1440
-#define HEIGHT 920
-
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 
-GLuint LoadShaders(const char * vertex_file_path,const char * fragment_file_path);
+GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
 
 GLuint loadBMP(const char * imagepath, ivec3 color_key = ivec3(-1.0));
 
@@ -107,6 +104,15 @@ static GLfloat g_cube_uv_buffer_data[] = {
     0.667969f, 1.0f-0.671889f,
     1.000004f, 1.0f-0.671847f,
     0.667979f, 1.0f-0.335851f
+};
+
+static GLfloat g_plane_vertex_buffer_data[] = {
+    0.0f,0.0f,0.0f, // triangle 1 : begin
+    0.0f,0.0f,1.0f,
+    0.0f,1.0f,1.0f, // triangle 1 : end
+    0.0f, 0.0f,0.0f, // triangle 2 : begin
+    0.0f,0.0f,0.0f,
+    0.0f, 1.0f,0.0f, // triangle 2 : end
 };
 
 #endif

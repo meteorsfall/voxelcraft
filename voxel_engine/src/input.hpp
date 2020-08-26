@@ -17,6 +17,7 @@ private:
     vec3 get_keyboard_movement();
     bool mining_block(float time);
     void place_block(BlockType* block);
+    void handle_player_movement(double currentTime, float deltaTime);
 };
 
 #endif
