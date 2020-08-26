@@ -194,7 +194,7 @@ GLuint loadBMP(const char* imagepath, ivec3 color_key) {
 
 	// Poor filtering, or ...
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	/*
 	// ... nice trilinear filtering ...
