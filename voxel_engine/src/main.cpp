@@ -76,9 +76,9 @@ int main( void )
     my_world.set_block(0,0,0, &dirt_block);
     my_world.set_block(0,1,0, &stone_block);
     
-    for(int i = 0; i < CHUNK_SIZE; i++) {
+    for(int i = 0; i < 2*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = 0; k < CHUNK_SIZE; k++) {
+            for(int k = 0; k < 2*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     my_world.set_block(i,j,k, &stone_block);
                 } else {
