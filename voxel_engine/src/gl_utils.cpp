@@ -20,17 +20,18 @@ void bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_
     }
 
     glActiveTexture(GL_TEXTURE0 + texture_num);
-    // gl_internal_texture = 0;
+    // gl_active_texture = texture_num;
     glBindTexture(GL_TEXTURE_2D, opengl_texture_id);
-    // GL_TEXTURE_2D[gl_internal_texture] = my_texture_id;
+    // GL_TEXTURE_2D[gl_active_texture] = my_texture_id;
     glUniform1i(shader_texture_pointer, texture_num);
+    // *shader_texture_pointer = GL_TEXTURE_2D[texture_num]
 }
 
 void bind_array(int array_num, GLuint array_buffer, GLint size) {
-    glEnableVertexAttribArray(array_num);
+    glEnableVertexAttribArray(array_num); // Must match attribute
     glBindBuffer(GL_ARRAY_BUFFER, array_buffer);
     glVertexAttribPointer(
-        array_num,                        // attribute. No particular reason for 1, but must match the layout in the shader.
+        array_num,                        // attribute. Must match the layout in the shader.
         size,                             // size
         GL_FLOAT,                         // type
         GL_FALSE,                         // normalized?

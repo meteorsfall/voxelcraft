@@ -35,19 +35,16 @@ void BlockType::render(vec3 &position, mat4 &PV, float break_amount) {
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
     bind_texture(0, shader_texture_id, this->texture->opengl_texture_id);
-    
-    // Model matrix : an identity matrix (model will be at the origin)
-    glm::mat4 Model = glm::translate(glm::mat4(1.0f), position);
-    // Our ModelViewProjection : multiplication of our 3 matrices
-    glm::mat4 mvp = PV * Model; // Remember, matrix multiplication is the other way around
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation
-    GLuint matrix_shader_pointer = glGetUniformLocation(this->texture->shader_id, "MVP");
+    GLuint PV_matrix_shader_pointer = glGetUniformLocation(this->texture->shader_id, "PV");
+    GLuint M_matrix_shader_pointer = glGetUniformLocation(this->texture->shader_id, "M");
     
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-    glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &mvp[0][0]);
+    glUniformMatrix4fv(PV_matrix_shader_pointer, 1, GL_FALSE, &PV[0][0]);
+    glUniform3fv(M_matrix_shader_pointer, 1, &position[0]);
     //"vertex_shader.MVP = &mvp[0][0]"
 
     GLuint break_amount_shader_pointer = glGetUniformLocation(this->texture->shader_id, "break_amount");

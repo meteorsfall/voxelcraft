@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.3)
-project(LearnGLSL)
+project(VoxelCraft)
 
 set(CMAKE_CXX_STANDARD 17) # no explicit compiler flags if possible
+set(CMAKE_CXX_STANDARD_REQUIRED on)
+
 add_compile_options(-Wall -Wextra -pedantic -Werror)
+
+set(CMAKE_CXX_FLAGS_DEBUG "-pg -Og")
+set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 
 if (NOT WIN32)
 set(CMAKE_MODULE_PATH /usr/local/lib/cmake /usr/local/lib/x86_64-linux-gnu/cmake)
@@ -12,6 +17,7 @@ endif (NOT WIN32)
 # don't read CMAKE_BUILD_TYPE, it has no meaning with multiconfig
 # generators
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/build/debug")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/release/debug")
 
 # PROJECT_BINARY_DIR should not be set at all
 # You establish the BINARY_DIR with the initial cmake command

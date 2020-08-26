@@ -153,7 +153,11 @@ GLuint loadBMP(const char* imagepath, ivec3 color_key) {
 
 	// Read the actual data from the file into the buffer
     fseek(file, dataPos, SEEK_SET);
-	fread(data,1,imageSize,file);
+	if (fread(data,1,imageSize,file) != imageSize) {
+		printf("Bad fread of %d bytes!", imageSize);
+		fclose(file);
+		return 0;
+	}
 
 	// Everything is in memory now, the file can be closed.
 	fclose (file);

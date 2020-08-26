@@ -8,6 +8,8 @@ double lastTime = 0.0;
 
 bool paused = false;
 
+bool g_exiting = false;
+
 // Handle keyboard events
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -21,11 +23,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         paused = !paused;
     }
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        exit(0);
+        g_exiting = true;
     }
 }
 
 Input::Input(GLFWwindow* window, World* world, Player* player) {
+    this->exiting = false;
     this->window = window;
     glfwSetKeyCallback(window, key_callback);
     this->world = world;
@@ -118,6 +121,11 @@ void Input::place_block(BlockType* block) {
 }
 
 void Input::handle_input() {
+    if (g_exiting) {
+        this->exiting = true;
+        return;
+    }
+
     double currentTime = glfwGetTime();
     // If there hasn't been a frame yet, we skip this one and save lastTime
     float deltaTime = currentTime - lastTime;

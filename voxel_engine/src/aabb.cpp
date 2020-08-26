@@ -107,7 +107,7 @@ optional<vec3> AABB::collide(AABB other) {
 
     bool found_move = false;
     float best_move_distance = 0.0;
-    vec3 possible_move;
+    vec3 possible_move(0.0);
 
     auto lam = [&found_move, &best_move_distance, &possible_move, dimensions](float move_distance, vec3 move_dir) -> void {
         if (0 < move_distance && move_distance < abs(dot(dimensions, move_dir))) {

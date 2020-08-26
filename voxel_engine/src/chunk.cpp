@@ -31,6 +31,19 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
         return;
     }
 
+    if (this->rendered_blocked_cached) {
+        for(int i = 0; i < this->num_rendered_blocks; i++) {
+            int index = this->rendered_blocks[i];
+            int x = index % CHUNK_SIZE;
+            int y = (index / CHUNK_SIZE) % CHUNK_SIZE;
+            int z = (index / CHUNK_SIZE / CHUNK_SIZE) % CHUNK_SIZE;
+            vec3 fpos = vec3(bottom_left + ivec3(x, y, z));
+            this->blocks[x][y][z].render(fpos, PV);
+        }
+        return;
+    }
+
+    this->num_rendered_blocks = 0;
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
@@ -56,8 +69,11 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                     // Render it at i, j, k
                     vec3 fpos = vec3(position);
                     blocks[i][j][k].render(fpos, PV);
+                    this->rendered_blocks[this->num_rendered_blocks++] = i + CHUNK_SIZE*(j + CHUNK_SIZE*k);
                 }
             }
         }
     }
+
+    this->rendered_blocked_cached = true;
 }

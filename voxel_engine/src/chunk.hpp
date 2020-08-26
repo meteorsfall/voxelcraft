@@ -15,6 +15,10 @@ public:
     
     Block blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
+    bool rendered_blocked_cached = false;
+    int num_rendered_blocks = 0;
+    int rendered_blocks[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE];
+
     Chunk(ivec3 location);
 
     void set_block(int x, int y, int z, BlockType* b);

@@ -7,6 +7,7 @@
 
 class Input {
 public:
+    bool exiting;
     GLFWwindow* window;
     Player* player;
     World* world;

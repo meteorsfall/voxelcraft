@@ -77,9 +77,9 @@ int main( void )
     my_world.set_block(0,0,0, &dirt_block);
     my_world.set_block(0,1,0, &stone_block);
     
-    for(int i = 0; i < 2*CHUNK_SIZE; i++) {
+    for(int i = 0; i < 3*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = 0; k < 2*CHUNK_SIZE; k++) {
+            for(int k = 0; k < 3*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     my_world.set_block(i,j,k, &stone_block);
                 } else {
@@ -94,7 +94,7 @@ int main( void )
     Input input_handler(window, &my_world, &my_player);
 
 	UI ui;
-	Texture t("assets/crosshair.bmp", "assets/simple.vert", "assets/ui.frag", true);
+	Texture t("assets/crosshair.bmp", "assets/ui.vert", "assets/ui.frag", true);
 
 	int frames = 0;
 	double time = glfwGetTime();
@@ -112,10 +112,10 @@ int main( void )
         // Input Handling
         // ********************
         
-        input_handler.handle_input();
 		glfwPollEvents();
+        input_handler.handle_input();
 
-		if (glfwWindowShouldClose(window)) {
+		if (input_handler.exiting || glfwWindowShouldClose(window)) {
 			break;
 		}
 
