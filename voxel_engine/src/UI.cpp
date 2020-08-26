@@ -16,8 +16,6 @@ void UI::render(Texture* texture, vec2 center, float width, float height) {
     model = translate(model, vec3(center.x, center.y, 0.0));
 
     // Set shader
-    glEnable( GL_BLEND );
-    glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
     glUseProgram(texture->shader_id);
 
     // Set shader texture
@@ -40,5 +38,4 @@ void UI::render(Texture* texture, vec2 center, float width, float height) {
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
-    glDisable( GL_BLEND );
 }

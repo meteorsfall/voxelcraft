@@ -78,11 +78,11 @@ int main( void )
     my_world.set_block(0,0,0, &dirt_block);
     my_world.set_block(0,1,0, &stone_block);
 
-	Font f("assets/fonts/pixelated.ttf");
+	Font f("assets/fonts/pixel.ttf");
     
-    for(int i = 0; i < 3*CHUNK_SIZE; i++) {
+    for(int i = 0; i < 2*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = 0; k < 3*CHUNK_SIZE; k++) {
+            for(int k = 0; k < 2*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     my_world.set_block(i,j,k, &stone_block);
                 } else {
@@ -131,19 +131,40 @@ int main( void )
 		// Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glDepthMask(GL_TRUE);
 
         // ********************
-        // Rendering
+        // Rendering Geometry
         // ********************
+
 		double t1 = glfwGetTime();
+
+		// Get Projection-View matrix
         mat4 PV = my_player.camera.get_camera_matrix(width / (float)height);
+
+		// Render
         my_world.render(PV);
+
 		printf("Time: %f\n", 1/(glfwGetTime() - t1));
 
+        // ********************
+        // Rendering UI Elements
+        // ********************
+
+		// Setup transparency and disable depth buffer writing
+		glDepthMask(GL_FALSE);
+		glEnable( GL_BLEND );
+		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+		
+		// Render
 		float crosshair_size = 0.025;
 		ui.render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size * width / height);
 		//ui.render(&ui_test, vec2(0.0, 0.0), 0.2, 0.1);
-		//f.render(ivec2(width, height), ivec2(width/2, height/2), 1.0, "Hello!!!", ivec3(240, 0, 0));
+		f.render(ivec2(width, height), ivec2(width / 80, height / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
+
+		// Restore gl settings
+		glDisable(GL_BLEND);
+		glDepthMask(GL_TRUE);
 
         // ********************
         // Display the image buffer
