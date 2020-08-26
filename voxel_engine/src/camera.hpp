@@ -22,7 +22,7 @@ public:
 
     void rotate(vec2 delta);
 
-    mat4 get_camera_matrix();
+    mat4 get_camera_matrix(float aspect_ratio);
 };
 
 #endif

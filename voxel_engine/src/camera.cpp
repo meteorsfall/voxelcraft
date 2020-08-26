@@ -8,7 +8,7 @@ Camera::Camera() {
     // vertical angle : 0, look at the horizon
     this->vertical_angle = 0.0f;
     // Initial Field of View
-    this->fov = 55.0f;
+    this->fov = 75.0f;
 }
 
 void Camera::set_position(vec3 position) {
@@ -55,13 +55,13 @@ void Camera::rotate(vec2 change) {
     this->vertical_angle = clamp(this->vertical_angle, -pi<float>()/2 + 0.01f, pi<float>()/2 - 0.01f);
 }
 
-mat4 Camera::get_camera_matrix() {
+mat4 Camera::get_camera_matrix(float aspect_ratio) {
     vec3 direction = this->get_direction();
     vec3 right = this->get_right();
     vec3 up = cross( right, direction );
 
 	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    mat4 ProjectionMatrix = perspective(radians(this->fov), 4.0f / 3.0f, 0.1f, 100.0f);
+    mat4 ProjectionMatrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 100.0f);
     // Camera matrix
     mat4 ViewMatrix = lookAt(
         this->position,           // Camera is here

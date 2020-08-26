@@ -120,7 +120,7 @@ int main( void )
         // ********************
         // Rendering
         // ********************
-        mat4 PV = my_player.camera.get_camera_matrix();
+        mat4 PV = my_player.camera.get_camera_matrix(width / (float)height);
         my_world.render(PV);
 
 		float crosshair_size = 0.025;

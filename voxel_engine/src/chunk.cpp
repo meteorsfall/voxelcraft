@@ -25,15 +25,34 @@ Block* Chunk::get_block(int x, int y, int z) {
 }
 
 void Chunk::render(mat4 &PV) {
+    ivec3 bottom_left = location*CHUNK_SIZE;
+    AABB aabb(bottom_left, vec3(bottom_left) + vec3(CHUNK_SIZE));
+    if (!aabb.test_frustum(PV)) {
+        return;
+    }
+
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
-                // If the block exists
-                ivec3 position = location * CHUNK_SIZE + ivec3(i, j, k);
-                bool visible = !get_block(position.x-1, position.y, position.z) || !get_block(position.x+1, position.y, position.z)
-                            || !get_block(position.x, position.y-1, position.z) || !get_block(position.x, position.y+1, position.z)
-                            || !get_block(position.x, position.y, position.z-1) || !get_block(position.x, position.y, position.z+1);
-                if (blocks[i][j][k].block_type && visible) {
+                // If the block has no block type, just continue (It's an air block)
+                if (!blocks[i][j][k].block_type) {
+                    continue;
+                }
+
+                ivec3 position = bottom_left + ivec3(i, j, k);
+
+                bool visible;
+                if (blocks[i][j][k].cache_visible) {
+                    visible = blocks[i][j][k].cache_visible.value();
+                } else {
+                    // Check if the block exists
+                    visible = !get_block(position.x-1, position.y, position.z) || !get_block(position.x+1, position.y, position.z)
+                                || !get_block(position.x, position.y-1, position.z) || !get_block(position.x, position.y+1, position.z)
+                                || !get_block(position.x, position.y, position.z-1) || !get_block(position.x, position.y, position.z+1);
+                    blocks[i][j][k].cache_visible = {visible};
+                }
+                
+                if (visible) {
                     // Render it at i, j, k
                     vec3 fpos = vec3(position);
                     blocks[i][j][k].render(fpos, PV);

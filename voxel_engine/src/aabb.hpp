@@ -14,7 +14,11 @@ public:
     bool is_colliding(AABB other);
     void translate(vec3 change);
 
-    optional<double> test_aabb_plane(vec3 point, vec3 normal);
+    optional<double> test_plane(vec3 point, vec3 normal);
+
+    // Check if frustum intersects the AABB
+    // Note: This test may have rare false positives, claiming an interesection when there is none.
+    bool test_frustum(mat4& PV);
 
     optional<vec3> collide(AABB other);
 };
