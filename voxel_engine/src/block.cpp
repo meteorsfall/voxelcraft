@@ -28,19 +28,6 @@ BlockType::BlockType(Texture* texture) {
     // Give our vertices to GL_ARRAY_BUFFER (ie, vertexbuffer)
     glBufferData(GL_ARRAY_BUFFER, sizeof(g_cube_vertex_buffer_data), g_cube_vertex_buffer_data, GL_STATIC_DRAW);
 
-    // Save the UV buffer data to this->uv_buffer
-    for(int i = 0; i < len(g_cube_uv_buffer_data); i++) {
-        if (g_cube_uv_buffer_data[i] < 0.1) {
-            g_cube_uv_buffer_data[i] = 0;
-        } else if (g_cube_uv_buffer_data[i] < 0.4) {
-            g_cube_uv_buffer_data[i] = 1.0f / 3.0f;
-        } else if (g_cube_uv_buffer_data[i] < 0.7) {
-            g_cube_uv_buffer_data[i] = 2.0f / 3.0f;
-        } else {
-            g_cube_uv_buffer_data[i] = 1.0f;
-        }
-    }
-
     glGenBuffers(1, &this->uv_buffer);
     // Make GL_ARRAY_BUFFER point to uvbuffer
     glBindBuffer(GL_ARRAY_BUFFER, this->uv_buffer);
