@@ -98,7 +98,7 @@ int main( void )
 
 	UI ui;
 	Texture crosshair_texture("assets/images/crosshair.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
-	Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
+	//Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
 
 	int frames = 0;
 	double time = glfwGetTime();
