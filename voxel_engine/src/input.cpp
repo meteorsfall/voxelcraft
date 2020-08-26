@@ -31,7 +31,6 @@ Input::Input(GLFWwindow* window, World* world, Player* player) {
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 	// Hide cursor
-	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     lastTime = glfwGetTime();
 }
@@ -56,8 +55,10 @@ bool Input::mining_block(float mining_time) {
 
 vec2 Input::get_mouse_rotation() {
     if (paused) {
+        glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         return vec2(0.0);
     }
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 
     const float MOUSE_SPEED = 0.1;
     

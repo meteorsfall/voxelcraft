@@ -6,7 +6,10 @@
 
 class UI{
 public:
-
+    GLuint vertex_buffer;
+    GLuint uv_buffer;
+    UI();
+    void render(Texture* texture, vec2 center, float width, float height);
 };
 
 #endif

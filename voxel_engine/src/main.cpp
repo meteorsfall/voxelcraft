@@ -7,6 +7,7 @@
 #include "player.hpp"
 #include "input.hpp"
 #include "aabb.hpp"
+#include "UI.hpp"
 
 GLFWwindow* window = NULL;
 
@@ -90,6 +91,9 @@ int main( void )
     Player my_player;
 	my_player.hand = &stone_block;
     Input input_handler(window, &my_world, &my_player);
+
+	UI ui;
+	Texture t("assets/crosshair.bmp", "assets/simple.vert", "assets/ui.frag", true);
     
     // START MAIN GAME LOOP
 	while(true) {
@@ -118,6 +122,9 @@ int main( void )
         // ********************
         mat4 PV = my_player.camera.get_camera_matrix();
         my_world.render(PV);
+
+		float crosshair_size = 0.025;
+		ui.render(&t, vec2(0.0, 0.0), crosshair_size, crosshair_size * width / height);
 
         // ********************
         // Display the image buffer

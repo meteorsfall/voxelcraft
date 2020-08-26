@@ -9,7 +9,7 @@ public:
     GLuint opengl_texture_id;
     GLuint shader_id;
 
-    Texture(const char* filename, const char* vertex_shader, const char* fragment_shader);
+    Texture(const char* filename, const char* vertex_shader, const char* fragment_shader, bool transparency = false);
 };
 
 #endif

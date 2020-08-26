@@ -102,5 +102,7 @@ void BlockType::render(vec3 &position, mat4 &PV, float break_amount) {
     );
     // Draw the triangle !
     glDrawArrays(GL_TRIANGLES, 0, 12*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
+
     glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(1);
 }
