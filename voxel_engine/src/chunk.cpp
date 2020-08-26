@@ -24,7 +24,7 @@ Block* Chunk::get_block(int x, int y, int z) {
     return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
-void Chunk::render(mat4 &PV) {
+void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
     ivec3 bottom_left = location*CHUNK_SIZE;
     AABB aabb(bottom_left, vec3(bottom_left) + vec3(CHUNK_SIZE));
     if (!aabb.test_frustum(PV)) {
@@ -46,9 +46,9 @@ void Chunk::render(mat4 &PV) {
                     visible = blocks[i][j][k].cache_visible.value();
                 } else {
                     // Check if the block exists
-                    visible = !get_block(position.x-1, position.y, position.z) || !get_block(position.x+1, position.y, position.z)
-                                || !get_block(position.x, position.y-1, position.z) || !get_block(position.x, position.y+1, position.z)
-                                || !get_block(position.x, position.y, position.z-1) || !get_block(position.x, position.y, position.z+1);
+                    visible = !master_get_block(position.x-1, position.y, position.z) || !master_get_block(position.x+1, position.y, position.z)
+                                || !master_get_block(position.x, position.y-1, position.z) || !master_get_block(position.x, position.y+1, position.z)
+                                || !master_get_block(position.x, position.y, position.z-1) || !master_get_block(position.x, position.y, position.z+1);
                     blocks[i][j][k].cache_visible = {visible};
                 }
                 

@@ -167,7 +167,7 @@ GLuint loadBMP(const char* imagepath, ivec3 color_key) {
 
 	if (using_color_key) {
 		unsigned char* alpha_data = new unsigned char [width*height*4];
-		for(int i = 0; i < width*height; i++) {
+		for(unsigned int i = 0; i < width*height; i++) {
 			alpha_data[4*i+0] = data[3*i+2];
 			alpha_data[4*i+1] = data[3*i+1];
 			alpha_data[4*i+2] = data[3*i+0];

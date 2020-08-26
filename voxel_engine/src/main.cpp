@@ -15,6 +15,7 @@ static int width = 600;
 static int height = 400;
 
 void resize_callback(GLFWwindow* window, int w, int h) {
+	UNUSED(window);
 	width = w;
 	height = h;
 }
@@ -94,9 +95,19 @@ int main( void )
 
 	UI ui;
 	Texture t("assets/crosshair.bmp", "assets/simple.vert", "assets/ui.frag", true);
+
+	int frames = 0;
+	double time = glfwGetTime();
     
     // START MAIN GAME LOOP
 	while(true) {
+		frames++;
+		if (glfwGetTime() - time > 3.0) {
+			printf("FPS: %f\n", frames / (glfwGetTime() - time));
+			time = glfwGetTime();
+			frames = 0;
+		}
+
         // ********************
         // Input Handling
         // ********************
@@ -120,8 +131,10 @@ int main( void )
         // ********************
         // Rendering
         // ********************
+		double t1 = glfwGetTime();
         mat4 PV = my_player.camera.get_camera_matrix(width / (float)height);
         my_world.render(PV);
+		printf("Time: %f\n", 1/(glfwGetTime() - t1));
 
 		float crosshair_size = 0.025;
 		ui.render(&t, vec2(0.0, 0.0), crosshair_size, crosshair_size * width / height);

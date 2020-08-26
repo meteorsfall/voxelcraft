@@ -58,8 +58,12 @@ Block* World::get_block(int x, int y, int z) {
 }
 
 void World::render(mat4 &PV) {
+    fn_get_block my_get_block = [this](int x, int y, int z) {
+        return this->get_block(x, y, z);
+    };
+
     for(Chunk& c : chunks) {
-        c.render(PV);
+        c.render(PV, my_get_block);
     }
 }
 
@@ -74,14 +78,13 @@ bool World::is_in_block(vec3 position) {
 optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance, bool nextblock) {
     float ray = 0.01;
     direction = normalize(direction);
-    for(int i = 0; i < max_distance/ray; i++){
-        vec3 n = position + direction*ray*(float)i;
-        if(is_in_block(position + direction*ray*(float)i)){
+    for(int i = 0; i < max_distance/ray; i++) {
+        if(is_in_block(position + direction*(ray*i))) {
             if(nextblock){
-                ivec3 loc = floor(position + direction*ray*(float)(i-1));
+                ivec3 loc = floor(position + direction*(ray*(i-1)));
                 return {loc};
             }
-            return { ivec3(floor(position + direction*ray*(float)i)) };
+            return { ivec3(floor(position + direction*(ray*i))) };
         }
     }
     return nullopt;

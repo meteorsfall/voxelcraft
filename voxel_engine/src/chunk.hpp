@@ -4,6 +4,8 @@
 #include "utils.hpp"
 #include "block.hpp"
 
+using fn_get_block = std::function<Block*(int, int, int)>;
+
 #define CHUNK_SIZE 16
 
 class Chunk {
@@ -19,7 +21,7 @@ public:
 
     Block* get_block(int x, int y, int z);
 
-    void render(mat4 &PV);
+    void render(mat4 &PV, fn_get_block get_block);
 };
 
 #endif

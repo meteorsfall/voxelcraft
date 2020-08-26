@@ -1,4 +1,5 @@
 #include "block.hpp"
+#include "gl_utils.hpp"
 
 Block::Block() {
     this->block_type = NULL;
@@ -20,19 +21,11 @@ BlockType::BlockType(Texture* texture) {
     this->texture = texture;
 
     // Save the cube vertex buffer data to this->vertex_buffer
+    auto [vertex_buffer_data, vertex_buffer_len] = get_cube_vertex_coordinates();
+    auto [uv_buffer_data, uv_buffer_len] = get_cube_uv_coordinates();
 
-    // Generate 1 buffer, put the resulting identifier in vertexbuffer
-    glGenBuffers(1, &this->vertex_buffer);
-    // Make GL_ARRAY_BUFFER point to vertexbuffer
-    glBindBuffer(GL_ARRAY_BUFFER, this->vertex_buffer);
-    // Give our vertices to GL_ARRAY_BUFFER (ie, vertexbuffer)
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_cube_vertex_buffer_data), g_cube_vertex_buffer_data, GL_STATIC_DRAW);
-
-    glGenBuffers(1, &this->uv_buffer);
-    // Make GL_ARRAY_BUFFER point to uvbuffer
-    glBindBuffer(GL_ARRAY_BUFFER, this->uv_buffer);
-    // Give our vertices to GL_ARRAY_BUFFER (ie, uvbuffer)
-    glBufferData(GL_ARRAY_BUFFER, sizeof(g_cube_uv_buffer_data), g_cube_uv_buffer_data, GL_STATIC_DRAW);
+    this->vertex_buffer = create_array_buffer(vertex_buffer_data, vertex_buffer_len);
+    this->uv_buffer = create_array_buffer(uv_buffer_data, uv_buffer_len);
 }
 
 void BlockType::render(vec3 &position, mat4 &PV, float break_amount) {
@@ -41,12 +34,7 @@ void BlockType::render(vec3 &position, mat4 &PV, float break_amount) {
     GLuint shader_texture_id = glGetUniformLocation(this->texture->shader_id, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    glActiveTexture(GL_TEXTURE0);
-    // gl_internal_texture = 0;
-    glBindTexture(GL_TEXTURE_2D, this->texture->opengl_texture_id);
-    // GL_TEXTURE_2D[gl_internal_texture] = my_texture_id;
-    glUniform1i(shader_texture_id, 0);
-    // *shader_texture_id = GL_TEXTURE_2D[0]
+    bind_texture(0, shader_texture_id, this->texture->opengl_texture_id);
     
     // Model matrix : an identity matrix (model will be at the origin)
     glm::mat4 Model = glm::translate(glm::mat4(1.0f), position);
@@ -67,28 +55,11 @@ void BlockType::render(vec3 &position, mat4 &PV, float break_amount) {
 
     // Draw nothing, see you in tutorial 2 !
     // 1st attribute buffer : vertices
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, this->vertex_buffer);
-    glVertexAttribPointer(
-        0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-        3,                  // size
-        GL_FLOAT,           // type
-        GL_FALSE,           // normalized?
-        0,                  // stride
-        (void*)0            // array buffer offset
-    );
+    bind_array(0, this->vertex_buffer, 3);
 
     // 2nd attribute buffer : colors
-    glEnableVertexAttribArray(1);
-    glBindBuffer(GL_ARRAY_BUFFER, this->uv_buffer);
-    glVertexAttribPointer(
-        1,                                // attribute. No particular reason for 1, but must match the layout in the shader.
-        2,                                // size
-        GL_FLOAT,                         // type
-        GL_FALSE,                         // normalized?
-        0,                                // stride
-        (void*)0                          // array buffer offset
-    );
+    bind_array(1, this->uv_buffer, 2);
+
     // Draw the triangle !
     glDrawArrays(GL_TRIANGLES, 0, 12*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
 

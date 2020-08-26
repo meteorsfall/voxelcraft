@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.3)
 project(LearnGLSL)
 
 set(CMAKE_CXX_STANDARD 17) # no explicit compiler flags if possible
+add_compile_options(-Wall -Wextra -pedantic -Werror)
 
 if (NOT WIN32)
 set(CMAKE_MODULE_PATH /usr/local/lib/cmake /usr/local/lib/x86_64-linux-gnu/cmake)
@@ -29,5 +30,5 @@ message(STATUS "Found GLFW3 in ${GLFW3_INCLUDE_DIR}")
 
 include_directories(${OPENGL_INCLUDE_DIR})
 
-add_executable(vs src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp)
+add_executable(vs src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp)
 target_link_libraries(vs ${OPENGL_LIBRARY} glfw GLEW ${GLFW_LIBRARIES})

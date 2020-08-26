@@ -11,6 +11,9 @@ bool paused = false;
 // Handle keyboard events
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+    UNUSED(window);
+    UNUSED(scancode);
+    UNUSED(mods);
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         pressed_spacebar = true;
     }
@@ -124,14 +127,8 @@ void Input::handle_input() {
     handle_player_movement(currentTime, deltaTime);
 
     // If left click has been held for 1 second, then mine the block in-front of you
-    static double last_left_click_release = 0.0;
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE) {
-        last_left_click_release = currentTime;
-    } else {
-        if (mining_block(deltaTime)) {
-            last_left_click_release = currentTime;
-        }
-        last_left_click_release = currentTime;
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        mining_block(deltaTime);
     }
     
     static double last_right_click_press = 0.0;
@@ -194,5 +191,8 @@ void Input::handle_player_movement(double currentTime, float deltaTime) {
 
     player->move(jump_velocity, player->is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
     player->rotate(mouse_rotation);
-    world->collide(player->get_collision_box(), player->get_on_collide());
+
+    if (!player->is_flying) {
+        world->collide(player->get_collision_box(), player->get_on_collide());
+    }
 }
