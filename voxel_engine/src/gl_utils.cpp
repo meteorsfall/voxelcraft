@@ -40,7 +40,6 @@ void bind_array(int array_num, GLuint array_buffer, GLint size) {
     );
 }
 
-
 // *******************
 // Coordinates for Meshes
 // *******************

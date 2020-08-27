@@ -9,10 +9,13 @@
 #include "aabb.hpp"
 #include "UI.hpp"
 #include "font.hpp"
-#include "example_ui/main_ui.hpp"
+#include "example/main_ui.hpp"
+#include "example/main_game.hpp"
 
 TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
+
+extern bool paused;
 
 static int width = 600;
 static int height = 400;
@@ -75,33 +78,7 @@ int main( void )
 
     glEnable(GL_CULL_FACE);
 
-    Texture stone_texture("assets/images/stone.bmp", "assets/shaders/simple.vert", "assets/shaders/simple.frag");
-    Texture dirt_texture("assets/images/dirt.bmp", "assets/shaders/simple.vert", "assets/shaders/simple.frag");
- 
-    BlockType stone_block = BlockType(&stone_texture);
-    BlockType dirt_block = BlockType(&dirt_texture);
-    
-    World my_world;
-
-    // 1-7, dirt 8-16 stone
-    my_world.set_block(0,0,0, &dirt_block);
-    my_world.set_block(0,1,0, &stone_block);
-    
-    for(int i = 0; i < 2*CHUNK_SIZE; i++) {
-        for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = 0; k < 2*CHUNK_SIZE; k++) {
-                if (j <= 7) {
-                    my_world.set_block(i,j,k, &stone_block);
-                } else {
-                    my_world.set_block(i,j,k, &dirt_block);
-                }
-            }
-        }
-    }
-
-    Player my_player;
-	my_player.hand = &stone_block;
-    InputHandler input_handler(window, &my_world, &my_player);
+    InputHandler input_handler(window);
 
 	int frames = 0;
 	double time = glfwGetTime();
@@ -110,6 +87,8 @@ int main( void )
 	texture_renderer.set_window_dimensions(width, height);
 	g_texture_renderer = &texture_renderer;
 
+	// MAKE GAME HERE
+	Game game;
 	// MAKE ALL CUSTOM UIs HERE
 	MainUI main_ui;
     
@@ -126,12 +105,13 @@ int main( void )
         // Input Handling
         // ********************
         
-		glfwPollEvents();
-        InputState input_state = input_handler.handle_input();
+        InputState input_state = input_handler.handle_input(!paused);
 
 		if (input_handler.exiting || glfwWindowShouldClose(window)) {
 			break;
 		}
+
+		game.iterate(input_state);
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
@@ -149,11 +129,7 @@ int main( void )
 
 		double t1 = glfwGetTime();
 
-		// Get Projection-View matrix
-        mat4 PV = my_player.camera.get_camera_matrix(width / (float)height);
-
-		// Render
-        my_world.render(PV);
+		game.render();
 
 		printf("Time: %f\n", 1/(glfwGetTime() - t1));
 
@@ -166,9 +142,7 @@ int main( void )
 		glEnable( GL_BLEND );
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		
-		// Render
-		//get_texture_renderer()->render(&ui_test, vec2(0.0, 0.4), 0.4, 0.2);
-		//get_texture_renderer()->render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size);
+		// Render UI
 		main_ui.iterate(input_state, width, height);
 		main_ui.render();
 

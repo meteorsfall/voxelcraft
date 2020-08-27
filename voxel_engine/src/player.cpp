@@ -35,9 +35,7 @@ void Player::move_toward(vec3 velocity, GLfloat delta) {
     this->position = this->camera.position - camera_relative_to_player;
 }
 
-void Player::move(vec3 change_velocity, vec3 accel, GLfloat delta) {
-    this->velocity += change_velocity;
-
+void Player::move(vec3 accel, GLfloat delta) {
     this->position += velocity * delta;
     
     this->velocity += accel * delta;
@@ -75,7 +73,7 @@ fn_on_collide Player::get_on_collide() {
     return [this](vec3 forced_movement) {
         this->position += forced_movement;
         if (forced_movement.y > 0.0) {
-            // If we're being forced upwards, then we should be on the floor now
+            // If we're being forced upwards, then we're probably on the floor right now
             this->is_on_floor = true;
             this->velocity = vec3(0.0);
         }
@@ -85,4 +83,3 @@ fn_on_collide Player::get_on_collide() {
         this->camera.set_position(this->position + camera_relative_to_player);
     };
 }
-

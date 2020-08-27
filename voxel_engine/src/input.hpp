@@ -12,6 +12,11 @@ enum InputButtonState {
 };
 
 struct InputState {
+    // Other information
+    ivec2 screen_dimensions;
+    double current_time;
+
+    // Input State
     InputButtonState keys[350];
     ivec2 mouse_pos;
     InputButtonState left_mouse;
@@ -22,20 +27,10 @@ class InputHandler {
 public:
     bool exiting;
     GLFWwindow* window;
-    Player* player;
-    World* world;
-    InputHandler(GLFWwindow* window, World* my_world, Player* my_player);
-    InputState handle_input();
+    InputHandler(GLFWwindow* window);
+    InputState handle_input(bool relative_mouse);
 private:
-    double lastTime;
-    double last_space_release;
-    InputState input;
-    float flying_speed;
-    vec2 get_mouse_rotation();
-    vec3 get_keyboard_movement();
-    bool mining_block(float time);
-    void place_block(BlockType* block);
-    void handle_player_movement(double currentTime, float deltaTime);
+    InputState next_input;
 };
 
 #endif

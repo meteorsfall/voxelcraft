@@ -70,12 +70,6 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
 
     glm::mat4 projection = glm::ortho(0.0f, (float)dimensions.x, 0.0f, (float)dimensions.y);
 
-    /*
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-    */
-
     // Create VBO
     GLuint VBO;
     glGenBuffers(1, &VBO);

@@ -26,7 +26,7 @@ public:
     // Move in the direction of the camera
     void move_toward(vec3 velocity, GLfloat delta);
     // Move with newtonian mechanics
-    void move(vec3 velocity, vec3 accel, GLfloat delta);
+    void move(vec3 accel, GLfloat delta);
 
     void rotate(vec2 change);
 
