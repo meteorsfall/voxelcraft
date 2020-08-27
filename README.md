@@ -8,7 +8,8 @@ First, cd into `voxel_engine`. Then,
 
 On Ubuntu, run
 
-```./setup
+```
+./setup
 cmake .
 make
 ./vc
@@ -16,7 +17,8 @@ make
 
 On Windows, run
 
-```setup
+```
+setup
 cnmake
 nmake
 ./vc
