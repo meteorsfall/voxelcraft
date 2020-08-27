@@ -1,0 +1,1 @@
+start /WAIT /B build/release/vs.exe
