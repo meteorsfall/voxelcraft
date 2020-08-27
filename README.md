@@ -28,6 +28,8 @@ And then VoxelCraft should begin running!
 
 - Windows will assume that you have Visual Studio Community installed, along with OpenGL.
 
+To compile again, simply run `make` / `nmake`, and then run it with `vc`.
+
 ## Use
 
 Simply explore the world!
