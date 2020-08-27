@@ -21,14 +21,25 @@ void TextureRenderer::set_window_dimensions(int width, int height) {
 }
 
 // Width and height should range between 0.0 and 1.0
-void TextureRenderer::internal_render(Texture& texture, ivec2 center, ivec2 size) {
+void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 size) {
     int width = size.x;
     int height = size.y;
 
     mat4 model = scale(mat4(1.0f), vec3((float)width / this->width, (float)height / this->height, 0.0f));
     // Translate the image to the desired center
-    model = translate(model, vec3(((float)center.x) / this->width - 1.0f, ((float)center.y) / this->height - 1.0f, 0.0f));
-    mat4 MVP = model;
+
+    // Each unit of translation moves in x_scale quantity of pixels
+    float x_scale = width / 2.0f;
+    float y_scale = height / 2.0f;
+
+    // Take the center of the image relative to the center of the screen. Flip y axis
+    vec2 center = vec2(top_left) + vec2(size)/2.0f;
+    center.y = this->height - 1.0f - center.y;
+    center -= vec2( this->width / 2.0f, this->height / 2.0f );
+
+    mat4 MVP = translate(model, vec3(center.x / x_scale, center.y / y_scale, 0.0));
+
+    printf( "Translate X: %f\n", (((float)center.x) / this->width * 2.0f - 1.0f)*width );
 
     // Set shader
     glUseProgram(texture.shader_id);
@@ -55,6 +66,6 @@ void TextureRenderer::internal_render(Texture& texture, ivec2 center, ivec2 size
     glDisableVertexAttribArray(1);
 }
 
-void TextureRenderer::render(Texture& texture, ivec2 center, ivec2 size) {
-    get_texture_renderer()->internal_render(texture, center, size);
+void TextureRenderer::render(Texture& texture, ivec2 top_left, ivec2 size) {
+    get_texture_renderer()->internal_render(texture, top_left, size);
 }

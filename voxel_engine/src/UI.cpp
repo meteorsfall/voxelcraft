@@ -7,7 +7,7 @@ UI_Element::UI_Element(const char* texture_path) {
 }
 
 void UI_Element::render() {
-    TextureRenderer::render(this->texture, this->location + this->size / 2, this->size);
+    TextureRenderer::render(this->texture, this->location, this->size);
     //if()
 }
 
@@ -16,10 +16,11 @@ bool UI_Element::intersect(ivec2 position) {
     bool in_y = (this->location.y <= position.y) && (position.y <= this->location.y + this->size.y);
     
     ivec2 location = this->location;
+    printf( "\n" );
     printf("BUtTON: %d %d\n", location.x, location.y);
     printf("Size: %d %d\n", size.x, size.y);
     printf("mouse: %d %d\n", position.x, position.y);
-    printf("Result: %s", in_x && in_y ? "Yes!" : "No!");
+    printf("Result: %s\n", in_x && in_y ? "Yes!" : "No!");
     
     return in_x && in_y;
 }

@@ -13,8 +13,8 @@ public:
     int height;
     TextureRenderer();
     void set_window_dimensions(int width, int height);
-    void internal_render(Texture& texture, ivec2 center, ivec2 size);
-    static void render(Texture& texture, ivec2 center, ivec2 size);
+    void internal_render(Texture& texture, ivec2 top_left, ivec2 size);
+    static void render(Texture& texture, ivec2 top_left, ivec2 size);
 };
 
 TextureRenderer* get_texture_renderer();
