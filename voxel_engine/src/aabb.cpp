@@ -5,7 +5,7 @@ AABB::AABB(vec3 min_point, vec3 max_point) {
     this->max_point = max_point;
 }
 
-bool AABB::is_point_inside(vec3 p) {
+bool AABB::test_point(vec3 p) {
     if (min_point.x <= p.x && p.x <= max_point.x
         && min_point.y <= p.y && p.y <= max_point.y
         && min_point.z <= p.z && p.z <= max_point.z

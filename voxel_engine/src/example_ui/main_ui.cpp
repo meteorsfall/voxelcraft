@@ -20,6 +20,6 @@ void MainUI::render(int width, int height) {
     crosshair.location = ivec2(width/2, height/2);
     play_button.location = ivec2(width/2, height/4);
 
-    play_button.render();
+    //play_button.render();
     crosshair.render();    
 }
