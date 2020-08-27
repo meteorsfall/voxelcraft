@@ -1,47 +1,44 @@
 #include "input.hpp"
 
-bool pressed_spacebar = false;
-bool last_space_state = GLFW_RELEASE;
-double last_space_release = 0;
-
-double lastTime = 0.0;
+const float MOVEMENT_SPEED = 5.0;
+const float FLYING_ACCEL_SPEED = 6.0;
+const float FLYING_MAX_SPEED = 50.0;
+const float MOUSE_SPEED = 0.1;
+const float JUMP_INITIAL_VELOCITY = 4.0;
 
 bool paused = false;
-
-bool g_exiting = false;
-
-InputState input;
-
-// Handle keyboard events
-void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    UNUSED(window);
-    UNUSED(scancode);
-    UNUSED(mods);
-    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
-        pressed_spacebar = true;
-    }
-    if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-        paused = !paused;
-    }
-    if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
-        g_exiting = true;
-    }
-    
-}
 
 InputHandler::InputHandler(GLFWwindow* window, World* world, Player* player) {
     this->exiting = false;
     this->window = window;
-    glfwSetKeyCallback(window, key_callback);
     this->world = world;
     this->player = player;
+    this->flying_speed = MOVEMENT_SPEED;
+    for(uint i = 0; i < len(this->input.keys); i++) {
+        this->input.keys[i] = (InputButtonState)GLFW_RELEASE;
+    }
+    this->input.left_mouse = (InputButtonState)GLFW_RELEASE;
+    this->input.right_mouse = (InputButtonState)GLFW_RELEASE;
+
+    // Handle keyboard events
+    auto key_callback = [this](GLFWwindow* window, int key, int scancode, int action, int mods) -> void {
+        UNUSED(window);
+        UNUSED(scancode);
+        UNUSED(mods);
+        if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+            paused = !paused;
+        }
+        if (key > 15 && key < 350) {
+            this->input.keys[key] = (InputButtonState)action;
+        }
+    };
 
 	// Ensure we can capture the escape key being pressed below
 	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
-	// Hide cursor
+    glfwSetKeyCallback(window, lambda_to_fn_pointer(key_callback));
 
     lastTime = glfwGetTime();
+    last_space_release = lastTime;
 }
 
 bool InputHandler::mining_block(float mining_time) {
@@ -68,8 +65,6 @@ vec2 InputHandler::get_mouse_rotation() {
         return vec2(0.0);
     }
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-
-    const float MOUSE_SPEED = 0.1;
     
     double xpos, ypos;
     // Get mouse position offset from center
@@ -124,7 +119,7 @@ void InputHandler::place_block(BlockType* block) {
 }
 
 InputState InputHandler::handle_input() {
-    if (g_exiting) {
+    if (input.keys[GLFW_KEY_Q] == GLFW_PRESS) {
         this->exiting = true;
         return InputState{};
     }
@@ -154,25 +149,25 @@ InputState InputHandler::handle_input() {
     // Get mouse position offset from center
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    InputState input;
     input.left_mouse = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
     input.right_mouse = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
     input.mouse_pos = ivec2(xpos, ypos);
-    for(int i = 32; i < 350; i++) {
-        input.keys[i] = (InputButtonState)glfwGetKey(window, i);
+    // input.keys is handled in the key callback
+
+    InputState input_copy = input;
+
+    // Turn all presses into repeats
+    for(int i = 0; i < 350; i++) {
+        if (input.keys[i] == GLFW_PRESS) {
+            input.keys[i] = (InputButtonState)GLFW_REPEAT;
+        }
     }
 
-    return input;
+    return input_copy;
 }
 
 void InputHandler::handle_player_movement(double currentTime, float deltaTime) {
     vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
-
-    const float MOVEMENT_SPEED = 5.0;
-
-    const float FLYING_ACCEL_SPEED = 6.0;
-    const float FLYING_MAX_SPEED = 50.0;
-    static float flying_speed = MOVEMENT_SPEED;
 
     vec3 original_position = player->position;
 
@@ -196,10 +191,9 @@ void InputHandler::handle_player_movement(double currentTime, float deltaTime) {
 
     player->move_toward(keyboard_movement, deltaTime);
     vec3 dir = player->position - original_position;
-    const float JUMP_INITIAL_VELOCITY = 4.0;
     vec3 jump_velocity = vec3(0.0);
 
-    if (pressed_spacebar) {
+    if (input.keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
         if ((currentTime - last_space_release) < 0.3) {
             player->set_fly(!player->is_flying);
             // Reset velocity when changing modes
@@ -212,7 +206,6 @@ void InputHandler::handle_player_movement(double currentTime, float deltaTime) {
             jump_velocity = normalize(jump_velocity) * JUMP_INITIAL_VELOCITY;
         }
     }
-    pressed_spacebar = false;
 
     player->move(jump_velocity, player->is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
     player->rotate(mouse_rotation);

@@ -27,6 +27,9 @@ using std::pair;
 using std::map;
 using std::string;
 
+// Include fn_pointer
+#include "fn_pointer.hpp"
+
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 

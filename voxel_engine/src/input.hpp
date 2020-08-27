@@ -27,6 +27,10 @@ public:
     InputHandler(GLFWwindow* window, World* my_world, Player* my_player);
     InputState handle_input();
 private:
+    double lastTime;
+    double last_space_release;
+    InputState input;
+    float flying_speed;
     vec2 get_mouse_rotation();
     vec3 get_keyboard_movement();
     bool mining_block(float time);
