@@ -3,6 +3,15 @@
 
 extern TextureRenderer* g_texture_renderer;
 
+UI_Element::UI_Element() {}
+UI_Element::UI_Element(const char* texture_path) {
+    this->texture = Texture(texture_path, "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
+}
+
+void UI_Element::render() {
+    TextureRenderer::render(this->texture, this->location, this->size);
+}
+
 TextureRenderer* get_texture_renderer() {
     return g_texture_renderer;
 }
@@ -21,21 +30,24 @@ void TextureRenderer::set_window_dimensions(int width, int height) {
 }
 
 // Width and height should range between 0.0 and 1.0
-void TextureRenderer::render(Texture* texture, ivec2 top_left, int width, int height) {
+void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 size) {
+    int width = size.x;
+    int height = size.y;
+
     mat4 model = scale(mat4(1.0f), vec3((float)width / this->width, (float)height / this->height, 0.0f));
     // Translate the image to the desired center
     model = translate(model, vec3(((float)top_left.x) / this->width, ((float)top_left.y) / this->height, 0.0));
     mat4 MVP = model;
 
     // Set shader
-    glUseProgram(texture->shader_id);
+    glUseProgram(texture.shader_id);
 
     // Set shader texture
-    GLuint shader_texture_id = glGetUniformLocation(texture->shader_id, "my_texture");
-    bind_texture(0, shader_texture_id, texture->opengl_texture_id);
+    GLuint shader_texture_id = glGetUniformLocation(texture.shader_id, "my_texture");
+    bind_texture(0, shader_texture_id, texture.opengl_texture_id);
     
     // Pass in the model matrix
-    GLuint matrix_shader_pointer = glGetUniformLocation(texture->shader_id, "MVP");
+    GLuint matrix_shader_pointer = glGetUniformLocation(texture.shader_id, "MVP");
     glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &MVP[0][0]);
     
     // Draw nothing, see you in tutorial 2 !
@@ -50,4 +62,8 @@ void TextureRenderer::render(Texture* texture, ivec2 top_left, int width, int he
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+}
+
+void TextureRenderer::render(Texture& texture, ivec2 top_left, ivec2 size) {
+    get_texture_renderer()->internal_render(texture, top_left, size);
 }

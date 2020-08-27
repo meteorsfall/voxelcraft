@@ -62,7 +62,15 @@ vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255
 
 	// Create a buffer
 	data = new unsigned char [imageSize];
-    
+
+	// Read the actual data from the file into the buffer
+    fseek(file, dataPos, SEEK_SET);
+	if (fread(data,1,imageSize,file) != imageSize) {
+		printf("Bad fread of %d bytes!", imageSize);
+		fclose(file);
+        exit(-1);
+	}
+
 	// Shift bytes to remove padding
     {
         int index = 0;
@@ -78,14 +86,6 @@ vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255
         }
     }
 
-	// Read the actual data from the file into the buffer
-    fseek(file, dataPos, SEEK_SET);
-	if (fread(data,1,imageSize,file) != imageSize) {
-		printf("Bad fread of %d bytes!", imageSize);
-		fclose(file);
-        exit(-1);
-	}
-
 	// Everything is in memory now, the file can be closed.
 	fclose (file);
 
@@ -99,7 +99,6 @@ vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255
             bool left_not_cyan = (i == 0) || !is_cyan(i-1, j, data, width, height, box_color);
             bool top_not_cyan = (j==0) || !is_cyan(i, j-1, data, width, height, box_color);
             if(center_is_cyan && top_not_cyan && left_not_cyan) {
-                cout << "Found: " << i << " " << j << endl;
                 left_corners.push_back(ivec2(i,j));
             }
         }
@@ -129,6 +128,8 @@ vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255
 	// Free the data
 	delete[] data;
 
+    printf("Width: %d\nHeight: %d\n", width, height);
+
 	// Return the ID of the texture we just created
 	return boxes;
 }
@@ -147,4 +148,6 @@ int main(int argc, char* argv[]) {
         cout << "x: " << results[i].x << ", y: " << results[i].y
          << ", width: " << results[i].z << ", height: " << results[i].w << endl;
     }
+    
 }
+ 

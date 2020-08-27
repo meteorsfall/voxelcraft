@@ -6,6 +6,17 @@
 #include "input.hpp"
 #include "font.hpp"
 
+class UI_Element {
+public:
+    Texture texture;
+    string text;
+    ivec2 location;
+    ivec2 size;
+    UI_Element();
+    UI_Element(const char* texture_path);
+    void render();
+};
+
 class UI {
 public:
     virtual void iterate(InputState& input) = 0;
@@ -20,7 +31,8 @@ public:
     int height;
     TextureRenderer();
     void set_window_dimensions(int width, int height);
-    void render(Texture* texture, ivec2 top_left, int width, int height);
+    void internal_render(Texture& texture, ivec2 top_left, ivec2 size);
+    static void render(Texture& texture, ivec2 top_left, ivec2 size);
 };
 
 TextureRenderer* get_texture_renderer();
