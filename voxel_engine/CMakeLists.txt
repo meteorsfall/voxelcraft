@@ -68,13 +68,13 @@ include_directories(${FREETYPE_INCLUDE_DIRS})
 add_executable(pixel_helper pixel_helper_src/main.cpp)
 target_link_libraries(pixel_helper)
 
-add_executable(vs src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp)
+add_executable(vc src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp)
 if (WIN32)
-target_link_libraries(vs ${OPENGL_LIBRARY} glfw3 glew32 freetype)
-add_custom_command(TARGET vs POST_BUILD
+target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 freetype)
+add_custom_command(TARGET vc POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${PROJECT_SOURCE_DIR}/bin"
     $<TARGET_FILE_DIR:vs>)
 else ()
-target_link_libraries(vs ${OPENGL_LIBRARY} glfw GLEW ${FREETYPE_LIBRARIES})
+target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW ${FREETYPE_LIBRARIES})
 endif ()
