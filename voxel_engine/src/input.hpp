@@ -5,14 +5,27 @@
 #include "world.hpp"
 #include "player.hpp"
 
-class Input {
+enum InputButtonState {
+    RELEASE = GLFW_RELEASE,
+    PRESS = GLFW_PRESS,
+    REPEAT = GLFW_REPEAT
+};
+
+struct InputState {
+    InputButtonState keys[350];
+    ivec2 mouse_pos;
+    InputButtonState left_mouse;
+    InputButtonState right_mouse;
+};
+
+class InputHandler {
 public:
     bool exiting;
     GLFWwindow* window;
     Player* player;
     World* world;
-    Input(GLFWwindow* window, World* my_world, Player* my_player);
-    void handle_input();
+    InputHandler(GLFWwindow* window, World* my_world, Player* my_player);
+    InputState handle_input();
 private:
     vec2 get_mouse_rotation();
     vec3 get_keyboard_movement();

@@ -1,4 +1,4 @@
-#include "text.hpp"
+#include "font.hpp"
 #include "gl_utils.hpp"
 
 Font::Font(const char* font_path) {
@@ -75,18 +75,19 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
     glGenVertexArrays(1, &VAO);
     glBindVertexArray(VAO);
     */
+
+    // Create VBO
     GLuint VBO;
     glGenBuffers(1, &VBO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * 6 * 4, NULL, GL_DYNAMIC_DRAW);
+
+    // Set vertex buffer
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 4 * sizeof(float), 0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     // activate corresponding render state
     glUniform3i(glGetUniformLocation(this->shader_id, "textColor"), color.x, color.y, color.z);
-    glActiveTexture(GL_TEXTURE0);
 
     GLuint projection_shader_pointer = glGetUniformLocation(this->shader_id, "projection");
     glUniformMatrix4fv(projection_shader_pointer, 1, GL_FALSE, &projection[0][0]);
@@ -119,15 +120,12 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
         // render glyph texture over quad
         bind_texture(0, texture_pointer, ch.texture_id);
         // update content of VBO memory
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices); 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         // render quad
         glDrawArrays(GL_TRIANGLES, 0, 6);
         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
         location.x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
     }
 
-    glBindTexture(GL_TEXTURE_2D, 0); 
     glDisable(GL_BLEND);
 }

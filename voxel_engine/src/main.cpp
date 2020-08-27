@@ -8,8 +8,9 @@
 #include "input.hpp"
 #include "aabb.hpp"
 #include "UI.hpp"
-#include "text.hpp"
+#include "font.hpp"
 
+TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
 
 static int width = 600;
@@ -19,6 +20,7 @@ void resize_callback(GLFWwindow* window, int w, int h) {
 	UNUSED(window);
 	width = w;
 	height = h;
+	get_texture_renderer()->set_window_dimensions(width, height);
 }
 
 int main( void )
@@ -94,14 +96,17 @@ int main( void )
 
     Player my_player;
 	my_player.hand = &stone_block;
-    Input input_handler(window, &my_world, &my_player);
+    InputHandler input_handler(window, &my_world, &my_player);
 
-	UI ui;
 	Texture crosshair_texture("assets/images/crosshair.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
-	//Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
+	Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
 
 	int frames = 0;
 	double time = glfwGetTime();
+
+	TextureRenderer texture_renderer;
+	texture_renderer.set_window_dimensions(width, height);
+	g_texture_renderer = &texture_renderer;
     
     // START MAIN GAME LOOP
 	while(true) {
@@ -157,9 +162,9 @@ int main( void )
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		
 		// Render
-		float crosshair_size = 0.025;
-		ui.render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size * width / height);
-		//ui.render(&ui_test, vec2(0.0, 0.0), 0.2, 0.1);
+		float crosshair_size = 25;
+		get_texture_renderer()->render(&ui_test, vec2(0.0, 0.4), 0.4, 0.2);
+		get_texture_renderer()->render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size);
 		f.render(ivec2(width, height), ivec2(width / 80, height / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 
 		// Restore gl settings

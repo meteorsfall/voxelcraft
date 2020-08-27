@@ -18,12 +18,14 @@ using namespace glm;
 #include <optional>
 #include <map>
 #include <iostream>
+#include <string>
 using std::function;
 using std::vector;
 using std::optional;
 using std::nullopt;
 using std::pair;
 using std::map;
+using std::string;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))

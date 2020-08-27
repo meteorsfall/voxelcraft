@@ -10,6 +10,8 @@ bool paused = false;
 
 bool g_exiting = false;
 
+InputState input;
+
 // Handle keyboard events
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
@@ -25,9 +27,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
         g_exiting = true;
     }
+    
 }
 
-Input::Input(GLFWwindow* window, World* world, Player* player) {
+InputHandler::InputHandler(GLFWwindow* window, World* world, Player* player) {
     this->exiting = false;
     this->window = window;
     glfwSetKeyCallback(window, key_callback);
@@ -41,7 +44,7 @@ Input::Input(GLFWwindow* window, World* world, Player* player) {
     lastTime = glfwGetTime();
 }
 
-bool Input::mining_block(float mining_time) {
+bool InputHandler::mining_block(float mining_time) {
     optional<ivec3> target_block = world->raycast(player->camera.position, player->camera.get_direction(), 4.0);
     if (target_block) {
         ivec3 loc = target_block.value();
@@ -59,7 +62,7 @@ bool Input::mining_block(float mining_time) {
     }
 }
 
-vec2 Input::get_mouse_rotation() {
+vec2 InputHandler::get_mouse_rotation() {
     if (paused) {
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         return vec2(0.0);
@@ -83,7 +86,7 @@ vec2 Input::get_mouse_rotation() {
     return mouse_rotation;
 }
 
-vec3 Input::get_keyboard_movement() {
+vec3 InputHandler::get_keyboard_movement() {
     vec3 movement = vec3(0.0, 0.0, 0.0);
     if (glfwGetKey(window, GLFW_KEY_W)) {
         movement.x += 1;
@@ -109,7 +112,7 @@ vec3 Input::get_keyboard_movement() {
     return movement;
 }
 
-void Input::place_block(BlockType* block) {
+void InputHandler::place_block(BlockType* block) {
     optional<ivec3> target_block = world->raycast(player->camera.position, player->camera.get_direction(), 6.0, true);
 
     if (target_block) {
@@ -120,10 +123,10 @@ void Input::place_block(BlockType* block) {
     }
 }
 
-void Input::handle_input() {
+InputState InputHandler::handle_input() {
     if (g_exiting) {
         this->exiting = true;
-        return;
+        return InputState{};
     }
 
     double currentTime = glfwGetTime();
@@ -146,9 +149,23 @@ void Input::handle_input() {
             last_right_click_press = currentTime;
         }
     }
+
+    double xpos, ypos;
+    // Get mouse position offset from center
+    glfwGetCursorPos(window, &xpos, &ypos);
+
+    InputState input;
+    input.left_mouse = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+    input.right_mouse = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+    input.mouse_pos = ivec2(xpos, ypos);
+    for(int i = 32; i < 350; i++) {
+        input.keys[i] = (InputButtonState)glfwGetKey(window, i);
+    }
+
+    return input;
 }
 
-void Input::handle_player_movement(double currentTime, float deltaTime) {
+void InputHandler::handle_player_movement(double currentTime, float deltaTime) {
     vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
 
     const float MOVEMENT_SPEED = 5.0;

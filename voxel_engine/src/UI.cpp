@@ -1,7 +1,13 @@
 #include "UI.hpp"
 #include "gl_utils.hpp"
 
-UI::UI() {
+extern TextureRenderer* g_texture_renderer;
+
+TextureRenderer* get_texture_renderer() {
+    return g_texture_renderer;
+}
+
+TextureRenderer::TextureRenderer() {
     auto [vertex_buffer_data, vertex_buffer_len] = get_plane_vertex_coordinates();
     auto [uv_buffer_data, uv_buffer_len] = get_plane_uv_coordinates();
 
@@ -9,11 +15,17 @@ UI::UI() {
     this->uv_buffer = create_array_buffer(uv_buffer_data, uv_buffer_len);
 }
 
+void TextureRenderer::set_window_dimensions(int width, int height) {
+    this->width = width;
+    this->height = height;
+}
+
 // Width and height should range between 0.0 and 1.0
-void UI::render(Texture* texture, vec2 center, float width, float height) {
-    mat4 model = scale(mat4(1.0), vec3(width, height, 0.0));
+void TextureRenderer::render(Texture* texture, ivec2 top_left, int width, int height) {
+    mat4 model = scale(mat4(1.0f), vec3((float)width / this->width, (float)height / this->height, 0.0f));
     // Translate the image to the desired center
-    model = translate(model, vec3(center.x, center.y, 0.0));
+    model = translate(model, vec3(((float)top_left.x + width/2) / this->width, ((float)top_left.y + height/2) / this->height, 0.0));
+    mat4 MVP = model;
 
     // Set shader
     glUseProgram(texture->shader_id);
@@ -24,7 +36,7 @@ void UI::render(Texture* texture, vec2 center, float width, float height) {
     
     // Pass in the model matrix
     GLuint matrix_shader_pointer = glGetUniformLocation(texture->shader_id, "MVP");
-    glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &model[0][0]);
+    glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &MVP[0][0]);
     
     // Draw nothing, see you in tutorial 2 !
     // 1st attribute buffer : vertices

@@ -56,5 +56,5 @@ include_directories(${FREETYPE_INCLUDE_DIRS})
 add_executable(pixel_helper pixel_helper_src/main.cpp)
 target_link_libraries(pixel_helper)
 
-add_executable(vs src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/text.cpp)
+add_executable(vs src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp)
 target_link_libraries(vs ${OPENGL_LIBRARY} glfw GLEW ${GLFW_LIBRARIES} ${FREETYPE_LIBRARIES})
