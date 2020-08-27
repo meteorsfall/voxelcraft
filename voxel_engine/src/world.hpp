@@ -32,11 +32,4 @@ public:
     void collide(AABB collision_box, fn_on_collide on_collide);
 };
 
-class Universe {
-public:
-    vector<Texture> textures;
-    vector<Block> blocks;
-    vector<World> worlds;
-};
-
 #endif
