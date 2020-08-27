@@ -4,6 +4,7 @@
 
 #include "utils.hpp"
 #include "texture.hpp"
+#include "font.hpp"
 
 class TextureRenderer {
 public:
@@ -15,6 +16,7 @@ public:
     void set_window_dimensions(int width, int height);
     void internal_render(Texture& texture, ivec2 top_left, ivec2 size);
     static void render(Texture& texture, ivec2 top_left, ivec2 size);
+    static void render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color);
 };
 
 TextureRenderer* get_texture_renderer();

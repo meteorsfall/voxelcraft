@@ -40,9 +40,15 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
+	GLFWmonitor* MyMonitor =  glfwGetPrimaryMonitor(); // The primary monitor.. Later Occulus?..
+
+	const GLFWvidmode* mode = glfwGetVideoMode(MyMonitor);
+	width = mode->width;
+	height = mode->height;
+
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( width, height, "VoxelCraft", NULL, NULL);
-	if( window == NULL ){
+	if( window == NULL ) {
 		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
 		getchar();
 		glfwTerminate();
@@ -80,8 +86,6 @@ int main( void )
     // 1-7, dirt 8-16 stone
     my_world.set_block(0,0,0, &dirt_block);
     my_world.set_block(0,1,0, &stone_block);
-
-	Font f("assets/fonts/pixel.ttf");
     
     for(int i = 0; i < 2*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
@@ -98,8 +102,6 @@ int main( void )
     Player my_player;
 	my_player.hand = &stone_block;
     InputHandler input_handler(window, &my_world, &my_player);
-
-	//Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
 
 	int frames = 0;
 	double time = glfwGetTime();
@@ -169,7 +171,6 @@ int main( void )
 		//get_texture_renderer()->render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size);
 		main_ui.iterate(input_state, width, height);
 		main_ui.render();
-		f.render(ivec2(width, height), ivec2(width / 80, height / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 
 		// Restore gl settings
 		glDisable(GL_BLEND);

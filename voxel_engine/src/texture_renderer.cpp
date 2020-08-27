@@ -39,8 +39,6 @@ void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 si
 
     mat4 MVP = translate(model, vec3(center.x / x_scale, center.y / y_scale, 0.0));
 
-    printf( "Translate X: %f\n", (((float)center.x) / this->width * 2.0f - 1.0f)*width );
-
     // Set shader
     glUseProgram(texture.shader_id);
 
@@ -68,4 +66,10 @@ void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 si
 
 void TextureRenderer::render(Texture& texture, ivec2 top_left, ivec2 size) {
     get_texture_renderer()->internal_render(texture, top_left, size);
+}
+
+
+void TextureRenderer::render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color) {
+    location.y = get_texture_renderer()->height - 1 - location.y;
+    font.render(ivec2(get_texture_renderer()->width, get_texture_renderer()->height), location, scale, text, color);
 }
