@@ -4,6 +4,8 @@ This repository aims to implement a fully features voxel engine, designed to be 
 
 ## Setup
 
+First, cd into `voxel_engine`. Then,
+
 On Ubuntu, run
 
 ```./setup
