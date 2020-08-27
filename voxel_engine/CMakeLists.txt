@@ -19,7 +19,9 @@ set(CMAKE_CXX_STANDARD 17) # no explicit compiler flags if possible
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (WIN32)
-add_compile_options()
+add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 else ()
 add_compile_options(-Wall -Wextra -pedantic -Werror -Wfatal-errors)
 set(CMAKE_CXX_FLAGS_DEBUG "-pg -O0 -g")
@@ -74,7 +76,7 @@ target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 freetype)
 add_custom_command(TARGET vc POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${PROJECT_SOURCE_DIR}/bin"
-    $<TARGET_FILE_DIR:vs>)
+    $<TARGET_FILE_DIR:vc>)
 else ()
 target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW ${FREETYPE_LIBRARIES})
 endif ()
