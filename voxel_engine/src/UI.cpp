@@ -24,7 +24,7 @@ void TextureRenderer::set_window_dimensions(int width, int height) {
 void TextureRenderer::render(Texture* texture, ivec2 top_left, int width, int height) {
     mat4 model = scale(mat4(1.0f), vec3((float)width / this->width, (float)height / this->height, 0.0f));
     // Translate the image to the desired center
-    model = translate(model, vec3(((float)top_left.x + width/2) / this->width, ((float)top_left.y + height/2) / this->height, 0.0));
+    model = translate(model, vec3(((float)top_left.x) / this->width, ((float)top_left.y) / this->height, 0.0));
     mat4 MVP = model;
 
     // Set shader

@@ -4,11 +4,12 @@
 #include "utils.hpp"
 #include "world.hpp"
 #include "input.hpp"
+#include "font.hpp"
 
-class UIElement {
+class UI {
 public:
     virtual void iterate(InputState& input) = 0;
-    virtual void render(int x, int y) = 0;
+    virtual void render(int width, int height) = 0;
 };
 
 class TextureRenderer {

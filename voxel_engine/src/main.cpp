@@ -9,6 +9,7 @@
 #include "aabb.hpp"
 #include "UI.hpp"
 #include "font.hpp"
+#include "example_ui/main_ui.hpp"
 
 TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
@@ -98,7 +99,6 @@ int main( void )
 	my_player.hand = &stone_block;
     InputHandler input_handler(window, &my_world, &my_player);
 
-	Texture crosshair_texture("assets/images/crosshair.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
 	//Texture ui_test("assets/images/boxes_test.bmp", "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
 
 	int frames = 0;
@@ -107,6 +107,9 @@ int main( void )
 	TextureRenderer texture_renderer;
 	texture_renderer.set_window_dimensions(width, height);
 	g_texture_renderer = &texture_renderer;
+
+	// MAKE ALL CUSTOM UIs HERE
+	MainUI main_ui;
     
     // START MAIN GAME LOOP
 	while(true) {
@@ -162,9 +165,9 @@ int main( void )
 		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
 		
 		// Render
-		float crosshair_size = 25;
 		//get_texture_renderer()->render(&ui_test, vec2(0.0, 0.4), 0.4, 0.2);
-		get_texture_renderer()->render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size);
+		//get_texture_renderer()->render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size);
+		main_ui.render(width, height);
 		f.render(ivec2(width, height), ivec2(width / 80, height / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 
 		// Restore gl settings

@@ -1,5 +1,8 @@
 #include "texture.hpp"
 
+Texture::Texture() {
+}
+
 Texture::Texture(const char* filename, const char* vertex_shader, const char* fragment_shader, bool transparency) {
     if (transparency) {
         printf("Transparent!");
