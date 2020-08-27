@@ -8,8 +8,8 @@ public:
     UI_Element crosshair;
     UI_Element play_button;
     MainUI();
-    void iterate(InputState& input);
-    void render(int width, int height);
+    void iterate(InputState& input, int width, int height);
+    void render();
 };
 
 #endif

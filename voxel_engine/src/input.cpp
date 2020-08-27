@@ -149,8 +149,30 @@ InputState InputHandler::handle_input() {
     // Get mouse position offset from center
     glfwGetCursorPos(window, &xpos, &ypos);
 
-    input.left_mouse = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-    input.right_mouse = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+    InputButtonState new_left = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+
+    if (new_left) {
+        if (input.left_mouse == InputButtonState::RELEASE) {
+            input.left_mouse = InputButtonState::PRESS;
+        } else {
+            input.left_mouse = InputButtonState::REPEAT;
+        }
+    } else {
+        input.left_mouse = InputButtonState::RELEASE;
+    }
+
+    InputButtonState new_right = (InputButtonState)glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
+
+    if (new_right) {
+        if (input.right_mouse == InputButtonState::RELEASE) {
+            input.right_mouse = InputButtonState::PRESS;
+        } else {
+            input.right_mouse = InputButtonState::REPEAT;
+        }
+    } else {
+        input.right_mouse = InputButtonState::RELEASE;
+    }
+
     input.mouse_pos = ivec2(xpos, ypos);
     // input.keys is handled in the key callback
 

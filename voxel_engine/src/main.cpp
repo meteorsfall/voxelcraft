@@ -125,7 +125,7 @@ int main( void )
         // ********************
         
 		glfwPollEvents();
-        input_handler.handle_input();
+        InputState input_state = input_handler.handle_input();
 
 		if (input_handler.exiting || glfwWindowShouldClose(window)) {
 			break;
@@ -167,7 +167,8 @@ int main( void )
 		// Render
 		//get_texture_renderer()->render(&ui_test, vec2(0.0, 0.4), 0.4, 0.2);
 		//get_texture_renderer()->render(&crosshair_texture, vec2(0.0, 0.0), crosshair_size, crosshair_size);
-		main_ui.render(width, height);
+		main_ui.iterate(input_state, width, height);
+		main_ui.render();
 		f.render(ivec2(width, height), ivec2(width / 80, height / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 
 		// Restore gl settings

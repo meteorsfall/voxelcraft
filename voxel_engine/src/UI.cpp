@@ -1,69 +1,25 @@
 #include "UI.hpp"
 #include "gl_utils.hpp"
 
-extern TextureRenderer* g_texture_renderer;
-
 UI_Element::UI_Element() {}
 UI_Element::UI_Element(const char* texture_path) {
-    this->texture = Texture(texture_path, "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
+    this->texture = Texture(texture_path, "assets/shaders/ui.vert", "assets/shaders/ui.frag", false);
 }
 
 void UI_Element::render() {
-    TextureRenderer::render(this->texture, this->location, this->size);
+    TextureRenderer::render(this->texture, this->location + this->size / 2, this->size);
+    //if()
 }
 
-TextureRenderer* get_texture_renderer() {
-    return g_texture_renderer;
-}
-
-TextureRenderer::TextureRenderer() {
-    auto [vertex_buffer_data, vertex_buffer_len] = get_plane_vertex_coordinates();
-    auto [uv_buffer_data, uv_buffer_len] = get_plane_uv_coordinates();
-
-    this->vertex_buffer = create_array_buffer(vertex_buffer_data, vertex_buffer_len);
-    this->uv_buffer = create_array_buffer(uv_buffer_data, uv_buffer_len);
-}
-
-void TextureRenderer::set_window_dimensions(int width, int height) {
-    this->width = width;
-    this->height = height;
-}
-
-// Width and height should range between 0.0 and 1.0
-void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 size) {
-    int width = size.x;
-    int height = size.y;
-
-    mat4 model = scale(mat4(1.0f), vec3((float)width / this->width, (float)height / this->height, 0.0f));
-    // Translate the image to the desired center
-    model = translate(model, vec3(((float)top_left.x) / this->width, ((float)top_left.y) / this->height, 0.0));
-    mat4 MVP = model;
-
-    // Set shader
-    glUseProgram(texture.shader_id);
-
-    // Set shader texture
-    GLuint shader_texture_id = glGetUniformLocation(texture.shader_id, "my_texture");
-    bind_texture(0, shader_texture_id, texture.opengl_texture_id);
+bool UI_Element::intersect(ivec2 position) {
+    bool in_x = (this->location.x <= position.x) && (position.x <= this->location.x + this->size.x);
+    bool in_y = (this->location.y <= position.y) && (position.y <= this->location.y + this->size.y);
     
-    // Pass in the model matrix
-    GLuint matrix_shader_pointer = glGetUniformLocation(texture.shader_id, "MVP");
-    glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &MVP[0][0]);
+    ivec2 location = this->location;
+    printf("BUtTON: %d %d\n", location.x, location.y);
+    printf("Size: %d %d\n", size.x, size.y);
+    printf("mouse: %d %d\n", position.x, position.y);
+    printf("Result: %s", in_x && in_y ? "Yes!" : "No!");
     
-    // Draw nothing, see you in tutorial 2 !
-    // 1st attribute buffer : vertices
-    bind_array(0, this->vertex_buffer, 3);
-
-    // 2nd attribute buffer : colors
-    bind_array(1, this->uv_buffer, 2);
-
-    // Draw the triangles
-    glDrawArrays(GL_TRIANGLES, 0, 2*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-}
-
-void TextureRenderer::render(Texture& texture, ivec2 top_left, ivec2 size) {
-    get_texture_renderer()->internal_render(texture, top_left, size);
+    return in_x && in_y;
 }
