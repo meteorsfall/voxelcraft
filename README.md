@@ -21,7 +21,7 @@ On Windows, run
 setup
 cnmake
 nmake
-./vc
+vc
 ```
 
 And then VoxelCraft should begin running!
