@@ -25,7 +25,7 @@ void TextureRenderer::internal_render(Texture& texture, ivec2 center, ivec2 size
     int width = size.x;
     int height = size.y;
 
-    mat4 model = scale(mat4(1.0f), vec3((float)10.0f / this->width, (float)10.0f / this->height, 0.0f));
+    mat4 model = scale(mat4(1.0f), vec3((float)width / this->width, (float)height / this->height, 0.0f));
     // Translate the image to the desired center
     model = translate(model, vec3(((float)center.x) / this->width - 1.0f, ((float)center.y) / this->height - 1.0f, 0.0f));
     mat4 MVP = model;
