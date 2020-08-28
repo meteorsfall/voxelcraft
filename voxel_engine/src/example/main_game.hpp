@@ -20,7 +20,7 @@ private:
     vector<BlockType*> block_types;
 
     void do_something();
-    double lastTime;
+    double last_time;
     double last_space_release;
     float flying_speed;
     vec2 get_mouse_rotation();

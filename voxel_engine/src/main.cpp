@@ -69,6 +69,8 @@ int main( void )
 		return -1;
 	}
 
+	glfwSwapInterval(1);
+
     // Seems legit
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);

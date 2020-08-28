@@ -32,8 +32,7 @@ Game::Game() {
 
 	player.hand = stone_block;
 
-    lastTime = glfwGetTime();
-    last_space_release = lastTime;
+    last_space_release = this->last_time;
 }
 
 void Game::iterate(InputState& input) {
@@ -63,13 +62,17 @@ void Game::do_something() {
         return;
     }
 
-    double currentTime = input.current_time;
-    // If there hasn't been a frame yet, we skip this one and save lastTime
-    float deltaTime = currentTime - lastTime;
-    lastTime = currentTime;
+    double current_time = input.current_time;
+    // If there hasn't been a frame yet, we skip this one and save this->last_time
+    float deltaTime = current_time - this->last_time;
+    this->last_time = current_time;
+
+    if (deltaTime > 0.1) {
+        deltaTime = 0.1;
+    }
     
     if (!paused) {
-        handle_player_movement(currentTime, deltaTime);
+        handle_player_movement(current_time, deltaTime);
 
         // If left click has been held for 1 second, then mine the block in-front of you
         if (input.left_mouse != GLFW_RELEASE) {
@@ -78,9 +81,9 @@ void Game::do_something() {
         
         static double last_right_click_press = 0.0;
         if (input.right_mouse != GLFW_RELEASE) {
-            if (currentTime - last_right_click_press > 0.25) {
+            if (current_time - last_right_click_press > 0.25) {
                 place_block(player.hand);
-                last_right_click_press = currentTime;
+                last_right_click_press = current_time;
             }
         }
     }
@@ -97,7 +100,7 @@ void Game::place_block(BlockType* block) {
     }
 }
 
-void Game::handle_player_movement(double currentTime, float deltaTime) {
+void Game::handle_player_movement(double current_time, float deltaTime) {
     vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
 
     vec3 original_position = player.position;
@@ -125,13 +128,13 @@ void Game::handle_player_movement(double currentTime, float deltaTime) {
     vec3 jump_velocity = vec3(0.0);
 
     if (input.keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
-        if ((currentTime - last_space_release) < 0.3) {
+        if ((current_time - last_space_release) < 0.3) {
             player.set_fly(!player.is_flying);
             this->flying_speed = MOVEMENT_SPEED;
             // Reset velocity when changing modes
             player.velocity = vec3(0.0);
         }
-        last_space_release = currentTime;
+        last_space_release = current_time;
 
         if (!player.is_flying && player.is_on_floor) {
             jump_velocity = vec3(dir.x, 9.8, dir.z);
