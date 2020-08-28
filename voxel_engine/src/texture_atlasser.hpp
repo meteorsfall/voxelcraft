@@ -7,11 +7,10 @@
 class TextureAtlasser {
 public:
     void add_bmp(BMP bmp);
-    GLuint generate_texture();
+    BMP generate_texture_atlas();
     ivec2 get_top_left(int bitmap_id);
 private:
-    void generate_texture_atlas();
-    vector<unsigned char> data;
+    BMP texture_atlas;
     vector<BMP> bmps;
     vector<ivec2> bmp_locations;
 };

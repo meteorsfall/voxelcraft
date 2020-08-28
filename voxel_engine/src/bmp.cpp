@@ -1,12 +1,22 @@
 #include "bmp.hpp"
 
+BMP::BMP() {
+    BMP(0, 0);
+}
+
+BMP::BMP(int width, int height) {
+    this->width = width;
+    this->height = height;
+    data.resize(width*height*3);
+}
+
 BMP::BMP(const char* imagepath, ivec3 color_key) {
 	this->color_key = color_key;
 
 	// Data read from the header of the BMP file
 	unsigned char header[54];
-	unsigned int dataPos;
-	unsigned int imageSize;
+	int dataPos;
+	int imageSize;
 
 	// Open the file
 	FILE * file = fopen(imagepath,"rb");
@@ -70,7 +80,7 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 
 	// Read the actual data from the file into the buffer
     fseek(file, dataPos, SEEK_SET);
-	if (fread(&data[0],1,imageSize,file) != imageSize) {
+	if ((int)fread(&data[0],1,imageSize,file) != imageSize) {
 		printf("Bad fread of %d bytes!", imageSize);
 		fclose(file);
         data.resize(0);
@@ -86,8 +96,8 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 		int line_size = 3*width;
 		while (line_size % 4 != 0) line_size++;
 
-		for(uint i = 0; i < height; i++) {
-			for(uint j = 0; j < 3*width; j++) {
+		for(int i = 0; i < height; i++) {
+			for(int j = 0; j < 3*width; j++) {
 				data[i*(3*width) + j] = data[index++];
 			}
 			index += line_size - 3*width;
@@ -114,6 +124,16 @@ ivec4 BMP::get_pixel(int x, int y) {
 	}
 }
 
+void BMP::set_pixel(int x, int y, ivec3 color) {
+	if (x < 0 || x >= (int)width || y < 0 || y >= (int)height) {
+		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
+		return;
+	}
+	data[(y*width + x)*3 + 0] = color.x;
+	data[(y*width + x)*3 + 1] = color.y;
+	data[(y*width + x)*3 + 2] = color.z;
+}
+
 GLuint BMP::generate_texture() {
 	bool using_color_key = false;
 	if (color_key.x >= 0) {
@@ -129,7 +149,7 @@ GLuint BMP::generate_texture() {
 
 	if (using_color_key) {
 		unsigned char* alpha_data = new unsigned char [width*height*4];
-		for(uint i = 0; i < width*height; i++) {
+		for(int i = 0; i < width*height; i++) {
 			alpha_data[4*i+0] = data[3*i+2];
 			alpha_data[4*i+1] = data[3*i+1];
 			alpha_data[4*i+2] = data[3*i+0];
@@ -177,4 +197,13 @@ GLuint BMP::generate_texture() {
 
 	// Return the ID of the texture we just created
 	return textureID;
+}
+
+void BMP::blit(int x, int y, BMP& bmp) {
+    for(int xx = 0; xx < bmp.width; xx++) {
+        for(int yy = 0; yy < bmp.height; yy++) {
+            ivec4 pixel = bmp.get_pixel(xx, yy);
+            set_pixel(x + xx, y + yy, ivec3(pixel.x, pixel.y, pixel.z));
+        }
+    }
 }

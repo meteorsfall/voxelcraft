@@ -28,6 +28,7 @@ private:
     GLuint opengl_vertex_buffer;
     GLuint opengl_uv_buffer;
     GLuint opengl_break_amount_buffer;
+    GLuint opengl_texture_atlas;
     int num_triangles_cache = 0;
     Texture* texture_cache;
     void cached_render(mat4& PV);

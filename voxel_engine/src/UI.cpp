@@ -2,8 +2,9 @@
 #include "gl_utils.hpp"
 
 UI_Element::UI_Element() {}
-UI_Element::UI_Element(const char* texture_path) {
-    this->texture = Texture(texture_path, "assets/shaders/ui.vert", "assets/shaders/ui.frag", true);
+UI_Element::UI_Element(BMP image) {
+    image.color_key = ivec3(255, 0, 255);
+    this->texture = Texture(image, "assets/shaders/ui.vert", "assets/shaders/ui.frag");
 }
 
 void UI_Element::render() {

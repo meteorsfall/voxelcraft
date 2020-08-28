@@ -1,6 +1,7 @@
 #include "chunk.hpp"
 #include "gl_utils.hpp"
 #include <cstring>
+#include "texture_atlasser.hpp"
 
 static bool loaded_chunk_shader = false;
 static GLuint chunk_shader_id;
@@ -63,7 +64,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
 
     int num_triangles = 0;
 
-    Texture* t = NULL;
+    set<Texture*> textures;
 
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
@@ -148,11 +149,14 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                     num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
 
                     // Save texture
-                    t = blocks[i][j][k].block_type->texture;
+                    textures.insert(blocks[i][j][k].block_type->texture);
+                    //printf("Save: %p\n", (void*)blocks[i][j][k].block_type->texture);
                 }
             }
         }
     }
+
+    Texture* t = *textures.begin();
 
     reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);
     reuse_array_buffer(opengl_uv_buffer, chunk_uv_buffer, chunk_uv_buffer_len);

@@ -19,6 +19,7 @@ using namespace glm;
 #include <map>
 #include <iostream>
 #include <string>
+#include <set>
 using std::function;
 using std::vector;
 using std::optional;
@@ -26,6 +27,7 @@ using std::nullopt;
 using std::pair;
 using std::map;
 using std::string;
+using std::set;
 
 // Include fn_pointer
 #include "fn_pointer.hpp"

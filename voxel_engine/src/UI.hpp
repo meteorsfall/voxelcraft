@@ -14,7 +14,7 @@ public:
     ivec2 location;
     ivec2 size;
     UI_Element();
-    UI_Element(const char* texture_path);
+    UI_Element(BMP image);
     void render();
     bool intersect(ivec2 mouse_position);
 };

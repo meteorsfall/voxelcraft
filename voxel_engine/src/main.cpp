@@ -11,6 +11,7 @@
 #include "font.hpp"
 #include "example/main_ui.hpp"
 #include "example/main_game.hpp"
+#include "texture_atlasser.hpp"
 
 TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
