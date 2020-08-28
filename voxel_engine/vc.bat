@@ -1,1 +1,1 @@
-start /WAIT /B build/release/vc.exe
+start /WAIT /B build/debug/vc.exe
