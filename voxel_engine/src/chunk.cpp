@@ -2,13 +2,18 @@
 #include "gl_utils.hpp"
 #include <cstring>
 
-void draw_cube(mat4& PV, vec3 position, Texture* texture, int visible_neighbors);
-void draw_cubes(mat4& PV, Texture* texture, int vertex_buffer, int uv_buffer, int num_triangles);
+static bool loaded_chunk_shader = false;
+static GLuint chunk_shader_id;
 
 Chunk::Chunk(ivec3 location) {
     this->location = location;
+    if (!loaded_chunk_shader) {
+        chunk_shader_id = LoadShaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
+        loaded_chunk_shader = true;
+    }
     opengl_vertex_buffer = create_array_buffer(NULL, 1);
     opengl_uv_buffer = create_array_buffer(NULL, 1);
+    opengl_break_amount_buffer = create_array_buffer(NULL, 1);
 }
 
 void Chunk::set_block(int x, int y, int z, BlockType* b) {
@@ -16,6 +21,7 @@ void Chunk::set_block(int x, int y, int z, BlockType* b) {
     y -= location.y * CHUNK_SIZE;
     z -= location.z * CHUNK_SIZE;
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
+        printf("Bad coordinates! %d %d %d\n", x, y, z);
         return;
     }
     blocks[x][y][z] = Block(b);
@@ -41,7 +47,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
     }
 
     if (this->chunk_rendering_cached) {
-        draw_cubes(PV, texture_cache, opengl_vertex_buffer, opengl_uv_buffer, num_triangles_cache);
+        cached_render(PV);
         return;
     }
 
@@ -49,8 +55,11 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
     GLfloat* chunk_vertex_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3*3];
     int chunk_vertex_buffer_len = 0;
     // 12 triangles in a cube, 3 vertices in a triangle, 2 uv floats in a vertex
-    GLfloat* chunk_uv_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*2*3];
+    GLfloat* chunk_uv_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3*2];
     int chunk_uv_buffer_len = 0;
+    // 1 break amount per cube
+    GLfloat* chunk_break_amount_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3];
+    int chunk_break_amount_buffer_len = 0;
 
     int num_triangles = 0;
 
@@ -98,14 +107,16 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                     // Render it at i, j, k
                     vec3 fpos(position);
                     bool buf[6];
-                    for(int i = 0; i < 6; i++) buf[i] = (visible_neighbors >> i) & 1;
+                    for(int m = 0; m < 6; m++) buf[m] = (visible_neighbors >> m) & 1;
                     auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(buf);
                     auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(buf);
                     
-                    for(int i = 0; i < vertex_buffer_len/(int)sizeof(GLfloat); i += 3) {
-                        vertex_buffer_data[i+0] += fpos.x;
-                        vertex_buffer_data[i+1] += fpos.y;
-                        vertex_buffer_data[i+2] += fpos.z;
+                    for(int m = 0; m < vertex_buffer_len/(int)sizeof(GLfloat); m += 3) {
+                        vertex_buffer_data[m+0] += fpos.x;
+                        vertex_buffer_data[m+1] += fpos.y;
+                        vertex_buffer_data[m+2] += fpos.z;
+                        chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
+                        chunk_break_amount_buffer_len += sizeof(GLfloat);
                     }
                     
                     memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
@@ -123,28 +134,36 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
 
     reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);
     reuse_array_buffer(opengl_uv_buffer, chunk_uv_buffer, chunk_uv_buffer_len);
+    reuse_array_buffer(opengl_break_amount_buffer, chunk_break_amount_buffer, chunk_break_amount_buffer_len);
 
-    draw_cubes(PV, t, opengl_vertex_buffer, opengl_uv_buffer, num_triangles);
     this->chunk_rendering_cached = true;
     this->num_triangles_cache = num_triangles;
     this->texture_cache = t;
 
+    cached_render(PV);
+
     delete[] chunk_vertex_buffer;
     delete[] chunk_uv_buffer;
+    delete[] chunk_break_amount_buffer;
 }
 
-void draw_cubes(mat4& PV, Texture* texture, int vertex_buffer, int uv_buffer, int num_triangles) {
-    glUseProgram(texture->shader_id);
+void Chunk::cached_render(mat4& PV) {
+    if (num_triangles_cache == 0) {
+        // No need to render if there are no triangles
+        return;
+    }
+
+    glUseProgram(chunk_shader_id);
     
-    GLuint shader_texture_id = glGetUniformLocation(texture->shader_id, "my_texture");
+    GLuint shader_texture_id = glGetUniformLocation(chunk_shader_id, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    bind_texture(0, shader_texture_id, texture->opengl_texture_id);
+    bind_texture(0, shader_texture_id, texture_cache->opengl_texture_id);
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation
-    GLuint PV_matrix_shader_pointer = glGetUniformLocation(texture->shader_id, "PV");
-    GLuint M_matrix_shader_pointer = glGetUniformLocation(texture->shader_id, "M");
+    GLuint PV_matrix_shader_pointer = glGetUniformLocation(chunk_shader_id, "PV");
+    GLuint M_matrix_shader_pointer = glGetUniformLocation(chunk_shader_id, "M");
     
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
@@ -153,73 +172,18 @@ void draw_cubes(mat4& PV, Texture* texture, int vertex_buffer, int uv_buffer, in
     glUniform3fv(M_matrix_shader_pointer, 1, &position[0]);
     //"vertex_shader.MVP = &mvp[0][0]"
 
-    GLuint break_amount_shader_pointer = glGetUniformLocation(texture->shader_id, "break_amount");
-    glUniform1f(break_amount_shader_pointer, (GLfloat)0.0);
-
     // Draw nothing, see you in tutorial 2 !
     // 1st attribute buffer : vertices
-    bind_array(0, vertex_buffer, 3);
+    bind_array(0, opengl_vertex_buffer, 3);
 
     // 2nd attribute buffer : colors
-    bind_array(1, uv_buffer, 2);
+    bind_array(1, opengl_uv_buffer, 2);
+
+    // 3rd attribute buffer : break amount
+    bind_array(2, opengl_break_amount_buffer, 1);
 
     // Draw the triangle !
-    glDrawArrays(GL_TRIANGLES, 0, num_triangles*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
-
-    glDisableVertexAttribArray(0);
-    glDisableVertexAttribArray(1);
-}
-
-void draw_cube(mat4& PV, vec3 position, Texture* texture, int visible_neighbors) {
-    bool buf[6];
-    for(int i = 0; i < 6; i++) buf[i] = (visible_neighbors >> i) & 1;
-
-    // 0 => Orangey-Red (-x)
-    // 1 => Pink (+x)
-    // 2 => Green (-y)
-    // 3 => Orange (+y)
-    // 4 => Dark Blue (-z)
-    // 5 => Dark Red (+z)
-
-    // Save the cube vertex buffer data to vertex_buffer
-    auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(buf);
-    auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(buf);
-    printf("Len: %d %d\n", vertex_buffer_len, uv_buffer_len);
-
-    GLuint vertex_buffer = create_array_buffer(vertex_buffer_data, vertex_buffer_len);
-    GLuint uv_buffer = create_array_buffer(uv_buffer_data, uv_buffer_len);
-
-
-    glUseProgram(texture->shader_id);
-    
-    GLuint shader_texture_id = glGetUniformLocation(texture->shader_id, "my_texture");
-    // shader_texture_id = &fragment_shader.myTextureSampler;
-    
-    bind_texture(0, shader_texture_id, texture->opengl_texture_id);
-
-    // Get a handle for our "MVP" uniform
-    // Only during the initialisation
-    GLuint PV_matrix_shader_pointer = glGetUniformLocation(texture->shader_id, "PV");
-    GLuint M_matrix_shader_pointer = glGetUniformLocation(texture->shader_id, "M");
-    
-    // Send our transformation to the currently bound shader, in the "MVP" uniform
-    // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-    glUniformMatrix4fv(PV_matrix_shader_pointer, 1, GL_FALSE, &PV[0][0]);
-    glUniform3fv(M_matrix_shader_pointer, 1, &position[0]);
-    //"vertex_shader.MVP = &mvp[0][0]"
-
-    GLuint break_amount_shader_pointer = glGetUniformLocation(texture->shader_id, "break_amount");
-    glUniform1f(break_amount_shader_pointer, (GLfloat)0.0);
-
-    // Draw nothing, see you in tutorial 2 !
-    // 1st attribute buffer : vertices
-    bind_array(0, vertex_buffer, 3);
-
-    // 2nd attribute buffer : colors
-    bind_array(1, uv_buffer, 2);
-
-    // Draw the triangle !
-    glDrawArrays(GL_TRIANGLES, 0, 12*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
+    glDrawArrays(GL_TRIANGLES, 0, num_triangles_cache*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);

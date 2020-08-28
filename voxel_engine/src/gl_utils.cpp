@@ -148,30 +148,45 @@ static GLfloat g_plane_uv_buffer_data[] = {
 };
 
 pair<GLfloat*, int> get_specific_cube_vertex_coordinates(bool f[6]) {
+ 
+    // 0 => Yellow (-x)
+    // 1 => Magenta (+x)
+    // 2 => Green (-y)
+    // 3 => Cyan (+y)
+    // 4 => Blue (-z)
+    // 5 => Red (+z)
+
     static GLfloat cube_buf[18*6];
     int len = 0;
     for(int i = 0; i < 6; i++) {
         if (f[i]) {
-            GLfloat* pt = &g_cube_vertex_buffer_data[18*i];
-            memcpy(&cube_buf[len/sizeof(cube_buf[0])], pt, 18*sizeof(GLfloat));
-            len += 18*sizeof(GLfloat);
+            // src will contain a pointer to the i'th face
+            GLfloat* src = &g_cube_vertex_buffer_data[18*i];
+            // dst will contain a pointer to the top of cube_buf (Past the already saved data)
+            GLfloat* dst = &cube_buf[len];
+            // Will copy the face into cube_buf
+            memcpy(dst, src, 18*sizeof(GLfloat));
+            len += 18;
         }
     }
-    return {cube_buf, len};
-    //return {g_cube_vertex_buffer_data, sizeof(g_cube_vertex_buffer_data)};
+    return {cube_buf, len*sizeof(GLfloat)};
 }
 
 pair<GLfloat*, int> get_specific_cube_uv_coordinates(bool f[6]) {
-    static GLfloat cube_buf[18*6];
+    static GLfloat cube_buf[12*6];
     int len = 0;
     for(int i = 0; i < 6; i++) {
         if (f[i]) {
-            GLfloat* pt = &g_cube_uv_buffer_data[12*i];
-            memcpy(&cube_buf[len/sizeof(cube_buf[0])], pt, 12*sizeof(GLfloat));
-            len += 12*sizeof(GLfloat);
+            // src will contain a pointer to the i'th face
+            GLfloat* src = &g_cube_uv_buffer_data[12*i];
+            // dst will contain a pointer to the top of cube_buf (Past the already saved data)
+            GLfloat* dst = &cube_buf[len];
+            // Will copy the face into cube_buf
+            memcpy(dst, src, 12*sizeof(GLfloat));
+            len += 12;
         }
     }
-    return {cube_buf, len};
+    return {cube_buf, len*sizeof(GLfloat)};
 }
 
 pair<const GLfloat*, int> get_cube_vertex_coordinates() {

@@ -19,11 +19,11 @@ set(CMAKE_CXX_STANDARD 17) # no explicit compiler flags if possible
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (WIN32)
-add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996)
+add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 else ()
-add_compile_options(-Wall -Wextra -pedantic -Werror -Wfatal-errors)
+add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 set(CMAKE_CXX_FLAGS_DEBUG "-pg -O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 endif ()

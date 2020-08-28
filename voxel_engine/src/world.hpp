@@ -15,6 +15,7 @@ public:
 
     World();
 
+    void refresh_block(int x, int y, int z);
     void set_block(int x, int y, int z, BlockType* b);
 
     Block* get_block(int x, int y, int z);

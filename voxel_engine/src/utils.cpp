@@ -150,6 +150,11 @@ GLuint loadBMP(const char* imagepath, ivec3 color_key) {
 	// Create a buffer
 	data = new unsigned char [imageSize];
 
+	if (imageSize < width*height*3) {
+		printf("Not enough space! %d for %dx%d\n", imageSize, width, height);
+		return 0;
+	}
+
 	// Read the actual data from the file into the buffer
     fseek(file, dataPos, SEEK_SET);
 	if (fread(data,1,imageSize,file) != imageSize) {

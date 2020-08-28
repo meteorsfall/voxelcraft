@@ -15,10 +15,12 @@ Game::Game() {
     textures.push_back(dirt_texture);
     block_types.push_back(stone_block);
     block_types.push_back(dirt_block);
+
+    const int radius = 1;
     
-    for(int i = 0; i < 5*CHUNK_SIZE; i++) {
+    for(int i = -radius*CHUNK_SIZE; i < radius*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = 0; k < 5*CHUNK_SIZE; k++) {
+            for(int k = -radius*CHUNK_SIZE; k < radius*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     world.set_block(i,j,k, stone_block);
                 } else {
@@ -186,6 +188,7 @@ bool Game::mining_block(float mining_time) {
         mining_time += world.get_block(loc.x, loc.y, loc.z)->break_amount;
         if (mining_time < 1.0) {
             world.get_block(loc.x, loc.y, loc.z)->break_amount = mining_time;
+            world.refresh_block(loc.x, loc.y, loc.z);
             return false;
         } else {
             world.set_block(loc.x, loc.y, loc.z, nullptr);

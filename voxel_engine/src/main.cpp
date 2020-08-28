@@ -20,8 +20,8 @@ extern bool paused;
 static int width = 600;
 static int height = 400;
 
-void resize_callback(GLFWwindow* window, int w, int h) {
-	UNUSED(window);
+void resize_callback(GLFWwindow* win, int w, int h) {
+	UNUSED(win);
 	width = w;
 	height = h;
 	get_texture_renderer()->set_window_dimensions(width, height);
@@ -126,12 +126,14 @@ int main( void )
         // ********************
         // Rendering Geometry
         // ********************
-
+		
 		double t1 = glfwGetTime();
 
 		game.render();
 
-		printf("Time: %f\n", 1/(glfwGetTime() - t1));
+		if ((int)(glfwGetTime()*1459027) % 20 == 0) {
+			printf("Time: %f\n", 1/(glfwGetTime() - t1));
+		}
 
         // ********************
         // Rendering UI Elements

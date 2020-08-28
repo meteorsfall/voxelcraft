@@ -36,6 +36,10 @@ void World::set_block(int x, int y, int z, BlockType* b) {
     my_chunk->set_block(x, y, z, b);
 
     // Refresh Cache
+    refresh_block(x, y, z);
+}
+
+void World::refresh_block(int x, int y, int z) {
     ivec3 pos(x, y, z);
     ivec3 diffs[] = {ivec3(1, 0, 0), ivec3(-1, 0, 0), ivec3(0, 1, 0), ivec3(0, -1, 0), ivec3(0, 0, 1), ivec3(0, 0, -1)};
     for(int i = 0; i < 6; i++) {

@@ -11,8 +11,8 @@ InputHandler::InputHandler(GLFWwindow* window) {
     this->next_input.right_mouse = (InputButtonState)GLFW_RELEASE;
 
     // Handle keyboard events
-    auto key_callback = [this](GLFWwindow* window, int key, int scancode, int action, int mods) -> void {
-        UNUSED(window);
+    auto key_callback = [this](GLFWwindow* win, int key, int scancode, int action, int mods) -> void {
+        UNUSED(win);
         UNUSED(scancode);
         UNUSED(mods);
         if (key > 15 && key < 350) {
