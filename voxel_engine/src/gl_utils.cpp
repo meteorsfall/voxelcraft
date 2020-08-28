@@ -1,4 +1,5 @@
 #include "gl_utils.hpp"
+#include <cstring>
 
 GLuint create_array_buffer(const GLfloat* data, int len) {
     // The array buffer id
@@ -12,6 +13,13 @@ GLuint create_array_buffer(const GLfloat* data, int len) {
 
     // return the array buffer id
     return id;
+}
+
+void reuse_array_buffer(GLuint array_buffer_id, const GLfloat* data, int len) {
+    // Make GL_ARRAY_BUFFER point to vertexbuffer
+    glBindBuffer(GL_ARRAY_BUFFER, array_buffer_id);
+    // Give our vertices to GL_ARRAY_BUFFER (ie, vertexbuffer)
+    glBufferData(GL_ARRAY_BUFFER, len, data, GL_STATIC_DRAW);
 }
 
 void bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id) {
@@ -44,79 +52,79 @@ void bind_array(int array_num, GLuint array_buffer, GLint size) {
 // Coordinates for Meshes
 // *******************
 static GLfloat g_cube_vertex_buffer_data[] = {
-    0.0f, 0.0f, 0.0f, // triangle 1 : begin
+    0.0f, 0.0f, 0.0f, // Triangle 0
     0.0f, 0.0f, 1.0f,
-    0.0f, 1.0f, 1.0f, // triangle 1 : end
-    1.0f, 1.0f, 0.0f, // triangle 2 : begin
-    0.0f, 0.0f, 0.0f,
-    0.0f, 1.0f, 0.0f, // triangle 2 : end
-    1.0f, 0.0f, 1.0f,
-    0.0f, 0.0f, 0.0f,
-    1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 0.0f, 
-    1.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f,
-    0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 1.0f,
+    0.0f, 0.0f, 0.0f, // Triangle 1
     0.0f, 1.0f, 1.0f,
     0.0f, 1.0f, 0.0f, 
+    1.0f, 0.0f, 0.0f, // Triangle 6
+    1.0f, 1.0f, 1.0f,
     1.0f, 0.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, // Triangle 7
+    1.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 0.0f, 
+    1.0f, 0.0f, 1.0f, // Triangle 4
+    0.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 0.0f,
+    1.0f, 0.0f, 1.0f, // Triangle 5
     0.0f, 0.0f, 1.0f,
     0.0f, 0.0f, 0.0f,
+    1.0f, 1.0f, 1.0f, // Triangle 8
+    0.0f, 1.0f, 0.0f, 
     0.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, // Triangle 9
+    1.0f, 1.0f, 0.0f, 
+    0.0f, 1.0f, 0.0f, 
+    1.0f, 1.0f, 0.0f, // Triangle 2
+    0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 0.0f,
+    1.0f, 1.0f, 0.0f, // Triangle 3
+    1.0f, 0.0f, 0.0f,
+    0.0f, 0.0f, 0.0f,
+    0.0f, 1.0f, 1.0f, // Triangle 10
     0.0f, 0.0f, 1.0f,
     1.0f, 0.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 0.0f, 
-    1.0f, 0.0f, 0.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 0.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 0.0f, 
-    0.0f, 1.0f, 0.0f, 
-    1.0f, 1.0f, 1.0f,
-    0.0f, 1.0f, 0.0f, 
-    0.0f, 1.0f, 1.0f,
-    1.0f, 1.0f, 1.0f,
+    1.0f, 1.0f, 1.0f, // Triangle 11
     0.0f, 1.0f, 1.0f,
     1.0f, 0.0f, 1.0f
 };
 
 static GLfloat g_cube_uv_buffer_data[] = {
-    0.000000f, 1.000000f-0.000000f,
+    0.000000f, 1.000000f-0.000000f, // Triangle 0
     0.000000f, 1.000000f-0.333333f,
     0.333333f, 1.000000f-0.333333f,
-    1.000000f, 1.000000f-0.000000f,
+    0.000000f, 1.000000f-0.000000f, // Triangle 1
+    0.333333f, 1.000000f-0.333333f,
+    0.333333f, 1.000000f-0.000000f,
+    0.333333f, 1.000000f-0.333333f, // Triangle 6
+    0.666666f, 1.000000f-0.000000f,
+    0.333333f, 1.000000f-0.000000f,
+    0.666666f, 1.000000f-0.000000f, // Triangle 7
+    0.333333f, 1.000000f-0.333333f,
     0.666666f, 1.000000f-0.333333f,
-    0.999958f, 1.000000f-0.333333f,
-    0.666666f, 1.000000f-0.333333f,
+    0.666666f, 1.000000f-0.333333f, // Triangle 4
     0.333333f, 1.000000f-0.666666f,
     0.666666f, 1.000000f-0.666666f,
-    1.000000f, 1.000000f-0.000000f,
-    0.666666f, 1.000000f-0.000000f,
-    0.666666f, 1.000000f-0.333333f,
-    0.000000f, 1.000000f-0.000000f,
-    0.333333f, 1.000000f-0.333333f,
-    0.333333f, 1.000000f-0.000000f,
-    0.666666f, 1.000000f-0.333333f,
+    0.666666f, 1.000000f-0.333333f, // Triangle 5
     0.333333f, 1.000000f-0.333333f,
     0.333333f, 1.000000f-0.666666f,
-    1.000000f, 1.000000f-0.666666f,
-    0.999958f, 1.000000f-0.333333f,
-    0.666666f, 1.000000f-0.333333f,
-    0.666666f, 1.000000f-0.000000f,
+    0.000000f, 1.000000f-0.333333f, // Triangle 8
+    0.333333f, 1.000000f-0.666666f,
     0.333333f, 1.000000f-0.333333f,
-    0.666666f, 1.000000f-0.333333f,
-    0.333333f, 1.000000f-0.333333f,
-    0.666666f, 1.000000f-0.000000f,
-    0.333333f, 1.000000f-0.000000f,
-    0.000000f, 1.000000f-0.333333f,
+    0.000000f, 1.000000f-0.333333f, // Triangle 9
     0.000000f, 1.000000f-0.666666f,
     0.333333f, 1.000000f-0.666666f,
-    0.000000f, 1.000000f-0.333333f,
-    0.333333f, 1.000000f-0.666666f,
-    0.333333f, 1.000000f-0.333333f,
-    0.666666f, 1.000000f-0.666666f,
+    1.000000f, 1.000000f-0.000000f, // Triangle 2
+    0.666666f, 1.000000f-0.333333f,
+    0.999958f, 1.000000f-0.333333f,
+    1.000000f, 1.000000f-0.000000f, // Triangle 3
+    0.666666f, 1.000000f-0.000000f,
+    0.666666f, 1.000000f-0.333333f,
+    1.000000f, 1.000000f-0.666666f, // Triangle 10
+    0.999958f, 1.000000f-0.333333f,
+    0.666666f, 1.000000f-0.333333f,
+    0.666666f, 1.000000f-0.666666f, // Triangle 11
     1.000000f, 1.000000f-0.666666f,
     0.666666f, 1.000000f-0.333333f
 };
@@ -138,6 +146,33 @@ static GLfloat g_plane_uv_buffer_data[] = {
     1.0f, 1.0f,
     1.0f, 0.0f,
 };
+
+pair<GLfloat*, int> get_specific_cube_vertex_coordinates(bool f[6]) {
+    static GLfloat cube_buf[18*6];
+    int len = 0;
+    for(int i = 0; i < 6; i++) {
+        if (f[i]) {
+            GLfloat* pt = &g_cube_vertex_buffer_data[18*i];
+            memcpy(&cube_buf[len/sizeof(cube_buf[0])], pt, 18*sizeof(GLfloat));
+            len += 18*sizeof(GLfloat);
+        }
+    }
+    return {cube_buf, len};
+    //return {g_cube_vertex_buffer_data, sizeof(g_cube_vertex_buffer_data)};
+}
+
+pair<GLfloat*, int> get_specific_cube_uv_coordinates(bool f[6]) {
+    static GLfloat cube_buf[18*6];
+    int len = 0;
+    for(int i = 0; i < 6; i++) {
+        if (f[i]) {
+            GLfloat* pt = &g_cube_uv_buffer_data[12*i];
+            memcpy(&cube_buf[len/sizeof(cube_buf[0])], pt, 12*sizeof(GLfloat));
+            len += 12*sizeof(GLfloat);
+        }
+    }
+    return {cube_buf, len};
+}
 
 pair<const GLfloat*, int> get_cube_vertex_coordinates() {
     return {g_cube_vertex_buffer_data, sizeof(g_cube_vertex_buffer_data)};

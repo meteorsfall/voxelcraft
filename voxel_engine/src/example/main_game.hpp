@@ -11,10 +11,10 @@ public:
     Game();
     void iterate(InputState& input);
     void render();
+    Player player;
     
 private:
     World world;
-    Player player;
     InputState input;
     vector<Texture*> textures;
     vector<BlockType*> block_types;

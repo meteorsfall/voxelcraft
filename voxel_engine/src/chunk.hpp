@@ -15,9 +15,9 @@ public:
     
     Block blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
-    bool rendered_blocked_cached = false;
-    int num_rendered_blocks = 0;
-    int rendered_blocks[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE];
+    bool chunk_rendering_cached = false;
+    int num_triangles_cache = 0;
+    Texture* texture_cache;
 
     Chunk(ivec3 location);
 
@@ -26,6 +26,9 @@ public:
     Block* get_block(int x, int y, int z);
 
     void render(mat4 &PV, fn_get_block get_block);
+private:
+    GLuint opengl_vertex_buffer;
+    GLuint opengl_uv_buffer;
 };
 
 #endif

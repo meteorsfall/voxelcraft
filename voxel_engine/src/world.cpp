@@ -43,10 +43,10 @@ void World::set_block(int x, int y, int z, BlockType* b) {
         
         Chunk* c = get_chunk(loc.x, loc.y, loc.z);
         if (c) {
-            c->rendered_blocked_cached = false;
+            c->chunk_rendering_cached = false;
             Block* b = get_block(loc.x, loc.y, loc.z);
             if (b) {
-                b->cache_visible = nullopt;
+                b->neighbor_cache = 0;
             }
         }
     }

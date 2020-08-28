@@ -23,7 +23,7 @@ class Block {
 public:
     BlockType* block_type;
     float break_amount;
-    optional<bool> cache_visible;
+    short neighbor_cache;
 
     Block();
     Block(BlockType* b);

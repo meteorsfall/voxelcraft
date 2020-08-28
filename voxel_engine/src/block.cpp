@@ -4,13 +4,13 @@
 Block::Block() {
     this->block_type = NULL;
     this->break_amount = 0.0;
-    this->cache_visible = nullopt;
+    this->neighbor_cache = 0;
 }
 
 Block::Block(BlockType* b) {
     this->block_type = b;
     this->break_amount = 0.0;
-    this->cache_visible = nullopt;
+    this->neighbor_cache = 0;
 }
 
 void Block::render(vec3 &position, mat4 &PV) {

@@ -16,9 +16,9 @@ Game::Game() {
     block_types.push_back(stone_block);
     block_types.push_back(dirt_block);
     
-    for(int i = 0; i < 2*CHUNK_SIZE; i++) {
+    for(int i = 0; i < 5*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = 0; k < 2*CHUNK_SIZE; k++) {
+            for(int k = 0; k < 5*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     world.set_block(i,j,k, stone_block);
                 } else {
