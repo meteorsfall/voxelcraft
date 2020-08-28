@@ -1,14 +1,16 @@
 #include "texture.hpp"
+#include "bmp.hpp"
 
 Texture::Texture() {
 }
 
 Texture::Texture(const char* filename, const char* vertex_shader, const char* fragment_shader, bool transparency) {
     if (transparency) {
-        printf("Transparent!");
-        this->opengl_texture_id = loadBMP(filename, ivec3(255, 0, 255));
+        BMP bmp(filename, ivec3(255, 0, 255));
+        this->opengl_texture_id = bmp.generate_texture();
     } else {
-        this->opengl_texture_id = loadBMP(filename);
+        BMP bmp(filename);
+        this->opengl_texture_id = bmp.generate_texture();
     }
     
     // Create and compile our GLSL program from the shaders

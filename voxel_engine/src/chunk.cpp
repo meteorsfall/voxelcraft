@@ -104,13 +104,17 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                 }
                 
                 if (visible_neighbors) {
-                    // Render it at i, j, k
+                    // Generate boolean array from visible neighbor bitset
+                    // This will represent which faces to include and which to cull
                     vec3 fpos(position);
                     bool buf[6];
                     for(int m = 0; m < 6; m++) buf[m] = (visible_neighbors >> m) & 1;
+
+                    // Get vertex buffer and uv buffer data with any undesired faced culled
                     auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(buf);
                     auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(buf);
                     
+                    // Translate vertices and save vertex-specific metadata
                     for(int m = 0; m < vertex_buffer_len/(int)sizeof(GLfloat); m += 3) {
                         vertex_buffer_data[m+0] += fpos.x;
                         vertex_buffer_data[m+1] += fpos.y;
@@ -118,14 +122,32 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                         chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
                         chunk_break_amount_buffer_len += sizeof(GLfloat);
                     }
+
+                    for(int m = 0; m < uv_buffer_len/(int)sizeof(GLfloat); m += 2) {
+                        /*
+                        if (uv_buffer_data[m+0] < 0.1) {
+                            uv_buffer_data[m+0] += 0.005;
+                        } else {
+                            uv_buffer_data[m+0] -= 0.005;
+                        }
+                        if (uv_buffer_data[m+1] < 0.1) {
+                            uv_buffer_data[m+1] += 0.005;
+                        } else {
+                            uv_buffer_data[m+1] -= 0.005;
+                        }
+                        */
+                    }
                     
+                    // Memcpy vertex and uv buffers
                     memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
                     memcpy(&chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)], uv_buffer_data, uv_buffer_len);
 
+                    // Keep track vertex and uv buffer sizes
                     chunk_vertex_buffer_len += vertex_buffer_len;
                     chunk_uv_buffer_len += uv_buffer_len;
                     num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
 
+                    // Save texture
                     t = blocks[i][j][k].block_type->texture;
                 }
             }

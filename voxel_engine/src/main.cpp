@@ -93,7 +93,7 @@ int main( void )
 	MainUI main_ui;
     
     // START MAIN GAME LOOP
-	while(true) {
+	for (int frame_index = 0; true; frame_index++) {
 		frames++;
 		if (glfwGetTime() - time > 3.0) {
 			printf("FPS: %f\n", frames / (glfwGetTime() - time));
@@ -131,8 +131,8 @@ int main( void )
 
 		game.render();
 
-		if ((int)(glfwGetTime()*1459027) % 20 == 0) {
-			printf("Time: %f\n", 1/(glfwGetTime() - t1));
+		if (frame_index % 240 == 0) {
+			printf("CPU Render Time: %f\n", 1/(glfwGetTime() - t1));
 		}
 
         // ********************

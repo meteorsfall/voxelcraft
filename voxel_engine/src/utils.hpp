@@ -31,10 +31,8 @@ using std::string;
 #include "fn_pointer.hpp"
 
 #define UNUSED(x) ((void)x)
-#define len(x) (sizeof(x) / sizeof((x)[0]))
+ #define len(x) (sizeof(x) / sizeof((x)[0]))
 
 GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
-
-GLuint loadBMP(const char * imagepath, ivec3 color_key = ivec3(-1.0));
 
 #endif
