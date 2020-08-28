@@ -198,7 +198,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
     this->chunk_rendering_cached = true;
     this->num_triangles_cache = num_triangles;
     
-    this->texture_cache = new Texture(bmp, "assets/shaders/simple.vert", "assets/shaders/simple.frag");
+    this->texture_cache = *textures.begin();//new Texture(bmp, "assets/shaders/simple.vert", "assets/shaders/simple.frag");
     cached_render(PV);
 
     delete[] chunk_vertex_buffer;

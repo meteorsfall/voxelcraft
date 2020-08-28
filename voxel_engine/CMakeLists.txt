@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (WIN32)
 add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi /MDd")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 else ()
 add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Werror -Wfatal-errors)
