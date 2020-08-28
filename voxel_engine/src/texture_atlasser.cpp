@@ -1,6 +1,6 @@
 #include "texture_atlasser.hpp"
 
-BMP TextureAtlasser::generate_texture_atlas() {
+BMP TextureAtlasser::generate_image() {
     int bmps_per_row = ceil(sqrt(bmps.size()));
     
     int width = bmps[0].width;

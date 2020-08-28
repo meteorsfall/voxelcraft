@@ -65,6 +65,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
     int num_triangles = 0;
 
     set<Texture*> textures;
+    vector<pair<Texture*, ivec2>> texture_choices;
 
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
@@ -104,7 +105,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                     blocks[i][j][k].neighbor_cache = visible_neighbors;
                 }
                 
-                if (visible_neighbors) {
+                if (visible_neighbors & ~(1 << 7)) {
                     // Generate boolean array from visible neighbor bitset
                     // This will represent which faces to include and which to cull
                     vec3 fpos(position);
@@ -138,6 +139,8 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                         }
                         */
                     }
+
+                    int uv_loc = chunk_uv_buffer_len/sizeof(GLfloat);
                     
                     // Memcpy vertex and uv buffers
                     memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
@@ -149,14 +152,44 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                     num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
 
                     // Save texture
-                    textures.insert(blocks[i][j][k].block_type->texture);
-                    //printf("Save: %p\n", (void*)blocks[i][j][k].block_type->texture);
+                    Texture* texture = blocks[i][j][k].block_type->texture;
+                    textures.insert(texture);
+                    texture_choices.push_back({texture, ivec2(uv_loc, uv_buffer_len/sizeof(GLfloat))});
                 }
             }
         }
     }
 
-    Texture* t = *textures.begin();
+    TextureAtlasser atlasser;
+    map<Texture*, int> texture_indices;
+    for(Texture* t : textures) {
+        atlasser.add_bmp(t->bmp);
+        int s = texture_indices.size();
+        texture_indices[t] = s;
+    }
+
+    BMP bmp = atlasser.generate_image();
+
+    //printf("New Size: %ld\n", texture_choices.size());
+    for(int j = 0; j < (int)texture_choices.size(); j++) {
+        auto texture_choice = texture_choices[j];
+        Texture* texture = texture_choice.first;
+        int ind = texture_indices[texture];
+        ivec2 uv_bounds = texture_choice.second;
+        //printf("Bounds: (%d, %d)\n", uv_bounds[0], uv_bounds[1]);
+        for(int i = uv_bounds[0]; i < uv_bounds[0] + uv_bounds[1]; i += 2) {
+            //printf("I: %d\n", i);
+            ivec2 offset = atlasser.get_top_left(ind);
+            //printf("Translating (%f, %f) / (%d, %d) based on (%d, %d) in (%d, %d)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1], texture->bmp.width, texture->bmp.height, offset.x, offset.y, bmp.width, bmp.height);
+            chunk_uv_buffer[i+0] = offset.x / (float)bmp.width + chunk_uv_buffer[i+0] * texture->bmp.width / bmp.width;
+            chunk_uv_buffer[i+1] = offset.y / (float)bmp.height + chunk_uv_buffer[i+1] * texture->bmp.height / bmp.height;
+            //printf("To: (%f, %f)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1]);
+        }
+    }
+
+    for(int i = 0; i < chunk_uv_buffer_len; i+=2) {
+        //printf("UV: (%f, %f)\n", chunk_uv_buffer[i], chunk_uv_buffer[i+1]);
+    }
 
     reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);
     reuse_array_buffer(opengl_uv_buffer, chunk_uv_buffer, chunk_uv_buffer_len);
@@ -164,8 +197,8 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
 
     this->chunk_rendering_cached = true;
     this->num_triangles_cache = num_triangles;
-    this->texture_cache = t;
-
+    
+    this->texture_cache = new Texture(bmp, "assets/shaders/simple.vert", "assets/shaders/simple.frag");
     cached_render(PV);
 
     delete[] chunk_vertex_buffer;
