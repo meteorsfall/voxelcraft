@@ -1,2 +1,2 @@
 #!/bin/bash
-./build/release/vc
+catchsegv ./build/debug/vc

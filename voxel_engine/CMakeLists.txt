@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 project(VoxelCraft)
 
-set(default_build_type "Release")
+set(default_build_type "Debug")
 
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
@@ -24,7 +24,8 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 else ()
 add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Werror -Wfatal-errors)
-set(CMAKE_CXX_FLAGS_DEBUG "-pg -O0 -g")
+add_link_options(-rdynamic)
+set(CMAKE_CXX_FLAGS_DEBUG "-pg -Og -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 endif ()
 

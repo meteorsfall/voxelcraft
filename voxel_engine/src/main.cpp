@@ -142,8 +142,8 @@ int main( void )
 
 		// Setup transparency and disable depth buffer writing
 		glDepthMask(GL_FALSE);
-		glEnable( GL_BLEND );
-		glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		// Render UI
 		main_ui.iterate(input_state, width, height);
