@@ -2,16 +2,10 @@
 #include <stdlib.h>
 
 #include "utils.hpp"
-#include "camera.hpp"
-#include "world.hpp"
-#include "player.hpp"
 #include "input.hpp"
-#include "aabb.hpp"
 #include "UI.hpp"
-#include "font.hpp"
-#include "example/main_ui.hpp"
 #include "example/main_game.hpp"
-#include "texture_atlasser.hpp"
+#include "example/main_ui.hpp"
 
 TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
@@ -113,6 +107,10 @@ int main( void )
 		if (input_handler.exiting || glfwWindowShouldClose(window)) {
 			break;
 		}
+
+        // ********************
+        // Iterate the Game State
+        // ********************
 
 		game.iterate(input_state);
 

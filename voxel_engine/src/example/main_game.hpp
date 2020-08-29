@@ -16,7 +16,6 @@ public:
 private:
     World world;
     InputState input;
-    vector<Texture*> textures;
     vector<BlockType*> block_types;
 
     void do_something();

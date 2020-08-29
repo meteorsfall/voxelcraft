@@ -12,11 +12,11 @@ public:
     GLuint uv_buffer;
 
     int block_id;
-    Texture* texture;
+    int texture;
 
-    BlockType(Texture* texture);
+    BlockType(int texture);
 
-    void render(vec3 &position, mat4 &PV, float break_amount);
+    void render(Texture* texture, vec3 &position, mat4 &PV, float break_amount);
 };
 
 class Block {

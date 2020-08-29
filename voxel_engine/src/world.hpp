@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include "aabb.hpp"
 #include "chunk.hpp"
+#include "texture_atlasser.hpp"
 
 using fn_on_collide = std::function<void(vec3)>;
 
@@ -14,6 +15,8 @@ public:
     vector<Chunk> chunks;
 
     World();
+
+    int register_texture(const char* texture_path);
 
     void refresh_block(int x, int y, int z);
     void set_block(int x, int y, int z, BlockType* b);
@@ -31,6 +34,9 @@ public:
     void set_break_amount(ivec3 location, float break_amount);
 
     void collide(AABB collision_box, fn_on_collide on_collide);
+private:
+    GLuint opengl_atlas_texture;
+    TextureAtlasser atlasser;
 };
 
 #endif

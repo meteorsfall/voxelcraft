@@ -1,8 +1,8 @@
 #include "main_game.hpp"
 
 Game::Game() {
-    Texture* stone_texture = new Texture(BMP("assets/images/stone.bmp"), "assets/shaders/simple.vert", "assets/shaders/simple.frag");
-    Texture* dirt_texture = new Texture(BMP("assets/images/dirt.bmp"), "assets/shaders/simple.vert", "assets/shaders/simple.frag");
+    int stone_texture = world.register_texture("assets/images/stone.bmp");
+    int dirt_texture = world.register_texture("assets/images/dirt.bmp");
  
     BlockType* stone_block = new BlockType(stone_texture);
     BlockType* dirt_block = new BlockType(dirt_texture);
@@ -11,8 +11,6 @@ Game::Game() {
     world.set_block(0,0,0, dirt_block);
     world.set_block(0,1,0, stone_block);
 
-    textures.push_back(stone_texture);
-    textures.push_back(dirt_texture);
     block_types.push_back(stone_block);
     block_types.push_back(dirt_block);
 

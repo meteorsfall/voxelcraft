@@ -3,6 +3,10 @@
 World::World() {
 }
 
+int World::register_texture(const char* texture_path) {
+    return atlasser.add_bmp(BMP(texture_path));
+}
+
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
     ivec3 test = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
@@ -71,7 +75,7 @@ void World::render(mat4 &PV) {
     };
 
     for(Chunk& c : chunks) {
-        c.render(PV, my_get_block);
+        c.render(PV, atlasser, my_get_block);
     }
 }
 

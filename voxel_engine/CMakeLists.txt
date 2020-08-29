@@ -25,7 +25,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 else ()
 add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 add_link_options(-rdynamic)
-set(CMAKE_CXX_FLAGS_DEBUG "-pg -Og -g")
+set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 endif ()
 

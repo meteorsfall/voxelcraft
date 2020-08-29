@@ -38,7 +38,7 @@ Block* Chunk::get_block(int x, int y, int z) {
     return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
-void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
+void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master_get_block) {
     ivec3 bottom_left = location*CHUNK_SIZE;
 
     // Check aabb of chunk against the view frustum
@@ -64,8 +64,8 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
 
     int num_triangles = 0;
 
-    set<Texture*> textures;
-    vector<pair<Texture*, ivec2>> texture_choices;
+    set<int> textures;
+    vector<pair<int, ivec2>> texture_choices;
 
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
@@ -152,7 +152,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
                     num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
 
                     // Save texture
-                    Texture* texture = blocks[i][j][k].block_type->texture;
+                    int texture = blocks[i][j][k].block_type->texture;
                     textures.insert(texture);
                     texture_choices.push_back({texture, ivec2(uv_loc, uv_buffer_len/sizeof(GLfloat))});
                 }
@@ -160,35 +160,21 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
         }
     }
 
-    TextureAtlasser atlasser;
-    map<Texture*, int> texture_indices;
-    for(Texture* t : textures) {
-        atlasser.add_bmp(t->bmp);
-        int s = texture_indices.size();
-        texture_indices[t] = s;
-    }
-
-    BMP bmp = atlasser.generate_image();
-
     //printf("New Size: %ld\n", texture_choices.size());
-    for(int j = 0; j < (int)texture_choices.size(); j++) {
-        auto texture_choice = texture_choices[j];
-        Texture* texture = texture_choice.first;
-        int ind = texture_indices[texture];
+    int atlas_width = texture_atlas.get_atlas()->width;
+    int atlas_height = texture_atlas.get_atlas()->height;
+    for(auto& texture_choice : texture_choices) {
+        int texture = texture_choice.first;
         ivec2 uv_bounds = texture_choice.second;
         //printf("Bounds: (%d, %d)\n", uv_bounds[0], uv_bounds[1]);
         for(int i = uv_bounds[0]; i < uv_bounds[0] + uv_bounds[1]; i += 2) {
             //printf("I: %d\n", i);
-            ivec2 offset = atlasser.get_top_left(ind);
-            //printf("Translating (%f, %f) / (%d, %d) based on (%d, %d) in (%d, %d)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1], texture->bmp.width, texture->bmp.height, offset.x, offset.y, bmp.width, bmp.height);
-            chunk_uv_buffer[i+0] = offset.x / (float)bmp.width + chunk_uv_buffer[i+0] * texture->bmp.width / bmp.width;
-            chunk_uv_buffer[i+1] = offset.y / (float)bmp.height + chunk_uv_buffer[i+1] * texture->bmp.height / bmp.height;
+            ivec2 offset = texture_atlas.get_top_left(texture);
+            //printf("Translating (%f, %f) / (%d, %d) based on (%d, %d) in (%d, %d)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1], texture_atlas.get_bmp(texture)->width, texture_atlas.get_bmp(texture)->height, offset.x, offset.y, atlas_width, atlas_height);
+            chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width / atlas_width;
+            chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height / atlas_height;
             //printf("To: (%f, %f)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1]);
         }
-    }
-
-    for(int i = 0; i < chunk_uv_buffer_len; i+=2) {
-        //printf("UV: (%f, %f)\n", chunk_uv_buffer[i], chunk_uv_buffer[i+1]);
     }
 
     reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);
@@ -198,7 +184,7 @@ void Chunk::render(mat4 &PV, fn_get_block master_get_block) {
     this->chunk_rendering_cached = true;
     this->num_triangles_cache = num_triangles;
     
-    this->texture_cache = *textures.begin();//new Texture(bmp, "assets/shaders/simple.vert", "assets/shaders/simple.frag");
+    this->opengl_texture_atlas = texture_atlas.get_atlas_texture();
     cached_render(PV);
 
     delete[] chunk_vertex_buffer;
@@ -217,7 +203,7 @@ void Chunk::cached_render(mat4& PV) {
     GLuint shader_texture_id = glGetUniformLocation(chunk_shader_id, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    bind_texture(0, shader_texture_id, texture_cache->opengl_texture_id);
+    bind_texture(0, shader_texture_id, opengl_texture_atlas);
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation

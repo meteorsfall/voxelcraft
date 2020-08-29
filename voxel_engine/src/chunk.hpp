@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include "block.hpp"
+#include "texture_atlasser.hpp"
 
 using fn_get_block = std::function<Block*(int, int, int)>;
 
@@ -23,14 +24,13 @@ public:
 
     Block* get_block(int x, int y, int z);
 
-    void render(mat4 &PV, fn_get_block get_block);
+    void render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block get_block);
 private:
     GLuint opengl_vertex_buffer;
     GLuint opengl_uv_buffer;
     GLuint opengl_break_amount_buffer;
     GLuint opengl_texture_atlas;
     int num_triangles_cache = 0;
-    Texture* texture_cache;
     void cached_render(mat4& PV);
 };
 
