@@ -87,7 +87,7 @@ int main( void )
 	// MAKE GAME HERE
 	Game game;
 	// MAKE ALL CUSTOM UIs HERE
-	MainUI main_ui;
+	MainUI main_ui(&game);
     
     // START MAIN GAME LOOP
 	for (int frame_index = 0; true; frame_index++) {
@@ -102,7 +102,7 @@ int main( void )
         // Input Handling
         // ********************
         
-        InputState input_state = input_handler.handle_input(!paused);
+        InputState input_state = input_handler.handle_input(!game.paused);
 
 		if (input_handler.exiting || glfwWindowShouldClose(window)) {
 			break;

@@ -14,6 +14,7 @@ public:
     void render();
     Player player;
     
+    bool paused = false;
 private:
     World world;
     InputState input;

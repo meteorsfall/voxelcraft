@@ -31,6 +31,7 @@ public:
     InputState handle_input(bool relative_mouse);
 private:
     InputState next_input;
+    bool last_relative_mouse;
 };
 
 #endif

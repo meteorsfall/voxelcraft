@@ -23,7 +23,6 @@ void load(World& world) {
     std::ifstream save_file;
     save_file.open("saves/save_state.save", std::ios::binary);
     if (!save_file.good()) {
-        printf("No save file!\n");
         return;
     }
 
@@ -83,6 +82,12 @@ Game::~Game() {
 
 void Game::iterate(InputState& input) {
     this->input = input;
+    if (input.keys[GLFW_KEY_ESCAPE] == GLFW_PRESS && !paused) {
+        paused = true;
+    }
+    if (paused) {
+        return;
+    }
     do_something();
 }
 
@@ -94,8 +99,6 @@ void Game::render() {
     world.render(PV);
 }
 
-bool paused = false;
-
 const float MOVEMENT_SPEED = 5.0;
 const float FLYING_ACCEL_SPEED = 6.0;
 const float FLYING_MAX_SPEED = 50.0;
@@ -103,11 +106,6 @@ const float MOUSE_SPEED = 0.1;
 const float JUMP_INITIAL_VELOCITY = 4.0;
 
 void Game::do_something() {
-    if (input.keys[GLFW_KEY_ESCAPE] == GLFW_PRESS) {
-        paused = !paused;
-        return;
-    }
-
     double current_time = input.current_time;
     // If there hasn't been a frame yet, we skip this one and save this->last_time
     float deltaTime = current_time - this->last_time;

@@ -77,9 +77,13 @@ InputState InputHandler::handle_input(bool relative_mouse) {
         next_input.right_mouse = InputButtonState::RELEASE;
     }
 
-    next_input.mouse_pos = ivec2(xpos, ypos);
+    if (relative_mouse && !last_relative_mouse) {
+        next_input.mouse_pos = ivec2(0, 0);
+    } else {
+        next_input.mouse_pos = ivec2(xpos, ypos);
+    }
+    
     // next_input.keys is handled in the key callback
-
     InputState input = next_input;
 
     // Turn all presses into repeats
@@ -92,5 +96,6 @@ InputState InputHandler::handle_input(bool relative_mouse) {
     input.current_time = glfwGetTime();
     input.screen_dimensions = ivec2(w, h);
 
+    last_relative_mouse = relative_mouse;
     return input;
 }
