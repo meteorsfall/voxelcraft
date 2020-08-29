@@ -2,7 +2,9 @@ bin
 lib
 include
 
+saves
 assets/images
 assets/fonts
 gmon.out
 analysis.txt
+

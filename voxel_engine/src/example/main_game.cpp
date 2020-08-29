@@ -1,12 +1,15 @@
 #include "main_game.hpp"
 #include <fstream>
+#include <filesystem>
 
 void save(World& world) {
     auto [buffer, buffer_len] = world.serialize();
 
     // Open save file
+    std::error_code ec;
+    std::filesystem::create_directory("saves", ec);
     std::ofstream save_file;
-    save_file.open("save_state.save", std::ios::binary);
+    save_file.open("saves/save_state.save", std::ios::binary);
 
     // Write serialized world to the file
     save_file.write((char*)buffer, buffer_len);
@@ -18,7 +21,7 @@ void save(World& world) {
 void load(World& world) {
     // Open save file
     std::ifstream save_file;
-    save_file.open("save_state.save", std::ios::binary);
+    save_file.open("saves/save_state.save", std::ios::binary);
     if (!save_file.good()) {
         printf("No save file!\n");
         return;
