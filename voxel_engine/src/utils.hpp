@@ -12,6 +12,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 using namespace glm;
 
+// Include c standards
+#include <cstring>
 // Include standard library
 #include <functional>
 #include <vector>
@@ -33,8 +35,6 @@ using std::set;
 #include "fn_pointer.hpp"
 
 #define UNUSED(x) ((void)x)
- #define len(x) (sizeof(x) / sizeof((x)[0]))
-
-GLuint LoadShaders(const char * vertex_file_path, const char * fragment_file_path);
+#define len(x) (sizeof(x) / sizeof((x)[0]))
 
 #endif

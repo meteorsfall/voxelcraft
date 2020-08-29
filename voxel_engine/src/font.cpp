@@ -60,7 +60,7 @@ Font::Font(const char* font_path) {
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
     
-    this->shader_id = LoadShaders("assets/shaders/font.vert", "assets/shaders/font.frag");
+    this->shader_id = load_shaders("assets/shaders/font.vert", "assets/shaders/font.frag");
 }
 
 void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* text, ivec3 color) {

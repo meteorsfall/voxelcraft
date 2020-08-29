@@ -9,7 +9,7 @@ static GLuint chunk_shader_id;
 Chunk::Chunk(ivec3 location) {
     this->location = location;
     if (!loaded_chunk_shader) {
-        chunk_shader_id = LoadShaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
+        chunk_shader_id = load_shaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
         loaded_chunk_shader = true;
     }
     opengl_vertex_buffer = create_array_buffer(NULL, 1);

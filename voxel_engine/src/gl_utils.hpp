@@ -3,6 +3,8 @@
 
 #include "utils.hpp"
 
+GLuint load_shaders(const char* vertex_file_path, const char* fragment_file_path);
+
 GLuint create_array_buffer(const GLfloat* data, int len);
 void reuse_array_buffer(GLuint array_buffer_id, const GLfloat* data, int len);
 void bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id);
