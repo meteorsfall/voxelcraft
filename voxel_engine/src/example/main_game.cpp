@@ -14,7 +14,7 @@ Game::Game() {
     block_types.push_back(stone_block);
     block_types.push_back(dirt_block);
 
-    const int radius = 5;
+    const int radius = 3;
     
     for(int i = -radius*CHUNK_SIZE; i < radius*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
