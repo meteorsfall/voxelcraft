@@ -36,6 +36,7 @@ using std::set;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))
+#define dbg(fmt, ...) printf("%s:%d " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 typedef unsigned char byte;
 

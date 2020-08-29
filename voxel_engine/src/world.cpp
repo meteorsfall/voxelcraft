@@ -158,8 +158,6 @@ pair<byte*, int> World::serialize() {
         buffer[index] |= (location.y < 0 ? 1 : 0) << 1;
         buffer[index] |= (location.z < 0 ? 1 : 0) << 0;
 
-        printf("Saving (%d, %d, %d) at index %d\n", location.x, location.y, location.z, i);
-
         // Save each integer
         // (from most significant bit, to least significant bit)
         write_integer(buffer, index + 1, location.x);
@@ -182,8 +180,6 @@ void World::deserialize(byte* buffer, int size) {
     }
     chunks.clear();
 
-    printf("Deserializing!\n");
-
     for(int i = 0; TOTAL_SERIALIZED_CHUNK_SIZE*i < size; i++) {
         int index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
         int x_sign = bit_to_sign((buffer[index] >> 2) & 1);
@@ -196,7 +192,6 @@ void World::deserialize(byte* buffer, int size) {
         int z_coord = buffer[index + 9] + buffer[index + 8]*256 + buffer[index + 7]*256*256;
         z_coord *= z_sign;
         Chunk* the_chunk = make_chunk(CHUNK_SIZE*x_coord, CHUNK_SIZE*y_coord, CHUNK_SIZE*z_coord);
-        printf("Index %d, %d Size %d. Loading (%d, %d, %d)\n", i, index, size, x_coord, y_coord, z_coord);
         the_chunk->deserialize(buffer + index + 10, SERIALIZED_CHUNK_SIZE);
     }
 }
