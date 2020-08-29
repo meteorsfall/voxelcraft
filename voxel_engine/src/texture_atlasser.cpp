@@ -2,7 +2,7 @@
 
 BMP* TextureAtlasser::get_atlas() {
     if(!atlas_cached) {
-        int bmps_per_row = ceil(sqrt(bmps.size()));
+        int bmps_per_row = (int)(ceil(sqrt(bmps.size())) + 0.5);
         
         int width = bmps[0].width;
 

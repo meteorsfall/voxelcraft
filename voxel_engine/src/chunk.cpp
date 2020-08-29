@@ -125,19 +125,16 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                         chunk_break_amount_buffer_len += sizeof(GLfloat);
                     }
 
-                    for(int m = 0; m < uv_buffer_len/(int)sizeof(GLfloat); m += 2) {
-                        /*
-                        if (uv_buffer_data[m+0] < 0.1) {
-                            uv_buffer_data[m+0] += 0.005;
-                        } else {
-                            uv_buffer_data[m+0] -= 0.005;
+                    for(int m = 0; m < uv_buffer_len/(int)sizeof(GLfloat); m += 6) {
+                        float avg_x = (uv_buffer_data[m+0] + uv_buffer_data[m+2] + uv_buffer_data[m+4])/3.0;
+                        float avg_y = (uv_buffer_data[m+1] + uv_buffer_data[m+3] + uv_buffer_data[m+5])/3.0;
+                        for(int n = 0; n < 6; n++) {
+                            if (uv_buffer_data[m+n] < ((n & 1) == 0 ? avg_x : avg_y)) {
+                                //uv_buffer_data[m+n] += 1.0f/12;
+                            } else {
+                                //uv_buffer_data[m+n] -= 1.0f/12;
+                            }
                         }
-                        if (uv_buffer_data[m+1] < 0.1) {
-                            uv_buffer_data[m+1] += 0.005;
-                        } else {
-                            uv_buffer_data[m+1] -= 0.005;
-                        }
-                        */
                     }
 
                     int uv_loc = chunk_uv_buffer_len/sizeof(GLfloat);
@@ -168,11 +165,21 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
         ivec2 uv_bounds = texture_choice.second;
         //printf("Bounds: (%d, %d)\n", uv_bounds[0], uv_bounds[1]);
         for(int i = uv_bounds[0]; i < uv_bounds[0] + uv_bounds[1]; i += 2) {
+            float intgr = floor(chunk_uv_buffer[i] * texture_atlas.get_bmp(texture)->width);
+            //printf("INT: %f\n", intgr);
             //printf("I: %d\n", i);
             ivec2 offset = texture_atlas.get_top_left(texture);
             //printf("Translating (%f, %f) / (%d, %d) based on (%d, %d) in (%d, %d)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1], texture_atlas.get_bmp(texture)->width, texture_atlas.get_bmp(texture)->height, offset.x, offset.y, atlas_width, atlas_height);
-            chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width / atlas_width;
-            chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height / atlas_height;
+            // UV coordinates will range from (0, 0) to (atlas_width - 1, atlas_height - 1)
+            //chunk_uv_buffer[i+0] = offset.x + floor(chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width);
+            //chunk_uv_buffer[i+1] = offset.y + floor(chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height);
+            offset.y += texture_atlas.get_bmp(texture)->height;
+            offset.y = atlas_height - offset.y;
+            chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width / (float)atlas_width;
+            chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height / (float)atlas_height;
+            //if (chunk_uv_buffer[i+1] < 96.0/128.0) {
+            //    printf("Under: %f %d %d\n", chunk_uv_buffer[i+1], offset.x, offset.y);
+            //}
             //printf("To: (%f, %f)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1]);
         }
     }

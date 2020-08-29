@@ -114,6 +114,7 @@ ivec4 BMP::get_pixel(int x, int y) {
 		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
 		return ivec4(-1);
 	}
+	y = height - 1 - y;
 	int r = data[(y*width + x)*3 + 0];
 	int g = data[(y*width + x)*3 + 1];
 	int b = data[(y*width + x)*3 + 2];
@@ -129,6 +130,7 @@ void BMP::set_pixel(int x, int y, ivec3 color) {
 		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
 		return;
 	}
+	y = height - 1 - y;
 	data[(y*width + x)*3 + 0] = color.x;
 	data[(y*width + x)*3 + 1] = color.y;
 	data[(y*width + x)*3 + 2] = color.z;
@@ -167,12 +169,10 @@ GLuint BMP::generate_texture() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, &data[0]);
 	}
 
-	
 	// Poor filtering, or ...
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	
-
 	/*
 	// ... nice trilinear filtering ...
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);

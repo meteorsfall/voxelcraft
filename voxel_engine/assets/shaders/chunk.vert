@@ -16,5 +16,9 @@ out float frag_break_amount;
 void main(){
   frag_break_amount = break_amount;
   uv = vertexUV;
-  gl_Position = PV * vec4(M + vertex_position_straight_from_bender, 1.0);
+  vec3 pos = vertex_position_straight_from_bender;
+  if (uv.y < 96.0 / 128.0) {
+    pos.y = 128.0;
+  }
+  gl_Position = PV * vec4(M + pos, 1.0);
 }
