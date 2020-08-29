@@ -2,7 +2,7 @@
 #include "gl_utils.hpp"
 
 Block::Block() {
-    this->block_type = -1;
+    this->block_type = 0;
     this->break_amount = 0.0;
     this->neighbor_cache = 0;
 }

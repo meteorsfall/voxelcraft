@@ -36,7 +36,8 @@ Block* Chunk::get_block(int x, int y, int z) {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         return nullptr;
     }
-    return blocks[x][y][z].block_type >= 0 ? &blocks[x][y][z] : nullptr;
+    // Return nullptr if it's an air block
+    return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
 void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master_get_block) {
@@ -71,8 +72,8 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
-                // If the block has no block type, just continue (It's an air block)
-                if (blocks[i][j][k].block_type < 0) {
+                // If the block has a block type of 0, just skip it (It's an air block)
+                if (!blocks[i][j][k].block_type) {
                     continue;
                 }
 

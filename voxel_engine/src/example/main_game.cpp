@@ -189,7 +189,7 @@ bool Game::mining_block(float mining_time) {
             world.refresh_block(loc.x, loc.y, loc.z);
             return false;
         } else {
-            world.set_block(loc.x, loc.y, loc.z, -1);
+            world.set_block(loc.x, loc.y, loc.z, 0);
             return true;
         }
     } else {

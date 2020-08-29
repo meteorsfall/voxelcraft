@@ -8,8 +8,9 @@ int World::register_texture(const char* texture_path) {
 }
 
 int World::register_blocktype(int texture) {
+    // Block_ID starts at 1 and increments afterwards
     block_types.push_back(BlockType(texture));
-    block_types.back().block_id = block_types.size() - 1;
+    block_types.back().block_id = block_types.size();
     return block_types.back().block_id;
 }
 
@@ -35,7 +36,7 @@ Chunk* World::make_chunk(int x, int y, int z) {
         }
     }
     chunks.push_back(Chunk(test, [this](int block_type) -> BlockType* {
-        return &this->block_types.at(block_type);
+        return &this->block_types.at(block_type - 1);
     }));
     return &chunks.back();
 }
