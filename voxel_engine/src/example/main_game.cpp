@@ -92,7 +92,7 @@ void Game::place_block(BlockType* block) {
 
     if (target_block) {
         ivec3 loc = target_block.value();
-        if (ivec3(floor(player.position)) != loc) {
+        if (!player.get_collision_box().is_colliding(AABB(loc, loc + ivec3(1)))) {
             world.set_block(loc.x, loc.y, loc.z, block);
         }
     }
