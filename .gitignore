@@ -11,4 +11,5 @@ voxelscript/voxelscript_highlighter/syntaxes
 **/build
 **/*.swp
 **/*.log
+**/*.pdb
 
