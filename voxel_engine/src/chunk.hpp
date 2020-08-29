@@ -9,6 +9,7 @@ using fn_get_block = std::function<Block*(int, int, int)>;
 using fn_get_blocktype = std::function<BlockType*(int)>;
 
 #define CHUNK_SIZE 16
+#define SERIALIZED_CHUNK_SIZE (CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*3)
 
 class Chunk {
 public:
@@ -28,9 +29,9 @@ public:
 
     void render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block get_block);
 
-    pair<char*, int> serialize();
+    pair<byte*, int> serialize();
 
-    void deserialize(char* buffer, int size);
+    void deserialize(byte* buffer, int size);
 
 private:
     GLuint opengl_vertex_buffer;

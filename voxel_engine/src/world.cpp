@@ -136,3 +136,67 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
         on_collide(total_movement);
     }
 }
+
+#define TOTAL_SERIALIZED_CHUNK_SIZE (1+3*3+SERIALIZED_CHUNK_SIZE)
+
+// Note: The return buffer must be freed by the caller!
+pair<byte*, int> World::serialize() {
+    //char negatives; // "00000XXX"
+    int num_chunks = chunks.size();
+    // 1 byte for negatives, 3 bytes per coordinate,  
+    int buffer_size = TOTAL_SERIALIZED_CHUNK_SIZE*num_chunks;
+    
+    byte* buffer = new byte[buffer_size];
+    
+    for(unsigned i = 0; i < chunks.size(); i++){
+        ivec3 location = chunks[i].location;
+        unsigned index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
+
+        // Save sign of each coordinate
+        buffer[index] = 0;
+        buffer[index] |= (location.x < 0 ? 1 : 0) << 2;
+        buffer[index] |= (location.y < 0 ? 1 : 0) << 1;
+        buffer[index] |= (location.z < 0 ? 1 : 0) << 0;
+
+        printf("Saving (%d, %d, %d) at index %d\n", location.x, location.y, location.z, i);
+
+        // Save each integer
+        // (from most significant bit, to least significant bit)
+        write_integer(buffer, index + 1, location.x);
+        write_integer(buffer, index + 4, location.y);
+        write_integer(buffer, index + 7, location.z);
+
+        // Serialize individual chunk
+        auto [chunk_buffer, chunk_buffer_size] = chunks[i].serialize();
+        memcpy(&buffer[index+10], chunk_buffer, chunk_buffer_size);
+        delete[] chunk_buffer;
+    }
+    
+    return {buffer, buffer_size};
+}
+
+void World::deserialize(byte* buffer, int size) {
+    if (size % TOTAL_SERIALIZED_CHUNK_SIZE != 0) {
+        printf("Size is not a multiple of TOTAL_SERIALIZED_CHUNK_SIZE! %d", size);
+        return;
+    }
+    chunks.clear();
+
+    printf("Deserializing!\n");
+
+    for(int i = 0; TOTAL_SERIALIZED_CHUNK_SIZE*i < size; i++) {
+        int index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
+        int x_sign = bit_to_sign((buffer[index] >> 2) & 1);
+        int y_sign = bit_to_sign((buffer[index] >> 1) & 1);
+        int z_sign = bit_to_sign((buffer[index] >> 0) & 1);
+        int x_coord = buffer[index + 3] + buffer[index + 2]*256 + buffer[index + 1]*256*256;
+        x_coord *= x_sign;
+        int y_coord = buffer[index + 6] + buffer[index + 5]*256 + buffer[index + 4]*256*256;
+        y_coord *= y_sign;
+        int z_coord = buffer[index + 9] + buffer[index + 8]*256 + buffer[index + 7]*256*256;
+        z_coord *= z_sign;
+        Chunk* the_chunk = make_chunk(CHUNK_SIZE*x_coord, CHUNK_SIZE*y_coord, CHUNK_SIZE*z_coord);
+        printf("Index %d, %d Size %d. Loading (%d, %d, %d)\n", i, index, size, x_coord, y_coord, z_coord);
+        the_chunk->deserialize(buffer + index + 10, SERIALIZED_CHUNK_SIZE);
+    }
+}

@@ -244,34 +244,37 @@ void Chunk::cached_render(mat4& PV) {
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 }
-//makes the buffer object
-pair<char*, int> Chunk::serialize() {
-    char* buffer = new char[16*16*16*3];
-    for(unsigned i = 0; i < 16; i++){
-        for(unsigned j = 0; j < 16; j++){
-            for(unsigned k = 0; k < 16; k++){
+
+// Makes the buffer object. First 2 bytes of each block is block_id, 3rd byte is break_amount
+pair<byte*, int> Chunk::serialize() {
+    byte* buffer = new byte[SERIALIZED_CHUNK_SIZE];
+    for(unsigned i = 0; i < CHUNK_SIZE; i++){
+        for(unsigned j = 0; j < CHUNK_SIZE; j++){
+            for(unsigned k = 0; k < CHUNK_SIZE; k++){
                 short the_block_id = blocks[i][j][k].block_type;
-                int index = (k*16*16 + j*16 + i)*3;
+                int index = (k*CHUNK_SIZE*CHUNK_SIZE + j*CHUNK_SIZE + i)*3;
                 buffer[index] = (the_block_id >> 8) % 256;
                 buffer[index + 1] = the_block_id % 256;
                 buffer[index + 2] = ((int)(blocks[i][j][k].break_amount * 256)) % 256;
             }
         }
     }
-    return {buffer, 16*16*16*3};
+    return {buffer, SERIALIZED_CHUNK_SIZE};
 }
 
 //figures out blocktype and damage from buffer object
-void Chunk::deserialize(char* buffer, int size) {
-    UNUSED(size);
-    for(unsigned i = 0; i < 16; i++){
-        for(unsigned j = 0; j < 16; j++){
-            for(unsigned k = 0; k < 16; k++){
-                int index = (k*16*16 + j*16 + i)*3;
+void Chunk::deserialize(byte* buffer, int size) {
+    if (size != SERIALIZED_CHUNK_SIZE) {
+        printf("Error deserializing chunk size! %d", size);
+        return;
+    }
+    for(unsigned i = 0; i < CHUNK_SIZE; i++){
+        for(unsigned j = 0; j < CHUNK_SIZE; j++){
+            for(unsigned k = 0; k < CHUNK_SIZE; k++){
+                int index = (k*CHUNK_SIZE*CHUNK_SIZE + j*CHUNK_SIZE + i)*3;
                 blocks[i][j][k].break_amount = buffer[index + 2]/256.0;
                 blocks[i][j][k].block_type = buffer[index]*256 + buffer[index+1];
             }
         }
     }
 }
-

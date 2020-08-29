@@ -37,4 +37,10 @@ using std::set;
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 
+typedef unsigned char byte;
+
+void write_integer(byte* buffer, unsigned i, int magnitude);
+
+int bit_to_sign(int a);
+
 #endif

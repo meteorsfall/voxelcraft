@@ -1,4 +1,46 @@
 #include "main_game.hpp"
+#include <fstream>
+
+void save(World& world) {
+    auto [buffer, buffer_len] = world.serialize();
+
+    // Open save file
+    std::ofstream save_file;
+    save_file.open("save_state.save", std::ios::binary);
+
+    // Write serialized world to the file
+    save_file.write((char*)buffer, buffer_len);
+    save_file.close();
+
+    delete[] buffer;
+}
+
+void load(World& world) {
+    // Open save file
+    std::ifstream save_file;
+    save_file.open("save_state.save", std::ios::binary);
+    if (!save_file.good()) {
+        printf("No save file!\n");
+        return;
+    }
+
+    // Seek to end and get file length
+    save_file.seekg(0, save_file.end);
+    int length = save_file.tellg();
+
+    // Seek back to the beginning
+    save_file.seekg(0, save_file.beg);
+
+    // Read the buffer from the file
+    byte* buffer = new byte[length];
+    save_file.read((char*)buffer, length);
+    save_file.close();
+
+    // Deserialize the world
+    world.deserialize(buffer, length);
+
+    delete[] buffer;
+}
 
 Game::Game() {
     int stone_texture = world.register_texture("assets/images/stone.bmp");
@@ -8,14 +50,14 @@ Game::Game() {
     int dirt_block = world.register_blocktype(dirt_texture);
 
     // 1-7, dirt 8-16 stone
-    world.set_block(0,0,0, dirt_block);
-    world.set_block(0,1,0, stone_block);
+    world.set_block(0, 0, 0, dirt_block);
+    world.set_block(0, 1, 0, stone_block);
 
-    const int radius = 3;
+    const int radius = 1;
     
-    for(int i = -radius*CHUNK_SIZE; i < radius*CHUNK_SIZE; i++) {
+    for(int i = -radius*CHUNK_SIZE; i <= radius*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = -radius*CHUNK_SIZE; k < radius*CHUNK_SIZE; k++) {
+            for(int k = -radius*CHUNK_SIZE; k <= radius*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     world.set_block(i,j,k, stone_block);
                 } else {
@@ -28,6 +70,12 @@ Game::Game() {
 	player.hand = stone_block;
 
     last_space_release = this->last_time;
+
+    load(world);
+}
+
+Game::~Game() {
+    save(world);
 }
 
 void Game::iterate(InputState& input) {
@@ -61,6 +109,10 @@ void Game::do_something() {
     // If there hasn't been a frame yet, we skip this one and save this->last_time
     float deltaTime = current_time - this->last_time;
     this->last_time = current_time;
+
+    if (last_save < 0.0) {
+        last_save = current_time;
+    }
 
     if (deltaTime > 0.1) {
         deltaTime = 0.1;

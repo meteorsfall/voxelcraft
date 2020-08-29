@@ -36,6 +36,10 @@ public:
     void set_break_amount(ivec3 location, float break_amount);
 
     void collide(AABB collision_box, fn_on_collide on_collide);
+
+    pair<byte*, int> serialize();
+
+    void deserialize(byte* buffer, int size);
 private:
     GLuint opengl_atlas_texture;
     TextureAtlasser atlasser;

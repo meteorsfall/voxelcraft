@@ -9,6 +9,7 @@
 class Game {
 public:
     Game();
+    ~Game();
     void iterate(InputState& input);
     void render();
     Player player;
@@ -16,7 +17,7 @@ public:
 private:
     World world;
     InputState input;
-    vector<BlockType*> block_types;
+    double last_save = -1.0f;
 
     void do_something();
     double last_time;
