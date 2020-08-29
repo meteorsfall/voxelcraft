@@ -2,12 +2,12 @@
 #include "gl_utils.hpp"
 
 Block::Block() {
-    this->block_type = NULL;
+    this->block_type = -1;
     this->break_amount = 0.0;
     this->neighbor_cache = 0;
 }
 
-Block::Block(BlockType* b) {
+Block::Block(int b) {
     this->block_type = b;
     this->break_amount = 0.0;
     this->neighbor_cache = 0;

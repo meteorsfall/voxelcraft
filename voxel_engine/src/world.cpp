@@ -7,6 +7,12 @@ int World::register_texture(const char* texture_path) {
     return atlasser.add_bmp(BMP(texture_path));
 }
 
+int World::register_blocktype(int texture) {
+    block_types.push_back(BlockType(texture));
+    block_types.back().block_id = block_types.size() - 1;
+    return block_types.back().block_id;
+}
+
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
     ivec3 test = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
@@ -28,16 +34,18 @@ Chunk* World::make_chunk(int x, int y, int z) {
             return NULL;
         }
     }
-    chunks.push_back(Chunk(test));
+    chunks.push_back(Chunk(test, [this](int block_type) -> BlockType* {
+        return &this->block_types.at(block_type);
+    }));
     return &chunks.back();
 }
 
-void World::set_block(int x, int y, int z, BlockType* b) {
+void World::set_block(int x, int y, int z, int block_type) {
     Chunk* my_chunk = get_chunk(x,y,z);
     if (!my_chunk) {
         my_chunk = make_chunk(x, y, z);
     }
-    my_chunk->set_block(x, y, z, b);
+    my_chunk->set_block(x, y, z, block_type);
 
     // Refresh Cache
     refresh_block(x, y, z);

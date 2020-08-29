@@ -7,7 +7,7 @@
 
 class Player {
 public:
-    BlockType* hand;
+    int hand;
     Camera camera;
 
     vec3 position;

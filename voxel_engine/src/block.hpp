@@ -11,8 +11,8 @@ public:
     GLuint vertex_buffer;
     GLuint uv_buffer;
 
-    int block_id;
-    int texture;
+    short block_id;
+    short texture;
 
     BlockType(int texture);
 
@@ -21,12 +21,13 @@ public:
 
 class Block {
 public:
-    BlockType* block_type;
+    int block_type;
     float break_amount;
+
     short neighbor_cache;
 
     Block();
-    Block(BlockType* b);
+    Block(int b);
 
     void render(vec3 &position, mat4 &PV);
 };

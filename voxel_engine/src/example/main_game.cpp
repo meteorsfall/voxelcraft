@@ -4,15 +4,12 @@ Game::Game() {
     int stone_texture = world.register_texture("assets/images/stone.bmp");
     int dirt_texture = world.register_texture("assets/images/dirt.bmp");
  
-    BlockType* stone_block = new BlockType(stone_texture);
-    BlockType* dirt_block = new BlockType(dirt_texture);
+    int stone_block = world.register_blocktype(stone_texture);
+    int dirt_block = world.register_blocktype(dirt_texture);
 
     // 1-7, dirt 8-16 stone
     world.set_block(0,0,0, dirt_block);
     world.set_block(0,1,0, stone_block);
-
-    block_types.push_back(stone_block);
-    block_types.push_back(dirt_block);
 
     const int radius = 3;
     
@@ -87,7 +84,7 @@ void Game::do_something() {
     }
 }
 
-void Game::place_block(BlockType* block) {
+void Game::place_block(int block) {
     optional<ivec3> target_block = world.raycast(player.camera.position, player.camera.get_direction(), 6.0, true);
 
     if (target_block) {
@@ -192,7 +189,7 @@ bool Game::mining_block(float mining_time) {
             world.refresh_block(loc.x, loc.y, loc.z);
             return false;
         } else {
-            world.set_block(loc.x, loc.y, loc.z, nullptr);
+            world.set_block(loc.x, loc.y, loc.z, -1);
             return true;
         }
     } else {

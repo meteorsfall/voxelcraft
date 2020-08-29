@@ -25,7 +25,7 @@ private:
     vec2 get_mouse_rotation();
     vec3 get_keyboard_movement();
     bool mining_block(float time);
-    void place_block(BlockType* block);
+    void place_block(int block);
     void handle_player_movement(double currentTime, float deltaTime);
 };
 

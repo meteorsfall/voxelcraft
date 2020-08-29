@@ -6,6 +6,7 @@
 #include "texture_atlasser.hpp"
 
 using fn_get_block = std::function<Block*(int, int, int)>;
+using fn_get_blocktype = std::function<BlockType*(int)>;
 
 #define CHUNK_SIZE 16
 
@@ -17,14 +18,20 @@ public:
     Block blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
     bool chunk_rendering_cached = false;
+    fn_get_blocktype get_block_type;
 
-    Chunk(ivec3 location);
+    Chunk(ivec3 location, fn_get_blocktype get_block_type);
 
-    void set_block(int x, int y, int z, BlockType* b);
+    void set_block(int x, int y, int z, int b);
 
     Block* get_block(int x, int y, int z);
 
     void render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block get_block);
+
+    pair<char*, int> serialize();
+
+    void deserialize(char* buffer, int size);
+
 private:
     GLuint opengl_vertex_buffer;
     GLuint opengl_uv_buffer;

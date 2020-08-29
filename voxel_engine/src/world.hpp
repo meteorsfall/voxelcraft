@@ -13,13 +13,15 @@ public:
     int world_id;
 
     vector<Chunk> chunks;
+    vector<BlockType> block_types;
 
     World();
 
     int register_texture(const char* texture_path);
+    int register_blocktype(int texture_id);
 
     void refresh_block(int x, int y, int z);
-    void set_block(int x, int y, int z, BlockType* b);
+    void set_block(int x, int y, int z, int block_type);
 
     Block* get_block(int x, int y, int z);
 

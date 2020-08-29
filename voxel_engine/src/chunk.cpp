@@ -6,8 +6,9 @@
 static bool loaded_chunk_shader = false;
 static GLuint chunk_shader_id;
 
-Chunk::Chunk(ivec3 location) {
+Chunk::Chunk(ivec3 location, fn_get_blocktype get_block_type) {
     this->location = location;
+    this->get_block_type = get_block_type;
     if (!loaded_chunk_shader) {
         chunk_shader_id = load_shaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
         loaded_chunk_shader = true;
@@ -17,7 +18,7 @@ Chunk::Chunk(ivec3 location) {
     opengl_break_amount_buffer = create_array_buffer(NULL, 1);
 }
 
-void Chunk::set_block(int x, int y, int z, BlockType* b) {
+void Chunk::set_block(int x, int y, int z, int b) {
     x -= location.x * CHUNK_SIZE;
     y -= location.y * CHUNK_SIZE;
     z -= location.z * CHUNK_SIZE;
@@ -35,7 +36,7 @@ Block* Chunk::get_block(int x, int y, int z) {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         return nullptr;
     }
-    return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
+    return blocks[x][y][z].block_type >= 0 ? &blocks[x][y][z] : nullptr;
 }
 
 void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master_get_block) {
@@ -71,7 +72,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
                 // If the block has no block type, just continue (It's an air block)
-                if (!blocks[i][j][k].block_type) {
+                if (blocks[i][j][k].block_type < 0) {
                     continue;
                 }
 
@@ -149,7 +150,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                     num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
 
                     // Save texture
-                    int texture = blocks[i][j][k].block_type->texture;
+                    int texture = get_block_type(blocks[i][j][k].block_type)->texture;
                     textures.insert(texture);
                     texture_choices.push_back({texture, ivec2(uv_loc, uv_buffer_len/sizeof(GLfloat))});
                 }
@@ -166,6 +167,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
         //printf("Bounds: (%d, %d)\n", uv_bounds[0], uv_bounds[1]);
         for(int i = uv_bounds[0]; i < uv_bounds[0] + uv_bounds[1]; i += 2) {
             float intgr = floor(chunk_uv_buffer[i] * texture_atlas.get_bmp(texture)->width);
+            UNUSED(intgr);
             //printf("INT: %f\n", intgr);
             //printf("I: %d\n", i);
             ivec2 offset = texture_atlas.get_top_left(texture);
@@ -199,6 +201,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     delete[] chunk_break_amount_buffer;
 }
 
+// Render the chunk presuming all of its rendering data has been cached
 void Chunk::cached_render(mat4& PV) {
     if (num_triangles_cache == 0) {
         // No need to render if there are no triangles
@@ -240,3 +243,34 @@ void Chunk::cached_render(mat4& PV) {
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
 }
+//makes the buffer object
+pair<char*, int> Chunk::serialize() {
+    char* buffer = new char[16*16*16*3];
+    for(unsigned i = 0; i < 16; i++){
+        for(unsigned j = 0; j < 16; j++){
+            for(unsigned k = 0; k < 16; k++){
+                short the_block_id = blocks[i][j][k].block_type;
+                int index = (k*16*16 + j*16 + i)*3;
+                buffer[index] = (the_block_id >> 8) % 256;
+                buffer[index + 1] = the_block_id % 256;
+                buffer[index + 2] = ((int)(blocks[i][j][k].break_amount * 256)) % 256;
+            }
+        }
+    }
+    return {buffer, 16*16*16*3};
+}
+
+//figures out blocktype and damage from buffer object
+void Chunk::deserialize(char* buffer, int size) {
+    UNUSED(size);
+    for(unsigned i = 0; i < 16; i++){
+        for(unsigned j = 0; j < 16; j++){
+            for(unsigned k = 0; k < 16; k++){
+                int index = (k*16*16 + j*16 + i)*3;
+                blocks[i][j][k].break_amount = buffer[index + 2]/256.0;
+                blocks[i][j][k].block_type = buffer[index]*256 + buffer[index+1];
+            }
+        }
+    }
+}
+
