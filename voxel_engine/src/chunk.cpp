@@ -132,9 +132,9 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                         float avg_y = (uv_buffer_data[m+1] + uv_buffer_data[m+3] + uv_buffer_data[m+5])/3.0;
                         for(int n = 0; n < 6; n++) {
                             if (uv_buffer_data[m+n] < ((n & 1) == 0 ? avg_x : avg_y)) {
-                                //uv_buffer_data[m+n] += 1.0f/12;
+                                uv_buffer_data[m+n] += 1.0f/48/50;
                             } else {
-                                //uv_buffer_data[m+n] -= 1.0f/12;
+                                uv_buffer_data[m+n] -= 1.0f/48/50;
                             }
                         }
                     }

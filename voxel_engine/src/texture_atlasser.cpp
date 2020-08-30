@@ -4,16 +4,40 @@ BMP* TextureAtlasser::get_atlas() {
     if(!atlas_cached) {
         int bmps_per_row = (int)(ceil(sqrt(bmps.size())) + 0.5);
         
-        int width = bmps[0].width;
+        int pow_of_two_demand = 8;
+        int padding = pow_of_two_demand/2;
+        int tile_size = bmps[0].width + 2*padding;
 
-        int pow_of_two = (int)(pow(2, ceil(log2((float)bmps_per_row*width))) + 0.5);
-        BMP atlas(pow_of_two, pow_of_two);
+        int atlas_size = (int)(pow(2, ceil(log2((float)bmps_per_row*tile_size))) + 0.5);
+        BMP atlas(atlas_size, atlas_size);
+
+
+        // Set entire atlas image to red, for easy identifying
+        for(int i = 0; i < atlas_size; i++) {
+            for(int j = 0; j < atlas_size; j++) {
+                atlas.set_pixel(i, j, ivec3(255, 0, 0));
+            }
+        }
 
         bmp_locations.reserve(bmps.size());
         for(int j = 0; j < bmps_per_row; j++) {
             for(int i = 0; j*bmps_per_row + i < (int)bmps.size() && i < bmps_per_row; i++) {
-                atlas.blit(i*width, j*width, bmps[j*bmps_per_row + i]);
-                bmp_locations.push_back(ivec2(i*width, j*width));
+                BMP& bmp = bmps[j*bmps_per_row + i];
+                
+                // Loop over entire tile
+                for(int ii = i*tile_size; ii < (i+1)*tile_size; ii++) {
+                    for(int jj = j*tile_size; jj < (j+1)*tile_size; jj++) {
+                        // Clamp padding if it's outside the range of the texture
+                        int index_i = clamp(ii, i*tile_size+padding, i*tile_size+padding+bmp.width-1);
+                        int index_j = clamp(jj, j*tile_size+padding, j*tile_size+padding+bmp.height-1);
+
+                        // Set atlas pixel based on clamped origin bitmap
+                        atlas.set_pixel(ii, jj, bmp.get_pixel(index_i-(i*tile_size+padding), index_j-(j*tile_size+padding)));
+                    }
+                }
+
+                // Store the location where the BMP was blitted
+                bmp_locations.push_back(ivec2(i*tile_size+padding, j*tile_size+padding));
             }
         }
         this->texture_atlas = atlas;
@@ -29,7 +53,7 @@ BMP* TextureAtlasser::get_bmp(int bmp_index) {
 
 GLuint TextureAtlasser::get_atlas_texture() {
     if (!atlas_texture_cached) {
-        atlas_texture = get_atlas()->generate_texture();
+        atlas_texture = get_atlas()->generate_texture(true);
         atlas_texture_cached = true;
     }
 

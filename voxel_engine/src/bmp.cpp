@@ -42,13 +42,14 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 		this->valid = false;
 		return;
 	}
-	// Make sure this is a 24bpp file
+	// Make sure bmp is raw RGB
 	if ( *(int*)&(header[0x1E]) != 0 ) {
 		printf("Not a correct BMP file\n");
 		fclose(file);
 		this->valid = false;
 		return;
 	}
+	// Make sure this is a 24bpp file
 	if ( *(int*)&(header[0x1C]) != 24 ) {
 		printf("Not a correct BMP file\n");
 		fclose(file);
@@ -109,15 +110,64 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 	this->valid = true;
 }
 
+#include <fstream>
+
+void BMP::save(const char* filename) {
+	std::ofstream file(filename, std::ios::binary);
+
+	// Row size must be a multiple of 4!
+	int row_size = width*3;
+	while(row_size % 4 != 0) {
+		row_size++;
+	}
+
+	// Creating header based on https://en.wikipedia.org/wiki/BMP_file_format
+	byte header[54];
+
+	header[0] = 'B'; header[1] = 'M';
+	*(int*)&(header[0x02]) = 54 + height*row_size;
+	*(int*)&(header[0x0A]) = 54;
+
+	*(int*)&(header[0x0E]) = 40;
+	*(int*)&(header[0x12]) = width;
+	*(int*)&(header[0x16]) = height;
+	*(short*)&(header[0x1A]) = 1;
+	*(short*)&(header[0x1C]) = 24;
+	*(int*)&(header[0x1E]) = 0;
+	*(int*)&(header[0x22]) = height*row_size;
+	*(int*)&(header[0x26]) = 0;
+	*(int*)&(header[0x2A]) = 0;
+	*(int*)&(header[0x2E]) = 0;
+	*(int*)&(header[0x32]) = 0;
+	
+	file.write((char*)header, sizeof(header));
+
+	byte* file_data = new byte[height*row_size];
+	int index = 0;
+	for(int j = 0; j < height; j++) {
+		for(int i = 0; i < width; i++) {
+			file_data[index++] = data[(j*width + i)*3 + 0];
+			file_data[index++] = data[(j*width + i)*3 + 1];
+			file_data[index++] = data[(j*width + i)*3 + 2];
+		}
+		while(index % 4 != 0) {
+			index++;
+		}
+	}
+
+	file.write((char*)file_data, height*row_size);
+	file.close();
+}
+
 ivec4 BMP::get_pixel(int x, int y) {
 	if (x < 0 || x >= (int)width || y < 0 || y >= (int)height) {
 		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
 		return ivec4(-1);
 	}
 	y = height - 1 - y;
-	int r = data[(y*width + x)*3 + 0];
+	int r = data[(y*width + x)*3 + 2];
 	int g = data[(y*width + x)*3 + 1];
-	int b = data[(y*width + x)*3 + 2];
+	int b = data[(y*width + x)*3 + 0];
 	if (r == color_key.x && g == color_key.y && b == color_key.z) {
 		return ivec4(0);
 	} else {
@@ -131,12 +181,12 @@ void BMP::set_pixel(int x, int y, ivec3 color) {
 		return;
 	}
 	y = height - 1 - y;
-	data[(y*width + x)*3 + 0] = color.x;
+	data[(y*width + x)*3 + 2] = color.x;
 	data[(y*width + x)*3 + 1] = color.y;
-	data[(y*width + x)*3 + 2] = color.z;
+	data[(y*width + x)*3 + 0] = color.z;
 }
 
-GLuint BMP::generate_texture() {
+GLuint BMP::generate_texture(bool mipmapped) {
 	bool using_color_key = false;
 	if (color_key.x >= 0) {
 		using_color_key = true;
@@ -169,9 +219,17 @@ GLuint BMP::generate_texture() {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, &data[0]);
 	}
 
-	// Poor filtering, or ...
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	if (mipmapped) {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 3);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 4.0f);
+
+		glGenerateMipmap(GL_TEXTURE_2D);
+	} else {
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
+	}
 	
 	/*
 	// ... nice trilinear filtering ...

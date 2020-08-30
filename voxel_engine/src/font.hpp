@@ -19,6 +19,7 @@ public:
     GLuint shader_id;
     std::map<char, Character> characters;
     Font(const char* font_path);
+    int get_width(const char* text);
     void render(ivec2 dimensions, ivec2 location, float scale, const char* text, ivec3 color);
 };
 

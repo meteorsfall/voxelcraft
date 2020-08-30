@@ -21,13 +21,14 @@ Font::Font(const char* font_path) {
     
     for (unsigned char c = 0; c < 128; c++)
     {
-        // load character glyph 
+        // Load character glyph 
         if (FT_Load_Char(face, c, FT_LOAD_RENDER))
         {
             std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
             continue;
         }
-        // generate texture
+
+        // Generate texture
         unsigned int texture;
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
@@ -42,12 +43,14 @@ Font::Font(const char* font_path) {
             GL_UNSIGNED_BYTE,
             face->glyph->bitmap.buffer
         );
-        // set texture options
+
+        // Set texture options
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        // now store character for later use
+        
+        // Now store character for later use
         Character character = {
             texture,
             glm::ivec2(face->glyph->bitmap.width, face->glyph->bitmap.rows),
@@ -61,6 +64,19 @@ Font::Font(const char* font_path) {
     FT_Done_FreeType(ft);
     
     this->shader_id = load_shaders("assets/shaders/font.vert", "assets/shaders/font.frag");
+}
+
+int Font::get_width(const char* text) {
+    int width = 0;
+
+    int len = strlen(text);
+    for(int i = 0; i < len; i++) {
+        char c = text[i];
+        Character ch = this->characters[c];
+        width += (ch.Advance >> 6);
+    }
+
+    return width;
 }
 
 void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* text, ivec3 color) {
@@ -93,7 +109,6 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
     for (int i = 0; i < len; i++)
     {
         char c = text[i];
-
         Character ch = this->characters[c];
 
         float xpos = location.x + ch.Bearing.x * scale;
