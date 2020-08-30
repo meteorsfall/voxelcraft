@@ -147,16 +147,22 @@ int main( void )
 		
 		// Render UI
 		main_ui.iterate(input_state, width, height);
+		if (main_ui.exiting) break;
 		main_ui.render();
 
 		// Restore gl settings
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 
+		static float last_frame_time = 0.0;
+		//printf("Frame Time: %f\n", (glfwGetTime() - last_frame_time)*1000);
+
         // ********************
         // Display the image buffer
         // ********************
 		glfwSwapBuffers(window);
+
+		last_frame_time = glfwGetTime();
 	}
 
 	// Close OpenGL window and terminate GLFW

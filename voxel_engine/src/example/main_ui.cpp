@@ -1,7 +1,5 @@
 #include "main_ui.hpp"
 
-extern bool paused;
-
 MainUI::MainUI(Game* game) {
     // Initialization of main UI stuff
     this->game = game;
@@ -12,6 +10,8 @@ MainUI::MainUI(Game* game) {
     for(int i = 0; i < 4; i++) {
         this->buttons.push_back(UI_Element("assets/images/save_button.bmp"));
     }
+
+    menu = MenuState::MainMenu;
 }
 
 void MainUI::iterate(InputState& input, int width, int height) {
@@ -32,15 +32,62 @@ void MainUI::iterate(InputState& input, int width, int height) {
      && input.left_mouse == InputButtonState::PRESS
      && game->paused == true) {
         game->paused = false;
+        // We're unpausing, but setting up to open the main menu if the user presses ESC again
+        menu = MenuState::MainMenu;
     }
 
+    int clicked_button = -1;
+
     if (input.left_mouse == InputButtonState::PRESS && game->paused == true) {
-        if (buttons[0].intersect(input.mouse_pos)) {
-            game->paused = false;
-        } else {
-            for(int i = 0; i < 4; i++) {
-                //UI_Element& ele
+        for(int i = 0; i < buttons.size(); i++) {
+            if (buttons[i].intersect(input.mouse_pos)) {
+                printf("Clicked %d!\n", i);
+                clicked_button = i;
             }
+        }
+    }
+
+    if (clicked_button >= 0) {
+        switch(menu) {
+        case MenuState::MainMenu:
+            if (clicked_button == 0) {
+                game->paused = false;
+            } else if (clicked_button == 1) {
+                //menu = MenuState::SaveMenu;
+            } else if (clicked_button == 2) {
+                //menu = MenuState::LoadMenu;
+            } else if (clicked_button == 3) {
+                //menu = MenuState::NewMenu;
+            } else if (clicked_button == 4) {
+                exiting = true;
+            }
+            break;
+        case MenuState::SaveMenu:
+            if (clicked_button == 0) {
+                menu = MenuState::MainMenu;
+            } else if (clicked_button == 1) {
+                //menu = MenuState::SaveMenu;
+            } else if (clicked_button == 2) {
+                //menu = MenuState::LoadMenu;
+            } else if (clicked_button == 3) {
+                //menu = MenuState::NewMenu;
+            } else if (clicked_button == 4) {
+                exiting = true;
+            }
+            break;
+        case MenuState::LoadMenu:
+            if (clicked_button == 0) {
+                menu = MenuState::MainMenu;
+            } else if (clicked_button == 1) {
+                //menu = MenuState::SaveMenu;
+            } else if (clicked_button == 2) {
+                //menu = MenuState::LoadMenu;
+            } else if (clicked_button == 3) {
+                //menu = MenuState::NewMenu;
+            } else if (clicked_button == 4) {
+                exiting = true;
+            }
+            break;
         }
     }
 
@@ -51,12 +98,36 @@ void MainUI::render() {
     crosshair.render();
 	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 
-    vector<const char*> texts = {
+    vector<const char*> main_menu_text = {
         "Play",
         "Save Game",
         "Load Game",
         "New Game",
         "Exit"
+    };
+    
+    vector<const char*> save_game_text = {
+        "Return",
+        "Game 1",
+        "Game 2",
+        "Game 3",
+        "Save Game"
+    };
+
+    vector<const char*> load_game_text = {
+        "Return",
+        "Game 1",
+        "Game 2",
+        "Game 3",
+        "Load Game"
+    };
+
+    vector<const char*> new_game_text = {
+        "Return",
+        "Game 1",
+        "Game 2",
+        "Game 3",
+        "New Game"
     };
    
     if(game->paused){
@@ -64,8 +135,25 @@ void MainUI::render() {
         for(int i = 0; i < buttons.size(); i++) {
             UI_Element& elem = buttons[i];
             elem.render();
-            int width = font.get_width(texts[i]);
-            TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-width*font_scale/2,8), font_scale, texts[i], ivec3(255));
+
+            const char* text;
+            switch(menu) {
+            case MenuState::MainMenu:
+                text = main_menu_text[i];
+                break;
+            case MenuState::SaveMenu:
+                text = save_game_text[i];
+                break;
+            case MenuState::LoadMenu:
+                text = load_game_text[i];
+                break;
+            case MenuState::NewMenu:
+                text = new_game_text[i];
+                break;
+            }
+
+            int width = font.get_width(main_menu_text[i]);
+            TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-width*font_scale/2,8), font_scale, main_menu_text[i], ivec3(255));
         }
     }
 }
