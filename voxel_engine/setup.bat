@@ -4,6 +4,8 @@ Rem powershell.exe -nologo -noprofile -command "& { $shell = New-Object -COM She
 CALL :import bin.zip "https://www.dropbox.com/s/ob70jwjonhm9rek/bin.zip?dl=1"
 CALL :import lib.zip "https://www.dropbox.com/s/uehggk5i7yymmg9/lib.zip?dl=1"
 CALL :import include.zip "https://www.dropbox.com/s/tcpgqpx9taj1d31/include.zip?dl=1"
+cnmake
+nmake debug
 EXIT /B 0
 
 :import

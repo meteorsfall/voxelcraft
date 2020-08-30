@@ -51,14 +51,20 @@ void MainUI::render() {
     crosshair.render();
 	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 
-    //vector<string> texts
+    vector<const char*> texts = {
+        "Load Game",
+        "Save Game",
+        "Restart World",
+        "Exit"
+    };
    
     if(game->paused){
         play_button.render();
         TextureRenderer::render_text(font, play_button.location + play_button.size / 2 + ivec2(-20,8), 0.3f, "Play", ivec3(255));
-        for(UI_Element& elem : buttons) {
+        for(int i = 0; i < buttons.size(); i++) {
+            UI_Element& elem = buttons[i];
             elem.render();
-            TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-20,8), 0.3f, "Play", ivec3(255));
+            TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-20,8), 0.3f, texts[i], ivec3(255));
         }
     }
 }
