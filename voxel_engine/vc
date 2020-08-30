@@ -1,2 +1,2 @@
 #!/bin/bash
-catchsegv ./build/debug/vc
+catchsegv ./build/debug/vc 2>&1 2>output.log

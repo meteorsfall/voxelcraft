@@ -121,5 +121,6 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
         location.x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64)
     }
 
+    glDeleteBuffers(1, &VBO);
     glDisable(GL_BLEND);
 }

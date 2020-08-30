@@ -9,6 +9,7 @@ public:
     Game* game;
     UI_Element crosshair;
     UI_Element play_button;
+    vector<UI_Element> buttons;
     ivec2 screen;
     Font font = Font("assets/fonts/pixel.ttf");
     MainUI(Game* game);

@@ -82,7 +82,7 @@ InputState InputHandler::handle_input(bool relative_mouse) {
     } else {
         next_input.mouse_pos = ivec2(xpos, ypos);
     }
-    
+
     // next_input.keys is handled in the key callback
     InputState input = next_input;
 
