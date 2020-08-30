@@ -15,9 +15,9 @@ float mip_map_level(in vec2 texture_coordinate) // in texel units
 {
     vec2  dx_vtc        = dFdx(texture_coordinate);
     vec2  dy_vtc        = dFdy(texture_coordinate);
-    float delta_max_sqr = max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc));
-    float mml = 0.5 * log2(delta_max_sqr);
-    return max( 0, mml ); // Thanks @Nims
+    float delta_max_sqr = sqrt(max(dot(dx_vtc, dx_vtc), dot(dy_vtc, dy_vtc)));
+    float lod = max( 0, 0.5 * log2(delta_max_sqr) - 1.0 );
+    return lod; // Thanks @Nims
 }
 
 // Source: https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
@@ -29,9 +29,10 @@ vec4 texturePixelAA(sampler2D tex, vec2 uv, vec2 w, vec2 texsize, float mm) {
 }
 
 void main() {
-    float mm = mip_map_level(extrapolated_uv);
+    float mm = mip_map_level(extrapolated_uv * textureSize(my_texture, 0));
+    //float mm = textureQueryLod(my_texture, extrapolated_uv).x;
     float lower_mm = min(floor(mm), 3.0);
-    float higher_mm = min(floor(mm), 3.0);
+    float higher_mm = min(ceil(mm), 3.0);
 
     vec2 lower_texture_size = textureSize(my_texture, int(lower_mm + 0.5));
     vec2 higher_texture_size = textureSize(my_texture, int(higher_mm + 0.5));
