@@ -154,7 +154,7 @@ int main( void )
 		glDisable(GL_BLEND);
 		glDepthMask(GL_TRUE);
 
-		static float last_frame_time = 0.0;
+		//static float last_frame_time = 0.0;
 		//printf("Frame Time: %f\n", (glfwGetTime() - last_frame_time)*1000);
 
         // ********************
@@ -162,7 +162,7 @@ int main( void )
         // ********************
 		glfwSwapBuffers(window);
 
-		last_frame_time = glfwGetTime();
+		//last_frame_time = glfwGetTime();
 	}
 
 	// Close OpenGL window and terminate GLFW

@@ -27,19 +27,11 @@ void MainUI::iterate(InputState& input, int width, int height) {
         elem.location = top_button + i*ivec2(0, button_size.y + 35);
         elem.size = button_size;
     }
-    
-    if (buttons[0].intersect(input.mouse_pos)
-     && input.left_mouse == InputButtonState::PRESS
-     && game->paused == true) {
-        game->paused = false;
-        // We're unpausing, but setting up to open the main menu if the user presses ESC again
-        menu = MenuState::MainMenu;
-    }
 
     int clicked_button = -1;
 
     if (input.left_mouse == InputButtonState::PRESS && game->paused == true) {
-        for(int i = 0; i < buttons.size(); i++) {
+        for(int i = 0; i < (int)buttons.size(); i++) {
             if (buttons[i].intersect(input.mouse_pos)) {
                 printf("Clicked %d!\n", i);
                 clicked_button = i;
@@ -53,16 +45,29 @@ void MainUI::iterate(InputState& input, int width, int height) {
             if (clicked_button == 0) {
                 game->paused = false;
             } else if (clicked_button == 1) {
+                menu = MenuState::SaveMenu;
+            } else if (clicked_button == 2) {
+                menu = MenuState::LoadMenu;
+            } else if (clicked_button == 3) {
+                menu = MenuState::NewMenu;
+            } else if (clicked_button == 4) {
+                exiting = true;
+            }
+            break;
+        case MenuState::SaveMenu:
+            if (clicked_button == 0) {
+                printf("Main\n");
+                menu = MenuState::MainMenu;
+            } else if (clicked_button == 1) {
                 //menu = MenuState::SaveMenu;
             } else if (clicked_button == 2) {
                 //menu = MenuState::LoadMenu;
             } else if (clicked_button == 3) {
                 //menu = MenuState::NewMenu;
             } else if (clicked_button == 4) {
-                exiting = true;
             }
             break;
-        case MenuState::SaveMenu:
+        case MenuState::LoadMenu:
             if (clicked_button == 0) {
                 menu = MenuState::MainMenu;
             } else if (clicked_button == 1) {
@@ -75,7 +80,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
                 exiting = true;
             }
             break;
-        case MenuState::LoadMenu:
+        case MenuState::NewMenu:
             if (clicked_button == 0) {
                 menu = MenuState::MainMenu;
             } else if (clicked_button == 1) {
@@ -132,11 +137,11 @@ void MainUI::render() {
    
     if(game->paused){
         float font_scale = 0.3f;
-        for(int i = 0; i < buttons.size(); i++) {
+        for(int i = 0; i < (int)buttons.size(); i++) {
             UI_Element& elem = buttons[i];
             elem.render();
 
-            const char* text;
+            const char* text = NULL;
             switch(menu) {
             case MenuState::MainMenu:
                 text = main_menu_text[i];
@@ -152,8 +157,8 @@ void MainUI::render() {
                 break;
             }
 
-            int width = font.get_width(main_menu_text[i]);
-            TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-width*font_scale/2,8), font_scale, main_menu_text[i], ivec3(255));
+            int width = font.get_width(text);
+            TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-width*font_scale/2,8), font_scale, text, ivec3(255));
         }
     }
 }
