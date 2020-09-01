@@ -5,8 +5,8 @@
 #include "block.hpp"
 #include "texture_atlasser.hpp"
 
-using fn_get_block = std::function<Block*(int, int, int)>;
-using fn_get_blocktype = std::function<BlockType*(int)>;
+using fn_get_block = function<Block*(int, int, int)>;
+using fn_get_blocktype = function<BlockType*(int)>;
 
 #define CHUNK_SIZE 16
 #define SERIALIZED_CHUNK_SIZE (CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*3)

@@ -69,7 +69,7 @@ include_directories(${FREETYPE_INCLUDE_DIRS})
 add_executable(pixel_helper pixel_helper_src/main.cpp)
 target_link_libraries(pixel_helper)
 
-add_executable(vc src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp)
+add_executable(vc src/main.cpp src/utils.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp)
 
 if (WIN32)
 target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 freetype)

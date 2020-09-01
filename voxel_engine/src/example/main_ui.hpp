@@ -3,12 +3,12 @@
 
 #include "main_game.hpp"
 #include "../UI.hpp"
+#include "page_ui.hpp"
 
 enum MenuState {
     MainMenu,
     SaveMenu,
     LoadMenu,
-    NewMenu,
 };
 
 class MainUI : UI {
@@ -23,6 +23,11 @@ private:
     MenuState menu;
     UI_Element crosshair;
     UI_Element play_button;
+
+    PageUI main_menu;
+    PageUI save_menu;
+    PageUI load_menu;
+
     vector<UI_Element> buttons;
     ivec2 screen;
     Font font = Font("assets/fonts/pixel.ttf");

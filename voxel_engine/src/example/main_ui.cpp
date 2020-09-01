@@ -6,10 +6,15 @@ MainUI::MainUI(Game* game) {
     this->crosshair = UI_Element("assets/images/crosshair.bmp");
     crosshair.size = ivec2(25);
 
-    this->buttons.push_back(UI_Element("assets/images/boxes_test.bmp"));
-    for(int i = 0; i < 4; i++) {
-        this->buttons.push_back(UI_Element("assets/images/save_button.bmp"));
-    }
+
+    main_menu.buttons = {
+        Button(UI_Element("assets/images/boxes_test.bmp"), "Player", [this]() {
+            this->game->paused = false;
+        }),
+    };
+
+    //save_menu = PageUI(main_menu);
+    //load_menu = PageUI(main_menu);
 
     menu = MenuState::MainMenu;
 }
@@ -20,6 +25,10 @@ void MainUI::iterate(InputState& input, int width, int height) {
     // Set crosshair position to center of screen
     crosshair.location = ivec2(width/2, height/2) - crosshair.size / 2;
     
+    // Position buttons on the visible page
+    PageUI& visible_page = menu == MenuState::MainMenu ? main_menu
+                        : (menu == MenuState::SaveMenu ? save_menu
+                        : load_menu);
     ivec2 button_size = ivec2(500, 65);
     ivec2 top_button = ivec2(width/2, height/4) - button_size/2;
     for(int i = 0; i < 5; i++) {
@@ -49,7 +58,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
             } else if (clicked_button == 2) {
                 menu = MenuState::LoadMenu;
             } else if (clicked_button == 3) {
-                menu = MenuState::NewMenu;
+                //menu = MenuState::NewMenu;
             } else if (clicked_button == 4) {
                 exiting = true;
             }
@@ -80,20 +89,6 @@ void MainUI::iterate(InputState& input, int width, int height) {
                 exiting = true;
             }
             break;
-        case MenuState::NewMenu:
-            if (clicked_button == 0) {
-                menu = MenuState::MainMenu;
-            } else if (clicked_button == 1) {
-                //menu = MenuState::SaveMenu;
-            } else if (clicked_button == 2) {
-                //menu = MenuState::LoadMenu;
-            } else if (clicked_button == 3) {
-                //menu = MenuState::NewMenu;
-            } else if (clicked_button == 4) {
-                exiting = true;
-            }
-            break;
-        }
     }
 
     screen = ivec2(width, height);
