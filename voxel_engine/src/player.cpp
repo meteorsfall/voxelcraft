@@ -1,7 +1,7 @@
 #include "player.hpp"
 #include "world.hpp"
 
-static vec3 camera_relative_to_player = vec3(0.0, 1.77, 0.0);
+static vec3 camera_relative_to_player = vec3(0.0, 1.67, 0.0);
 
 const float TERMINAL_VELOCITY = 53.0;
 
@@ -66,7 +66,7 @@ void Player::rotate(vec2 change) {
 AABB Player::get_collision_box() {
     float width = 0.35;
     //float breadth = 0.15;
-    return AABB(this->position - vec3(width, 0.0, width), this->camera.position + vec3(width, 0.0, width));
+    return AABB(this->position - vec3(width, 0.0, width), this->camera.position + vec3(width, 0.15, width));
 }
 
 fn_on_collide Player::get_on_collide() {

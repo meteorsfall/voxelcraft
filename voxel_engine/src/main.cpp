@@ -116,6 +116,7 @@ int main( void )
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_BLEND);
 		// Accept fragment if it closer to the camera than the former one
 		glDepthFunc(GL_LESS);
 
@@ -141,7 +142,7 @@ int main( void )
         // ********************
 
 		// Setup transparency and disable depth buffer writing
-		glDepthMask(GL_FALSE);
+		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
@@ -149,10 +150,6 @@ int main( void )
 		main_ui.iterate(input_state, width, height);
 		if (main_ui.exiting) break;
 		main_ui.render();
-
-		// Restore gl settings
-		glDisable(GL_BLEND);
-		glDepthMask(GL_TRUE);
 
 		//static float last_frame_time = 0.0;
 		//printf("Frame Time: %f\n", (glfwGetTime() - last_frame_time)*1000);
