@@ -38,11 +38,14 @@ int main( void )
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWmonitor* MyMonitor =  glfwGetPrimaryMonitor(); // The primary monitor.. Later Occulus?..
+	GLFWmonitor* primary_monitor =  glfwGetPrimaryMonitor(); // The primary monitor.. Later Occulus?..
+	
+	int monitor_x, monitor_y;
+	glfwGetMonitorPos(primary_monitor, &monitor_x, &monitor_y);
 
-	const GLFWvidmode* mode = glfwGetVideoMode(MyMonitor);
-	width = mode->width;
-	height = mode->height;
+	const GLFWvidmode* mode = glfwGetVideoMode(primary_monitor);
+	width = mode->width * 2 / 3;
+	height = mode->height * 2 / 3;
 
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( width, height, "VoxelCraft", NULL, NULL);
@@ -52,6 +55,11 @@ int main( void )
 		glfwTerminate();
 		return -1;
 	}
+	// Move window to the center of the monitor
+	glfwSetWindowPos(window,
+		monitor_x + (mode->width - width) / 2,
+		monitor_y + (mode->height - height) / 2);
+	
 	glfwMakeContextCurrent(window);
 	glfwSetWindowSizeCallback(window, resize_callback);
 
