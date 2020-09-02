@@ -214,11 +214,6 @@ void BMP::set_pixel(int x, int y, ivec4 color) {
 }
 
 GLuint BMP::generate_texture(bool mipmapped) {
-	bool using_color_key = false;
-	if (color_key.x >= 0) {
-		using_color_key = true;
-	}
-
 	// Create one OpenGL texture
 	GLuint textureID;
 	glGenTextures(1, &textureID);

@@ -1,7 +1,9 @@
 #include "main_game.hpp"
+#include "world_gen.hpp"
 #include <fstream>
 #include <filesystem>
 
+int air_block = 0;
 int dirt_block;
 int stone_block;
 int log_block;
@@ -51,6 +53,8 @@ void Game::load_world(const char* filename) {
 }
 
 Game::Game() {
+    srand (time(NULL));
+
     int stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
     int dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
     int log_texture = get_universe()->register_atlas_texture("assets/images/log.bmp");
@@ -86,6 +90,14 @@ void Game::restart_world() {
                 } else {
                     world.set_block(i,j,k, dirt_block);
                 }
+            }
+        }
+    }
+
+    for(int i = -radius*CHUNK_SIZE; i <= radius*CHUNK_SIZE; i++) {
+        for(int k = -radius*CHUNK_SIZE; k <= radius*CHUNK_SIZE; k++) {
+            if (rand() % 50 == 0) {
+                generate_random_tree(world, ivec3(i, CHUNK_SIZE, k));
             }
         }
     }

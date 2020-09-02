@@ -99,7 +99,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
         // Position the buttons of the given page
         ivec2 button_size = ivec2(500, 65);
         ivec2 top_button = ivec2(width/2, height/4) - button_size/2;
-        for(int i = 0; i < page.buttons.size(); i++) {
+        for(int i = 0; i < (int)page.buttons.size(); i++) {
             UI_Element& elem = page.buttons.at(i).elem;
             elem.location = top_button + i*ivec2(0, button_size.y + 35);
             elem.size = button_size;
