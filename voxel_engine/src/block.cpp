@@ -35,6 +35,12 @@ BlockType::BlockType(int texture) {
 }
 
 void BlockType::render(Texture* texture, vec3 &position, mat4 &PV, float break_amount) {
+    UNUSED(texture);
+    UNUSED(position);
+    UNUSED(PV);
+    UNUSED(break_amount);
+    printf("No more individual-block rendering!\n");
+    /*
     glUseProgram(texture->shader_id);
     
     GLuint shader_texture_id = glGetUniformLocation(texture->shader_id, "my_texture");
@@ -68,4 +74,5 @@ void BlockType::render(Texture* texture, vec3 &position, mat4 &PV, float break_a
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+    */
 }

@@ -8,15 +8,17 @@
 
 class TextureRenderer {
 public:
+    static void render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size);
+    static void render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color);
+
+    TextureRenderer();
+    void set_window_dimensions(int width, int height);
+    void internal_render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size);
+private:
     GLuint vertex_buffer;
     GLuint uv_buffer;
     int width;
     int height;
-    TextureRenderer();
-    void set_window_dimensions(int width, int height);
-    void internal_render(Texture& texture, ivec2 top_left, ivec2 size);
-    static void render(Texture& texture, ivec2 top_left, ivec2 size);
-    static void render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color);
 };
 
 TextureRenderer* get_texture_renderer();

@@ -2,13 +2,13 @@
 #include "gl_utils.hpp"
 
 UI_Element::UI_Element() {}
-UI_Element::UI_Element(BMP image) {
+UI_Element::UI_Element(BMP& image) {
     image.color_key = ivec3(255, 0, 255);
-    this->texture = Texture(image, "assets/shaders/ui.vert", "assets/shaders/ui.frag");
+    this->texture = Texture(image);
 }
 
 void UI_Element::render() {
-    TextureRenderer::render(this->texture, this->location, this->size);
+    TextureRenderer::render(this->texture, get_universe()->get_ui_shader(), this->location, this->size);
 }
 
 bool UI_Element::intersect(ivec2 position) {

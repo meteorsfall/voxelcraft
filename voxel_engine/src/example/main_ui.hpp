@@ -20,13 +20,14 @@ public:
 
     bool exiting = false;
 private:
-    MenuState menu;
     UI_Element crosshair;
     UI_Element play_button;
 
+    MenuState menu;
     PageUI main_menu;
     PageUI save_menu;
     PageUI load_menu;
+    int game_selected;
 
     vector<UI_Element> buttons;
     ivec2 screen;

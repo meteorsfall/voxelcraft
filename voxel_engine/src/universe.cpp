@@ -1,4 +1,5 @@
 #include "universe.hpp"
+#include "gl_utils.hpp"
 
 Universe main_universe;
 
@@ -12,6 +13,13 @@ BlockType* Universe::get_block_type(int block_type_id) {
 
 TextureAtlasser* Universe::get_atlasser() {
     return &this->atlasser;
+}
+
+GLuint Universe::get_ui_shader() {
+    if (!ui_shader) {
+        ui_shader = {load_shaders("assets/shaders/ui.vert", "assets/shaders/ui.frag")};
+    }
+    return ui_shader.value();
 }
 
 int Universe::register_texture(const char* texture_path) {

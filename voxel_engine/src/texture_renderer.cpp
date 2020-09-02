@@ -21,7 +21,7 @@ void TextureRenderer::set_window_dimensions(int width, int height) {
 }
 
 // Width and height should range between 0.0 and 1.0
-void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 size) {
+void TextureRenderer::internal_render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size) {
     int width = size.x;
     int height = size.y;
 
@@ -40,14 +40,14 @@ void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 si
     mat4 MVP = translate(model, vec3(center.x / x_scale, center.y / y_scale, 0.0));
 
     // Set shader
-    glUseProgram(texture.shader_id);
+    glUseProgram(shader_id);
 
     // Set shader texture
-    GLuint shader_texture_id = glGetUniformLocation(texture.shader_id, "my_texture");
+    GLuint shader_texture_id = glGetUniformLocation(shader_id, "my_texture");
     bind_texture(0, shader_texture_id, texture.opengl_texture_id);
     
     // Pass in the model matrix
-    GLuint matrix_shader_pointer = glGetUniformLocation(texture.shader_id, "MVP");
+    GLuint matrix_shader_pointer = glGetUniformLocation(shader_id, "MVP");
     glUniformMatrix4fv(matrix_shader_pointer, 1, GL_FALSE, &MVP[0][0]);
     
     // Draw nothing, see you in tutorial 2 !
@@ -64,8 +64,8 @@ void TextureRenderer::internal_render(Texture& texture, ivec2 top_left, ivec2 si
     glDisableVertexAttribArray(1);
 }
 
-void TextureRenderer::render(Texture& texture, ivec2 top_left, ivec2 size) {
-    get_texture_renderer()->internal_render(texture, top_left, size);
+void TextureRenderer::render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size) {
+    get_texture_renderer()->internal_render(texture, shader_id, top_left, size);
 }
 
 
