@@ -48,8 +48,8 @@ void load(World& world) {
 }
 
 Game::Game() {
-    int stone_texture = get_universe()->register_texture("assets/images/stone.bmp");
-    int dirt_texture = get_universe()->register_texture("assets/images/dirt.bmp");
+    int stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
+    int dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
  
     stone_block = get_universe()->register_blocktype(stone_texture);
     dirt_block = get_universe()->register_blocktype(dirt_texture);
@@ -151,7 +151,7 @@ void Game::place_block(int block) {
     if (block == 0) {
         return;
     }
-    
+
     optional<ivec3> target_block = world.raycast(player.camera.position, player.camera.get_direction(), 6.0, true);
 
     if (target_block) {

@@ -2,62 +2,62 @@
 
 MainUI::MainUI(Game* game) {
     // Initialization of main UI stuff
-    BMP crosshair_bmp = BMP("assets/images/crosshair.bmp");
-    BMP boxes_test = BMP("assets/images/boxes_test.bmp");
-    BMP button = BMP("assets/images/save_button.bmp");
+    int crosshair_texture = get_universe()->register_texture("assets/images/crosshair.bmp", ivec3(255, 0, 255));
+    int main_button_texture = get_universe()->register_texture("assets/images/boxes_test.bmp", ivec3(255, 0, 255));
+    int button_texture = get_universe()->register_texture("assets/images/save_button.bmp", ivec3(255, 0, 255));
 
     this->game = game;
-    this->crosshair = UI_Element(crosshair_bmp);
+    this->crosshair = UI_Element(crosshair_texture);
     crosshair.size = ivec2(25);
 
     main_menu.buttons = {
-        Button(UI_Element(boxes_test), "Play", [this]() {
+        Button(UI_Element(main_button_texture), "Play", [this]() {
             this->game->paused = false;
         }),
-        Button(UI_Element(button), "Save Game", [this]() {
+        Button(UI_Element(button_texture), "Save Game", [this]() {
             this->menu = MenuState::SaveMenu;
             this->game_selected = 1;
         }),
-        Button(UI_Element(button), "Load Game", [this]() {
+        Button(UI_Element(button_texture), "Load Game", [this]() {
             this->menu = MenuState::LoadMenu;
             this->game_selected = 1;
         }),
-        Button(UI_Element(button), "New Game", [this]() {
+        Button(UI_Element(button_texture), "New Game", [this]() {
             this->game->restart_world();
             this->game->paused = false;
         }),
-        Button(UI_Element(button), "Exit", [this]() {
+        Button(UI_Element(button_texture), "Exit", [this]() {
             this->exiting = true;
         })
     };
 
     save_menu.buttons = {
-        Button(UI_Element(boxes_test), "Back", [this]() {
+        Button(UI_Element(main_button_texture), "Back", [this]() {
             printf("Back!\n");
             this->menu = MenuState::MainMenu;
         }),
-        Button(UI_Element(button), "Game 1", [this]() {
+        Button(UI_Element(button_texture), "Game 1", [this]() {
         }),
-        Button(UI_Element(button), "Game 2", [this]() {
+        Button(UI_Element(button_texture), "Game 2", [this]() {
         }),
-        Button(UI_Element(button), "Game 3", [this]() {
+        Button(UI_Element(button_texture), "Game 3", [this]() {
         }),
-        Button(UI_Element(button), "Save", [this]() {
+        Button(UI_Element(button_texture), "Save", [this]() {
         })
     };
 
     load_menu.buttons = {
-        Button(UI_Element(boxes_test), "Back", [this]() {
+        Button(UI_Element(main_button_texture), "Back", [this]() {
             printf("Back!\n");
             this->menu = MenuState::MainMenu;
         }),
-        Button(UI_Element(button), "Game 1", [this]() {
+        Button(UI_Element(button_texture), "Game 1", [this]() {
         }),
-        Button(UI_Element(button), "Game 2", [this]() {
+        Button(UI_Element(button_texture), "Game 2", [this]() {
         }),
-        Button(UI_Element(button), "Game 3", [this]() {
+        Button(UI_Element(button_texture), "Game 3", [this]() {
         }),
-        Button(UI_Element(button), "Load", [this]() {
+        Button(UI_Element(button_texture), "Load", [this]() {
         })
     };
 

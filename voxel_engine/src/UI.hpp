@@ -9,14 +9,14 @@
 
 class UI_Element {
 public:
-    Texture texture;
-    string text;
     ivec2 location;
     ivec2 size;
     UI_Element();
-    UI_Element(BMP& image);
+    UI_Element(int texture);
     void render();
     bool intersect(ivec2 mouse_position);
+private:
+    int texture;
 };
 
 class UI {
