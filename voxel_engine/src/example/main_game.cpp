@@ -2,6 +2,9 @@
 #include <fstream>
 #include <filesystem>
 
+int dirt_block;
+int stone_block;
+
 void save(World& world) {
     auto [buffer, buffer_len] = world.serialize();
 
@@ -45,11 +48,25 @@ void load(World& world) {
 }
 
 Game::Game() {
-    int stone_texture = world.register_texture("assets/images/stone.bmp");
-    int dirt_texture = world.register_texture("assets/images/dirt.bmp");
+    int stone_texture = get_universe()->register_texture("assets/images/stone.bmp");
+    int dirt_texture = get_universe()->register_texture("assets/images/dirt.bmp");
  
-    int stone_block = world.register_blocktype(stone_texture);
-    int dirt_block = world.register_blocktype(dirt_texture);
+    stone_block = get_universe()->register_blocktype(stone_texture);
+    dirt_block = get_universe()->register_blocktype(dirt_texture);
+
+    last_space_release = this->last_time;
+
+    restart_world();
+
+    load(world);
+}
+
+Game::~Game() {
+    save(world);
+}
+
+void Game::restart_world() {
+    this->world = World();
 
     // 1-7, dirt 8-16 stone
     world.set_block(0, 0, 0, dirt_block);
@@ -69,15 +86,8 @@ Game::Game() {
         }
     }
 
+    this->player = Player();
 	player.hand = stone_block;
-
-    last_space_release = this->last_time;
-
-    load(world);
-}
-
-Game::~Game() {
-    save(world);
 }
 
 void Game::iterate(InputState& input) {
@@ -96,7 +106,7 @@ void Game::render() {
     mat4 PV = player.camera.get_camera_matrix(input.screen_dimensions.x / (float)input.screen_dimensions.y);
 
     // Render
-    world.render(PV);
+    world.render(PV, *get_universe()->get_atlasser());
 }
 
 const float MOVEMENT_SPEED = 5.0;
@@ -138,6 +148,10 @@ void Game::do_something() {
 }
 
 void Game::place_block(int block) {
+    if (block == 0) {
+        return;
+    }
+    
     optional<ivec3> target_block = world.raycast(player.camera.position, player.camera.get_direction(), 6.0, true);
 
     if (target_block) {

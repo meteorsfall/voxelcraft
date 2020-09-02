@@ -9,6 +9,9 @@ Block::Block() {
 
 Block::Block(int b) {
     this->block_type = b;
+    if (this->block_type < 0) {
+        throw "Bad block type!";
+    }
     this->break_amount = 0.0;
     this->neighbor_cache = 0;
 }

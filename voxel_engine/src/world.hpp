@@ -5,6 +5,7 @@
 #include "aabb.hpp"
 #include "chunk.hpp"
 #include "texture_atlasser.hpp"
+#include "universe.hpp"
 
 using fn_on_collide = std::function<void(vec3)>;
 
@@ -13,12 +14,8 @@ public:
     int world_id;
 
     vector<Chunk> chunks;
-    vector<BlockType> block_types;
 
     World();
-
-    int register_texture(const char* texture_path);
-    int register_blocktype(int texture_id);
 
     void refresh_block(int x, int y, int z);
     void set_block(int x, int y, int z, int block_type);
@@ -28,7 +25,7 @@ public:
     Chunk* get_chunk(int x, int y, int z);
     Chunk* make_chunk(int x, int y, int z);
 
-    void render(mat4 &PV);
+    void render(mat4 &PV, TextureAtlasser& atlasser);
 
     bool is_in_block(vec3 position);
 
@@ -40,9 +37,6 @@ public:
     pair<byte*, int> serialize();
 
     void deserialize(byte* buffer, int size);
-private:
-    GLuint opengl_atlas_texture;
-    TextureAtlasser atlasser;
 };
 
 #endif

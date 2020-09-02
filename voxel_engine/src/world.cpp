@@ -3,17 +3,6 @@
 World::World() {
 }
 
-int World::register_texture(const char* texture_path) {
-    return atlasser.add_bmp(BMP(texture_path));
-}
-
-int World::register_blocktype(int texture) {
-    // Block_ID starts at 1 and increments afterwards
-    block_types.push_back(BlockType(texture));
-    block_types.back().block_id = block_types.size();
-    return block_types.back().block_id;
-}
-
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
     ivec3 test = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
@@ -35,8 +24,8 @@ Chunk* World::make_chunk(int x, int y, int z) {
             return NULL;
         }
     }
-    chunks.push_back(Chunk(test, [this](int block_type) -> BlockType* {
-        return &this->block_types.at(block_type - 1);
+    chunks.push_back(Chunk(test, [](int block_type) -> BlockType* {
+        return get_universe()->get_block_type(block_type);
     }));
     return &chunks.back();
 }
@@ -78,7 +67,9 @@ Block* World::get_block(int x, int y, int z) {
     }
 }
 
-void World::render(mat4 &PV) {
+void World::render(mat4 &PV, TextureAtlasser& atlasser) {
+    atlasser.get_atlas_texture();
+    
     fn_get_block my_get_block = [this](int x, int y, int z) {
         return this->get_block(x, y, z);
     };

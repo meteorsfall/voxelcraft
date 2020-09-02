@@ -7,7 +7,7 @@
 
 class Player {
 public:
-    int hand;
+    int hand = 0;
     Camera camera;
 
     vec3 position;

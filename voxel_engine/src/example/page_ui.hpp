@@ -14,6 +14,7 @@ public:
     void on_click(fn_on_click on_click_function);
 private:
     fn_on_click on_click_function;
+    friend class PageUI;
 };
 
 class PageUI {
@@ -21,10 +22,9 @@ public:
     vector<Button> buttons;
 
     PageUI();
-    PageUI(PageUI& parent);
 
     void click(ivec2 position);
-    void render();
+    void render(Font& font);
 };
 
 #endif

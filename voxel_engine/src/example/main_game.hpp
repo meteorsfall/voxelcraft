@@ -13,6 +13,8 @@ public:
     void iterate(InputState& input);
     void render();
     Player player;
+
+    void restart_world();
     
     bool paused = false;
 private:
