@@ -11,12 +11,11 @@ class UI_Element {
 public:
     ivec2 location;
     ivec2 size;
+    int texture;
     UI_Element();
     UI_Element(int texture);
     void render();
     bool intersect(ivec2 mouse_position);
-private:
-    int texture;
 };
 
 class UI {

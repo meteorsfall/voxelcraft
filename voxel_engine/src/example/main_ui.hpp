@@ -27,7 +27,8 @@ private:
     PageUI main_menu;
     PageUI save_menu;
     PageUI load_menu;
-    int game_selected;
+    int save_selected;
+    int save_loaded = -1;
 
     vector<UI_Element> buttons;
     ivec2 screen;

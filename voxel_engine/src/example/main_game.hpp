@@ -15,6 +15,8 @@ public:
     Player player;
 
     void restart_world();
+    void load_world(const char* filename);
+    void save_world(const char* filename);
     
     bool paused = false;
 private:

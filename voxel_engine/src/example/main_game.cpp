@@ -5,14 +5,14 @@
 int dirt_block;
 int stone_block;
 
-void save(World& world) {
+void Game::save_world(const char* filename) {
     auto [buffer, buffer_len] = world.serialize();
 
     // Open save file
     std::error_code ec;
     std::filesystem::create_directory("saves", ec);
     std::ofstream save_file;
-    save_file.open("saves/save_state.save", std::ios::binary);
+    save_file.open(filename, std::ios::binary);
 
     // Write serialized world to the file
     save_file.write((char*)buffer, buffer_len);
@@ -21,11 +21,12 @@ void save(World& world) {
     delete[] buffer;
 }
 
-void load(World& world) {
+void Game::load_world(const char* filename) {
     // Open save file
     std::ifstream save_file;
-    save_file.open("saves/save_state.save", std::ios::binary);
+    save_file.open(filename, std::ios::binary);
     if (!save_file.good()) {
+        restart_world();
         return;
     }
 
@@ -57,12 +58,9 @@ Game::Game() {
     last_space_release = this->last_time;
 
     restart_world();
-
-    load(world);
 }
 
 Game::~Game() {
-    save(world);
 }
 
 void Game::restart_world() {
