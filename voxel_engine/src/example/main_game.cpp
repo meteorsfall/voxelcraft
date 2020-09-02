@@ -102,6 +102,12 @@ void Game::iterate(InputState& input) {
     if (paused) {
         return;
     }
+    if (input.keys[GLFW_KEY_1] == GLFW_PRESS) {
+        player.hand = leaf_block;
+    }
+    if (input.keys[GLFW_KEY_2] == GLFW_PRESS) {
+        player.hand = log_block;
+    }
     do_something();
 }
 

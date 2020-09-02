@@ -33,9 +33,6 @@ BMP* TextureAtlasser::get_atlas() {
 
                         // Set atlas pixel based on clamped origin bitmap
                         atlas.set_pixel(ii, jj, bmp.get_pixel(index_i-(i*tile_size+padding), index_j-(j*tile_size+padding)));
-                        if (atlas.get_pixel(ii, jj).a == 0) {
-                            printf("Transparent at (%d, %d)\n", ii, jj);
-                        }
                     }
                 }
 
