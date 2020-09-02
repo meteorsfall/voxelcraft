@@ -20,6 +20,8 @@ public:
 	ivec4 get_pixel(int x, int y);
 	// Set a pixel to a color
     void set_pixel(int x, int y, ivec3 color);
+	// Set a pixel to a color with alpha
+    void set_pixel(int x, int y, ivec4 color);
 	// Generate an OpenGL texture from the BMP
 	GLuint generate_texture(bool mipmapped = false);
 	// At this bmp's (x, y), paste another bmp

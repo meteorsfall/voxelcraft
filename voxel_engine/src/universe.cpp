@@ -22,8 +22,8 @@ GLuint Universe::get_ui_shader() {
     return ui_shader.value();
 }
 
-int Universe::register_atlas_texture(const char* texture_path) {
-    return atlasser.add_bmp(BMP(texture_path));
+int Universe::register_atlas_texture(const char* texture_path, ivec3 color_key) {
+    return atlasser.add_bmp(BMP(texture_path, color_key));
 }
 
 int Universe::register_texture(const char* texture_path, ivec3 color_key) {
@@ -35,9 +35,9 @@ Texture* Universe::get_texture(int texture_id) {
     return &textures.at(texture_id - 1);
 }
 
-int Universe::register_blocktype(int texture) {
+int Universe::register_blocktype(int texture, bool is_transparent) {
     // Block_ID starts at 1 and increments afterwards
-    block_types.push_back(BlockType(texture));
+    block_types.push_back(BlockType(texture, is_transparent));
     block_types.back().block_id = block_types.size();
     return block_types.back().block_id;
 }

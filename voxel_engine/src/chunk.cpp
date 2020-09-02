@@ -69,6 +69,11 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     set<int> textures;
     vector<pair<int, ivec2>> texture_choices;
 
+    auto is_opaque = [this](Block* b) {
+        // If it exists, and it's not transparent
+        return b && !this->get_block_type(b->block_type)->is_transparent;
+    };
+
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
@@ -86,22 +91,22 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                     // Keep 1 << 7 so that visible_neighbors remains true even if all-zero data
                     visible_neighbors = 1 << 7;
                     // If master_get_block doesn't exist, then it must be air, so we must display that face
-                    if (!master_get_block(position.x-1, position.y, position.z)) {
+                    if (!is_opaque(master_get_block(position.x-1, position.y, position.z))) {
                         visible_neighbors |= 1 << 0;
                     }
-                    if (!master_get_block(position.x+1, position.y, position.z)) {
+                    if (!is_opaque(master_get_block(position.x+1, position.y, position.z))) {
                         visible_neighbors |= 1 << 1;
                     }
-                    if (!master_get_block(position.x, position.y-1, position.z)) {
+                    if (!is_opaque(master_get_block(position.x, position.y-1, position.z))) {
                         visible_neighbors |= 1 << 2;
                     }
-                    if (!master_get_block(position.x, position.y+1, position.z)) {
+                    if (!is_opaque(master_get_block(position.x, position.y+1, position.z))) {
                         visible_neighbors |= 1 << 3;
                     }
-                    if (!master_get_block(position.x, position.y, position.z-1)) {
+                    if (!is_opaque(master_get_block(position.x, position.y, position.z-1))) {
                         visible_neighbors |= 1 << 4;
                     }
-                    if (!master_get_block(position.x, position.y, position.z+1)) {
+                    if (!is_opaque(master_get_block(position.x, position.y, position.z+1))) {
                         visible_neighbors |= 1 << 5;
                     }
                     blocks[i][j][k].neighbor_cache = visible_neighbors;

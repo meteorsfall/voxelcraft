@@ -11,10 +11,12 @@ public:
     GLuint vertex_buffer;
     GLuint uv_buffer;
 
-    short block_id;
-    short texture;
+    int block_id;
+    
+    int texture;
+    bool is_transparent;
 
-    BlockType(int texture);
+    BlockType(int texture, bool is_transparent);
 
     void render(Texture* texture, vec3 &position, mat4 &PV, float break_amount);
 };

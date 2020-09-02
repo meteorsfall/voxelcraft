@@ -7,7 +7,7 @@ BMP::BMP() {
 BMP::BMP(int width, int height) {
     this->width = width;
     this->height = height;
-    data.resize(width*height*3);
+    data.resize(width*height*4);
 }
 
 BMP::BMP(const char* imagepath, ivec3 color_key) {
@@ -64,11 +64,8 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 	this->height = *(int*)&(header[0x16]);
 
 	// Some BMP files are misformatted, guess missing information
-	if (imageSize==0)    imageSize=width*height*3; // 3 : one byte for each Red, Green and Blue component
-	if (dataPos==0)      dataPos=54; // The BMP header is done that way
-
-	// Create a buffer
-	data.resize(imageSize);
+	if (imageSize==0)    imageSize=width*height*3; // 3 : R, G, and B
+	if (dataPos==0)      dataPos=54; // BMP Header is 54 bytes total
 
 	if (imageSize < width*height*3) {
 		printf("Not enough space! %d for %dx%d\n", imageSize, width, height);
@@ -79,16 +76,20 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 		return;
 	}
 
+	// Create a buffer
+	byte* raw_data = new byte[imageSize];
+
 	// Read the actual data from the file into the buffer
     fseek(file, dataPos, SEEK_SET);
-	if ((int)fread(&data[0],1,imageSize,file) != imageSize) {
+	if ((int)fread(raw_data, 1, imageSize, file) != imageSize) {
 		printf("Bad fread of %d bytes!", imageSize);
 		fclose(file);
-        data.resize(0);
-        data.shrink_to_fit();
+		delete[] raw_data;
 		this->valid = false;
 		return;
 	}
+
+	data.resize(width*height*4);
 
 	// Shift bytes to remove padding
 	{
@@ -98,15 +99,26 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 		while (line_size % 4 != 0) line_size++;
 
 		for(int i = 0; i < height; i++) {
-			for(int j = 0; j < 3*width; j++) {
-				data[i*(3*width) + j] = data[index++];
+			for(int j = 0; j < width; j++) {
+				data[(i*width + j)*4 + 2] = raw_data[index++]; // B
+				data[(i*width + j)*4 + 1] = raw_data[index++]; // G
+				data[(i*width + j)*4 + 0] = raw_data[index++]; // R
+				// A
+				if (color_key.x == data[(i*width + j)*4 + 0]
+			     && color_key.y == data[(i*width + j)*4 + 1]
+			     && color_key.z == data[(i*width + j)*4 + 2]) {
+					data[(i*width + j)*4 + 3] = 0;
+				} else {
+					data[(i*width + j)*4 + 3] = 255;
+				}
 			}
 			index += line_size - 3*width;
 		}
 	}
 
 	// Everything is in memory now, the file can be closed.
-	fclose (file);
+	fclose(file);
+	delete[] raw_data;
 	this->valid = true;
 }
 
@@ -146,9 +158,9 @@ void BMP::save(const char* filename) {
 	int index = 0;
 	for(int j = 0; j < height; j++) {
 		for(int i = 0; i < width; i++) {
-			file_data[index++] = data[(j*width + i)*3 + 0];
-			file_data[index++] = data[(j*width + i)*3 + 1];
-			file_data[index++] = data[(j*width + i)*3 + 2];
+			file_data[index++] = data[(j*width + i)*4 + 2]; // B
+			file_data[index++] = data[(j*width + i)*4 + 1]; // G
+			file_data[index++] = data[(j*width + i)*4 + 0]; // R
 		}
 		while(index % 4 != 0) {
 			index++;
@@ -165,14 +177,11 @@ ivec4 BMP::get_pixel(int x, int y) {
 		return ivec4(-1);
 	}
 	y = height - 1 - y;
-	int r = data[(y*width + x)*3 + 2];
-	int g = data[(y*width + x)*3 + 1];
-	int b = data[(y*width + x)*3 + 0];
-	if (r == color_key.x && g == color_key.y && b == color_key.z) {
-		return ivec4(0);
-	} else {
-		return ivec4(r, g, b, 1);
-	}
+	int r = data[(y*width + x)*4 + 0]; // R
+	int g = data[(y*width + x)*4 + 1]; // G
+	int b = data[(y*width + x)*4 + 2]; // B
+	int a = data[(y*width + x)*4 + 3]; // A
+	return ivec4(r, g, b, a);
 }
 
 void BMP::set_pixel(int x, int y, ivec3 color) {
@@ -181,9 +190,27 @@ void BMP::set_pixel(int x, int y, ivec3 color) {
 		return;
 	}
 	y = height - 1 - y;
-	data[(y*width + x)*3 + 2] = color.x;
-	data[(y*width + x)*3 + 1] = color.y;
-	data[(y*width + x)*3 + 0] = color.z;
+	data[(y*width + x)*4 + 0] = color.x; // R
+	data[(y*width + x)*4 + 1] = color.y; // G
+	data[(y*width + x)*4 + 2] = color.z; // B
+	// A
+	if (color == color_key) {
+		data[(y*width + x)*4 + 3] = 0;
+	} else {
+		data[(y*width + x)*4 + 3] = 255;
+	}
+}
+
+void BMP::set_pixel(int x, int y, ivec4 color) {
+	if (x < 0 || x >= (int)width || y < 0 || y >= (int)height) {
+		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
+		return;
+	}
+	y = height - 1 - y;
+	data[(y*width + x)*4 + 0] = color.x; // R
+	data[(y*width + x)*4 + 1] = color.y; // G
+	data[(y*width + x)*4 + 2] = color.z; // B
+	data[(y*width + x)*4 + 3] = color.w; // A
 }
 
 GLuint BMP::generate_texture(bool mipmapped) {
@@ -199,29 +226,13 @@ GLuint BMP::generate_texture(bool mipmapped) {
 	// "Bind" the newly created texture : all future texture functions will modify this texture
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-	if (using_color_key) {
-		unsigned char* alpha_data = new unsigned char [width*height*4];
-		for(int i = 0; i < width*height; i++) {
-			alpha_data[4*i+0] = data[3*i+2];
-			alpha_data[4*i+1] = data[3*i+1];
-			alpha_data[4*i+2] = data[3*i+0];
-			if (data[3*i+2] == color_key.x && data[3*i+1] == color_key.y && data[3*i+0] == color_key.z) {
-				alpha_data[4*i+3] = 0;
-			} else {
-				alpha_data[4*i+3] = 255;
-			}
-		}
-		// Give the image to OpenGL
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, alpha_data);
-		delete[] alpha_data;
-	} else {
-		// Give the image to OpenGL
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_BGR, GL_UNSIGNED_BYTE, &data[0]);
-	}
+	// Write image data
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
 
 	if (mipmapped) {
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		// Create mipmaps
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR); 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, 3);
@@ -229,6 +240,7 @@ GLuint BMP::generate_texture(bool mipmapped) {
 
 		glGenerateMipmap(GL_TEXTURE_2D);
 	} else {
+		// Don't use mipmaps
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); 
 	}

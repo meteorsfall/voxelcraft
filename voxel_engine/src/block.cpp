@@ -23,8 +23,9 @@ void Block::render(vec3 &position, mat4 &PV) {
     //this->block_type->render(position, PV, this->break_amount);
 }
 
-BlockType::BlockType(int texture) {
+BlockType::BlockType(int texture, bool is_transparent) {
     this->texture = texture;
+    this->is_transparent = is_transparent;
 
     // Save the cube vertex buffer data to this->vertex_buffer
     auto [vertex_buffer_data, vertex_buffer_len] = get_cube_vertex_coordinates();

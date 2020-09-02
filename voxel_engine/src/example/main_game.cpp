@@ -4,6 +4,8 @@
 
 int dirt_block;
 int stone_block;
+int log_block;
+int leaf_block;
 
 void Game::save_world(const char* filename) {
     auto [buffer, buffer_len] = world.serialize();
@@ -51,9 +53,13 @@ void Game::load_world(const char* filename) {
 Game::Game() {
     int stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
     int dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
+    int log_texture = get_universe()->register_atlas_texture("assets/images/log.bmp");
+    int leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
  
     stone_block = get_universe()->register_blocktype(stone_texture);
     dirt_block = get_universe()->register_blocktype(dirt_texture);
+    log_block = get_universe()->register_blocktype(log_texture);
+    leaf_block = get_universe()->register_blocktype(leaves_texture, true);
 
     last_space_release = this->last_time;
 
@@ -85,7 +91,7 @@ void Game::restart_world() {
     }
 
     this->player = Player();
-	player.hand = stone_block;
+	player.hand = leaf_block;
 }
 
 void Game::iterate(InputState& input) {

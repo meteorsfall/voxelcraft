@@ -96,7 +96,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
     crosshair.location = ivec2(width/2, height/2) - crosshair.size / 2;
 
     auto position_page = [width, height](PageUI& page) {
-        // Position the buttons of the visible page
+        // Position the buttons of the given page
         ivec2 button_size = ivec2(500, 65);
         ivec2 top_button = ivec2(width/2, height/4) - button_size/2;
         for(int i = 0; i < page.buttons.size(); i++) {
@@ -139,7 +139,7 @@ void MainUI::render() {
     crosshair.render();
 	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
    
-    // Position buttons on the visible page
+    // Render buttons on the visible page
     if(game->paused) {
         PageUI& visible_page = menu == MenuState::MainMenu ? main_menu
                             : (menu == MenuState::SaveMenu ? save_menu

@@ -42,10 +42,14 @@ void main() {
     vec2 lower_w = fwidth(lower_adjusted_uv);
     vec2 higher_w = fwidth(higher_adjusted_uv);
 
-    vec3 lower_texture_color = texturePixelAA(my_texture, lower_adjusted_uv, lower_w, lower_texture_size, lower_mm).rgb;
-    vec3 higher_texture_color = texturePixelAA(my_texture, higher_adjusted_uv, higher_w, higher_texture_size, higher_mm).rgb;
+    vec4 lower_texture_color = texturePixelAA(my_texture, lower_adjusted_uv, lower_w, lower_texture_size, lower_mm);
+    vec4 higher_texture_color = texturePixelAA(my_texture, higher_adjusted_uv, higher_w, higher_texture_size, higher_mm);
 
-    vec3 texture_color = mix(lower_texture_color, higher_texture_color, fract(mm));
+    vec4 texture_color = mix(lower_texture_color, higher_texture_color, fract(mm));
 
-    color = (1.0 - 0.8*frag_break_amount) * texture_color;
+    if (texture_color.a < 0.99) {
+        discard;
+    }
+
+    color = (1.0 - 0.8*frag_break_amount) * texture_color.rgb;
 }
