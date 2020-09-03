@@ -1,7 +1,6 @@
 #version 330 core
 
 centroid in vec2 uv;
-in vec2 extrapolated_uv;
 in float frag_break_amount;
 
 out vec4 color;
@@ -20,8 +19,6 @@ float mip_map_level(in vec2 texture_coordinate) // in texel units
     return lod; // Thanks @Nims
 }
 
-// Source: https://stackoverflow.com/questions/13501081/efficient-bicubic-filtering-code-in-glsl
-
 // Source: https://vegard.wiki/w/Texture_magnification_antialiasing
 //         https://www.shadertoy.com/view/ldlSzS
 vec4 texturePixelAA(sampler2D tex, vec2 uv, vec2 w, vec2 texsize, float mm) {	
@@ -29,8 +26,7 @@ vec4 texturePixelAA(sampler2D tex, vec2 uv, vec2 w, vec2 texsize, float mm) {
 }
 
 void main() {
-    float mm = mip_map_level(extrapolated_uv * textureSize(my_texture, 0));
-    //float mm = textureQueryLod(my_texture, extrapolated_uv).x;
+    float mm = mip_map_level(uv * textureSize(my_texture, 0));
     float lower_mm = min(floor(mm), 3.0);
     float higher_mm = min(ceil(mm), 3.0);
 
@@ -38,7 +34,7 @@ void main() {
     vec2 higher_texture_size = textureSize(my_texture, int(higher_mm + 0.5));
     vec2 lower_adjusted_uv = uv * lower_texture_size.x + vec2(-0.5, -0.5);
     vec2 higher_adjusted_uv = uv * higher_texture_size.x + vec2(-0.5, -0.5);
-    // Note: Illegal to use fwidth inside of if/else branch
+
     vec2 lower_w = fwidth(lower_adjusted_uv);
     vec2 higher_w = fwidth(higher_adjusted_uv);
 
@@ -53,5 +49,7 @@ void main() {
     texture_color.g *= scale;
     texture_color.b *= scale;
 
+    // Alpha being used for MSAA transparency
+    // Source: https://medium.com/@bgolus/anti-aliased-alpha-test-the-esoteric-alpha-to-coverage-8b177335ae4f
     color = texture_color;
 }
