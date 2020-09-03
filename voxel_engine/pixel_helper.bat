@@ -1,1 +1,1 @@
-start /WAIT /B build/debug/pixel_helper
+start /WAIT /B build/release/pixel_helper

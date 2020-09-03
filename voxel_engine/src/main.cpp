@@ -102,7 +102,7 @@ int main( void )
 	for (int frame_index = 0; true; frame_index++) {
 		frames++;
 		if (glfwGetTime() - time > 3.0) {
-			printf("FPS: %f\n", frames / (glfwGetTime() - time));
+			dbg("FPS: %f", frames / (glfwGetTime() - time));
 			time = glfwGetTime();
 			frames = 0;
 		}
@@ -120,8 +120,16 @@ int main( void )
         // ********************
         // Iterate the Game State
         // ********************
+		
+		double iter_timer = glfwGetTime();
 
 		game.iterate(input_state);
+
+		double iter_timer_time = (glfwGetTime() - iter_timer) * 1000.0;
+		if (iter_timer_time > 4) {
+			UNUSED(iter_timer_time);
+			//dbg("Game Iterate Time: %f", iter_timer_time);
+		}
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
@@ -138,13 +146,14 @@ int main( void )
         // Rendering Geometry
         // ********************
 		
-		double t1 = glfwGetTime();
-		UNUSED(t1);
+		double game_timer = glfwGetTime();
 
 		game.render();
 
-		if (frame_index % 1 == 0) {
-			//printf("CPU Render Time: %f\n", (glfwGetTime() - t1) * 1000.0);
+		double game_timer_time = (glfwGetTime() - game_timer) * 1000.0;
+		if (game_timer_time > 4) {
+			UNUSED(game_timer_time);
+			//dbg("CPU Render Time: %f", game_timer_time);
 		}
 
         // ********************

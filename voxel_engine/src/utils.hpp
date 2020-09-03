@@ -40,7 +40,12 @@ using std::tuple;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))
-#define dbg(fmt, ...) printf("%s:%d " fmt "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#ifdef _WIN32
+#define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#else
+#define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#endif
+#define dbg(fmt, ...) printf("%20s:%-10d " fmt "\n", __FILENAME__, __LINE__, ##__VA_ARGS__)
 
 typedef unsigned char byte;
 

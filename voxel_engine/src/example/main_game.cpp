@@ -147,6 +147,7 @@ void Game::iterate(InputState& input) {
                 if (world.is_generated(chunk)) {
                     chunk_exists = true;
                 } else {
+                    // If it does, only generate if its mandatory or if we haven't generated a chunk this frame
                     if (mandatory || !already_generated_chunk) {
                         generate_chunk(world, chunk);
                         chunk_exists = true;

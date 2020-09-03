@@ -1,27 +1,40 @@
 cmake_minimum_required(VERSION 3.3)
 project(VoxelCraft)
 
+if (WIN32)
+set(default_build_type "Release")
+else ()
 set(default_build_type "Debug")
-
-ADD_CUSTOM_TARGET(debug
-  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
-  COMMENT "Creating the executable in the debug mode."
-)
+endif ()
 
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
-  COMMENT "Creating the executable in the release mode."
+  COMMENT "Creating the executable in release mode."
 )
+
+ADD_CUSTOM_TARGET(debug
+  COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  COMMENT "Creating the executable in debug mode."
+)
+
+if (CMAKE_BUILD_TYPE MATCHES Release)
+message(STATUS "Release Mode")
+elseif (CMAKE_BUILD_TYPE MATCHES Debug)
+message(STATUS "Debug Mode")
+endif ()
 
 set(CMAKE_CXX_STANDARD 17) # no explicit compiler flags if possible
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (WIN32)
 add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od /Zi")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2")
+if (CMAKE_BUILD_TYPE MATCHES Release)
+add_link_options(/LTCG)
+endif()
 else ()
 add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 add_link_options(-rdynamic)

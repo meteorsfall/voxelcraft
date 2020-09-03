@@ -25,7 +25,7 @@ Chunk* World::get_chunk(int x, int y, int z) {
 Chunk* World::make_chunk(int x, int y, int z) {
     ivec3 chunk_coords = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
     if (chunks.count(chunk_coords)) {
-        printf("TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
+        printf("ERROR: TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
         return NULL;
     }
     chunks[chunk_coords] = ChunkData(Chunk(chunk_coords, [](int block_type) -> BlockType* {

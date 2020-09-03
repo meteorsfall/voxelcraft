@@ -125,6 +125,8 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
 
     ivec3 start = chunk_coords * CHUNK_SIZE;
 
+    double start_time = glfwGetTime();
+
     if (chunk_coords.y > 0) {
         world.set_block(start.x, start.y, start.z, air_block);
         // Just air
@@ -157,6 +159,12 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                 }
             }
         }
+    }
+
+    double time = 1000*(glfwGetTime() - start_time);
+
+    if (time > 4) {
+        dbg("Generate Time: %f", time);
     }
 
     world.mark_generated(chunk_coords);

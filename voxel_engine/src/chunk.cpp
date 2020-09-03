@@ -7,12 +7,14 @@ static bool loaded_chunk_shader = false;
 static GLuint chunk_shader_id;
 
 Chunk::Chunk(ivec3 location, fn_get_blocktype get_block_type) {
-    this->location = location;
-    this->get_block_type = get_block_type;
+    // Statically load chunk shaders
     if (!loaded_chunk_shader) {
         chunk_shader_id = load_shaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
         loaded_chunk_shader = true;
     }
+
+    this->location = location;
+    this->get_block_type = get_block_type;
     opengl_vertex_buffer = create_array_buffer(NULL, 1);
     opengl_uv_buffer = create_array_buffer(NULL, 1);
     opengl_break_amount_buffer = create_array_buffer(NULL, 1);
@@ -160,7 +162,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     
     double time = (glfwGetTime() - t1) * 1000.0;
     if (time > 4) {
-        dbg("Chunk Construction Time: %f\n", time);
+        dbg("Chunk Construction Time: %f", time);
     }
 
     //printf("New Size: %ld\n", texture_choices.size());
