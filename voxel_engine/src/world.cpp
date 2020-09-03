@@ -134,6 +134,8 @@ void World::render(mat4 &PV, TextureAtlasser& atlasser) {
                     con = true;
                 }
                 double start = glfwGetTime();
+                UNUSED(start);
+                
                 cd.chunk.render(PV, atlasser, my_get_block);
                 if (con) {
                     //dbg("Constructed: %f", (glfwGetTime() - start)*1000);

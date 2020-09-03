@@ -139,6 +139,7 @@ int main( void )
         // ********************
 		
 		double t1 = glfwGetTime();
+		UNUSED(t1);
 
 		game.render();
 

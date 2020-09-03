@@ -75,6 +75,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     };
     
 	double t1 = glfwGetTime();
+    UNUSED(t1);
 
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {

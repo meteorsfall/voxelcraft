@@ -19,20 +19,16 @@ public:
     Chunk chunk;
 };
 
-class Hasher
+class ChunkDataHasher
 {
 public:
   size_t operator() (ivec3 const& key) const
   {
-      size_t hash = 0;
-      for(size_t i = 0; i < 3; i++)
-      {
-          hash += (71*hash + key[i]) % 5;
-      }
-      return hash;
+    // Using random primes
+    return (((((456818903 + key.x) * 832251403) + key.y) * 1349392157) + key.z) * 1866190769;
   }
 };
-class EqualFn
+class ChunkDataEqualFn
 {
 public:
   bool operator() (ivec3 const& t1, ivec3 const& t2) const
@@ -45,7 +41,7 @@ class World {
 public:
     int world_id;
 
-    unordered_map<ivec3, ChunkData, Hasher, EqualFn> chunks;
+    unordered_map<ivec3, ChunkData, ChunkDataHasher, ChunkDataEqualFn> chunks;
 
     World();
 
