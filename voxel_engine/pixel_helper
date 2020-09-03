@@ -1,2 +1,3 @@
 #!/bin/bash
-catchsegv ./build/debug/pixel_helper $@ 2>&1 2>output.log
+./build/release/pixel_helper $@ 2>&1 2>output.log
+
