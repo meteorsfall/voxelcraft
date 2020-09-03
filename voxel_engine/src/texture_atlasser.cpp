@@ -43,7 +43,6 @@ BMP* TextureAtlasser::get_atlas() {
         }
         this->texture_atlas = atlas;
         atlas_cached = true;
-        atlas.save("atlas.bmp");
     }
 
     return &texture_atlas;
