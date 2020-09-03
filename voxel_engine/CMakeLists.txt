@@ -76,8 +76,9 @@ find_package(Freetype REQUIRED)
 message(STATUS "Found FreeType at ${FREETYPE_LIBRARIES}")
 endif ()
 
-include_directories(${OPENGL_INCLUDE_DIR})
-include_directories(${FREETYPE_INCLUDE_DIRS})
+include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
+include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
+include_directories(SYSTEM /usr/include/libnoise)
 
 add_executable(pixel_helper pixel_helper_src/main.cpp)
 target_link_libraries(pixel_helper)
@@ -91,5 +92,5 @@ add_custom_command(TARGET vc POST_BUILD
     "${PROJECT_SOURCE_DIR}/bin"
     $<TARGET_FILE_DIR:vc>)
 else ()
-target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW ${FREETYPE_LIBRARIES})
+target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES})
 endif ()

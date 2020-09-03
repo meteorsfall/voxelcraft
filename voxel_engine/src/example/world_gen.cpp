@@ -1,4 +1,6 @@
 #include "world_gen.hpp"
+#include <noise.h>
+using namespace noise;
 
 extern int air_block;
 extern int dirt_block;
@@ -118,6 +120,13 @@ void generate_tree_overhang(World& world, ivec3 loc) {
 }
 
 void generate_chunk(World& world, ivec3 chunk_coords) {
+    module::Perlin myModule;
+    myModule.SetOctaveCount(6);
+    myModule.SetFrequency(2.0);
+    myModule.SetPersistence(0.5);
+
+    const double perlin_scale = 128.0;
+
     if (world.is_generated(chunk_coords)) {
         printf("CANNOT GENERATE CHUNK TWICE!\n");
         return;
@@ -131,6 +140,16 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
         world.set_block(start.x, start.y, start.z, air_block);
         // Just air
     } else {
+        int heights[CHUNK_SIZE][CHUNK_SIZE];
+
+        for(int i = 0; i < CHUNK_SIZE; i++) {
+            for(int k = 0; k < CHUNK_SIZE; k++) {
+                ivec3 loc = start + ivec3(i, 0, k);
+                int height = 9 + 4 * myModule.GetValue(loc.x / perlin_scale, 0, loc.z / perlin_scale);
+                heights[i][k] = height;
+            }
+        }
+        
         for(int i = 0; i < CHUNK_SIZE; i++) {
             for(int j = 0; j < CHUNK_SIZE; j++) {
                 for(int k = 0; k < CHUNK_SIZE; k++) {
@@ -139,11 +158,13 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                         world.set_block(loc.x, loc.y, loc.z, stone_block);
                         continue;
                     }
-                    if (j <= 7) {
+                    //dbg("Value: (%d, %d, %d) -> %f", loc.x, loc.y, loc.z, myModule.GetValue(loc.x, loc.y, loc.z));
+                    int height = heights[i][k];
+                    if (j <= 1) {
                         world.set_block(loc.x, loc.y, loc.z, stone_block);
-                    } else if (j == CHUNK_SIZE - 1) {
+                    } else if (j == height) {
                         world.set_block(loc.x, loc.y, loc.z, grass_block);
-                    } else {
+                    } else if (j < height) {
                         world.set_block(loc.x, loc.y, loc.z, dirt_block);
                     }
                 }
@@ -154,7 +175,11 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
             for(int i = 0; i < CHUNK_SIZE; i++) {
                 for(int k = 0; k < CHUNK_SIZE; k++) {
                     if (rand() % 50 == 0) {
-                        generate_random_tree(world, ivec3(start.x+i, CHUNK_SIZE, start.z+k));
+                        int tree_extra_height = rand() % 2;
+                        for(int m = 0; m < tree_extra_height; m++) {
+                            world.set_block(start.x+i, heights[i][k] + 1 + m, start.z+k, log_block);
+                        }
+                        generate_random_tree(world, ivec3(start.x+i, heights[i][k] + 1 + tree_extra_height, start.z+k));
                     }
                 }
             }
