@@ -4,7 +4,7 @@ centroid in vec2 uv;
 in vec2 extrapolated_uv;
 in float frag_break_amount;
 
-out vec3 color;
+out vec4 color;
 
 uniform sampler2D my_texture;
 
@@ -44,12 +44,14 @@ void main() {
 
     vec4 lower_texture_color = texturePixelAA(my_texture, lower_adjusted_uv, lower_w, lower_texture_size, lower_mm);
     vec4 higher_texture_color = texturePixelAA(my_texture, higher_adjusted_uv, higher_w, higher_texture_size, higher_mm);
-
+    
     vec4 texture_color = mix(lower_texture_color, higher_texture_color, fract(mm));
 
-    if (texture_color.a < 0.99) {
-        discard;
-    }
+    // Unmultiply by alpha in this step
+    float scale = (1.0 - 0.8*frag_break_amount) / (0.01+texture_color.a);
+    texture_color.r *= scale;
+    texture_color.g *= scale;
+    texture_color.b *= scale;
 
-    color = (1.0 - 0.8*frag_break_amount) * texture_color.rgb;
+    color = texture_color;
 }

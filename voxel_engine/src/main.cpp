@@ -82,6 +82,7 @@ int main( void )
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     glEnable(GL_CULL_FACE);
+	glEnable(GL_SAMPLE_ALPHA_TO_MASK_EXT);
 
     InputHandler input_handler(window);
 

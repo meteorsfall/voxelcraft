@@ -221,8 +221,18 @@ GLuint BMP::generate_texture(bool mipmapped) {
 	// "Bind" the newly created texture : all future texture functions will modify this texture
 	glBindTexture(GL_TEXTURE_2D, textureID);
 
-	// Write image data
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
+	byte* postmultipled_data = new byte[width*height*4];
+	for(int i = 0; i < width*height; i++) {
+		postmultipled_data[4*i + 0] = data[4*i + 0] * data[4*i + 3] / 255;
+		postmultipled_data[4*i + 1] = data[4*i + 1] * data[4*i + 3] / 255;
+		postmultipled_data[4*i + 2] = data[4*i + 2] * data[4*i + 3] / 255;
+		postmultipled_data[4*i + 3] = data[4*i + 3];
+	}
+
+	// Write image data (Post-Multipled by alpha)
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &postmultipled_data[0]);
+
+	delete[] postmultipled_data;
 
 	if (mipmapped) {
 		// Create mipmaps
