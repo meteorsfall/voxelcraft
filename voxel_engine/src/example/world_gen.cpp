@@ -1,5 +1,5 @@
 #include "world_gen.hpp"
-#include <noise.h>
+#include <libnoise/noise.h>
 using namespace noise;
 
 extern int air_block;
