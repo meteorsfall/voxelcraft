@@ -19,17 +19,21 @@ using namespace glm;
 #include <vector>
 #include <optional>
 #include <map>
+#include <unordered_map>
 #include <iostream>
 #include <string>
 #include <set>
+#include <tuple>
 using std::function;
 using std::vector;
 using std::optional;
 using std::nullopt;
 using std::pair;
 using std::map;
+using std::unordered_map;
 using std::string;
 using std::set;
+using std::tuple;
 
 // Include fn_pointer
 #include "fn_pointer.hpp"

@@ -5,6 +5,7 @@ extern int dirt_block;
 extern int stone_block;
 extern int log_block;
 extern int leaf_block;
+extern int grass_block;
 
 void generate_random_tree(World& world, ivec3 loc) {
     int r = rand() % 4;
@@ -114,4 +115,49 @@ void generate_tree_overhang(World& world, ivec3 loc) {
     }
 
     world.set_block(loc.x, loc.y + 3, loc.z, log_block);
+}
+
+void generate_chunk(World& world, ivec3 chunk_coords) {
+    if (world.is_generated(chunk_coords)) {
+        printf("CANNOT GENERATE CHUNK TWICE!\n");
+        return;
+    }
+
+    ivec3 start = chunk_coords * CHUNK_SIZE;
+
+    if (chunk_coords.y > 0) {
+        world.set_block(start.x, start.y, start.z, air_block);
+        // Just air
+    } else {
+        for(int i = 0; i < CHUNK_SIZE; i++) {
+            for(int j = 0; j < CHUNK_SIZE; j++) {
+                for(int k = 0; k < CHUNK_SIZE; k++) {
+                    ivec3 loc = start + ivec3(i, j, k);
+                    if (chunk_coords.y < 0) {
+                        world.set_block(loc.x, loc.y, loc.z, stone_block);
+                        continue;
+                    }
+                    if (j <= 7) {
+                        world.set_block(loc.x, loc.y, loc.z, stone_block);
+                    } else if (j == CHUNK_SIZE - 1) {
+                        world.set_block(loc.x, loc.y, loc.z, grass_block);
+                    } else {
+                        world.set_block(loc.x, loc.y, loc.z, dirt_block);
+                    }
+                }
+            }
+        }
+
+        if (chunk_coords.y == 0) {
+            for(int i = 0; i < CHUNK_SIZE; i++) {
+                for(int k = 0; k < CHUNK_SIZE; k++) {
+                    if (rand() % 50 == 0) {
+                        generate_random_tree(world, ivec3(start.x+i, CHUNK_SIZE, start.z+k));
+                    }
+                }
+            }
+        }
+    }
+
+    world.mark_generated(chunk_coords);
 }

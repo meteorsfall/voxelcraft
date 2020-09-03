@@ -141,8 +141,8 @@ int main( void )
 
 		game.render();
 
-		if (frame_index % 240 == 0) {
-			printf("CPU Render Time: %f\n", 1/(glfwGetTime() - t1));
+		if (frame_index % 250 == 0) {
+			printf("CPU Render Time: %f\n", (glfwGetTime() - t1) * 1000.0);
 		}
 
         // ********************

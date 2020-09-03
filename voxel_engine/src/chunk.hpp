@@ -18,7 +18,6 @@ public:
     
     Block blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
-    bool chunk_rendering_cached = false;
     fn_get_blocktype get_block_type;
 
     Chunk(ivec3 location, fn_get_blocktype get_block_type);
@@ -33,12 +32,17 @@ public:
 
     void deserialize(byte* buffer, int size);
 
+    bool is_cached();
+
+    void invalidate_cache();
+
 private:
     GLuint opengl_vertex_buffer;
     GLuint opengl_uv_buffer;
     GLuint opengl_break_amount_buffer;
     GLuint opengl_texture_atlas;
     int num_triangles_cache = 0;
+    bool chunk_rendering_cached = false;
     void cached_render(mat4& PV);
 };
 

@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+void generate_chunk(World& world, ivec3 chunk_coords);
+
 void generate_random_tree(World& world, ivec3 loc);
 void generate_tree_pyramid(World& world, ivec3 loc);
 void generate_tree_pyramid_truncated(World& world, ivec3 loc);

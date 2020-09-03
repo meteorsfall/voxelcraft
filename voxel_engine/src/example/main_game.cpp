@@ -8,6 +8,7 @@ int dirt_block;
 int stone_block;
 int log_block;
 int leaf_block;
+int grass_block;
 
 void Game::save_world(const char* filename) {
     auto [buffer, buffer_len] = world.serialize();
@@ -59,11 +60,13 @@ Game::Game() {
     int dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
     int log_texture = get_universe()->register_atlas_texture("assets/images/log.bmp");
     int leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
+    int grass_texture = get_universe()->register_atlas_texture("assets/images/grass.bmp");
  
     stone_block = get_universe()->register_blocktype(stone_texture);
     dirt_block = get_universe()->register_blocktype(dirt_texture);
     log_block = get_universe()->register_blocktype(log_texture);
     leaf_block = get_universe()->register_blocktype(leaves_texture, true);
+    grass_block = get_universe()->register_blocktype(grass_texture);
 
     last_space_release = this->last_time;
 
@@ -77,16 +80,18 @@ void Game::restart_world() {
     this->world = World();
 
     // 1-7, dirt 8-16 stone
-    world.set_block(0, 0, 0, dirt_block);
-    world.set_block(0, 1, 0, stone_block);
+    /*
+    //world.set_block(0, 0, 0, dirt_block);
+    //world.set_block(0, 1, 0, stone_block);
 
     const int radius = 1;
-    
     for(int i = -radius*CHUNK_SIZE; i <= radius*CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = -radius*CHUNK_SIZE; k <= radius*CHUNK_SIZE; k++) {
                 if (j <= 7) {
                     world.set_block(i,j,k, stone_block);
+                } else if (j == CHUNK_SIZE - 1) {
+                    world.set_block(i,j,k, grass_block);
                 } else {
                     world.set_block(i,j,k, dirt_block);
                 }
@@ -100,13 +105,14 @@ void Game::restart_world() {
                 generate_random_tree(world, ivec3(i, CHUNK_SIZE, k));
             }
         }
-    }
+    }*/
 
     this->player = Player();
 	player.hand = leaf_block;
 }
 
 void Game::iterate(InputState& input) {
+    // Handle input and pause button
     this->input = input;
     if (input.keys[GLFW_KEY_ESCAPE] == GLFW_PRESS && !paused) {
         paused = true;
@@ -114,12 +120,46 @@ void Game::iterate(InputState& input) {
     if (paused) {
         return;
     }
+
+    // If unpaused:
     if (input.keys[GLFW_KEY_1] == GLFW_PRESS) {
         player.hand = leaf_block;
     }
     if (input.keys[GLFW_KEY_2] == GLFW_PRESS) {
         player.hand = log_block;
     }
+
+    ivec3 current_chunk = floor(floor(player.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
+
+    bool already_generated_chunk = false;
+    int radius = 3;
+    for(int dx = -radius; dx <= radius; dx++) {
+        for(int dy = -radius; dy <= radius; dy++) {
+            for(int dz = -radius; dz <= radius; dz++) {
+                ivec3 chunk = current_chunk + ivec3(dx, dy, dz);
+
+                bool mandatory = abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1;
+                bool chunk_exists = false;
+
+                // Generate chunk if it needs to be generated
+                if (world.is_generated(chunk)) {
+                    chunk_exists = true;
+                } else {
+                    if (mandatory || !already_generated_chunk) {
+                        generate_chunk(world, chunk);
+                        chunk_exists = true;
+                        already_generated_chunk = true;
+                    }
+                }
+                
+                // Mark chunk for render, if it exists
+                if (chunk_exists) {
+                    world.mark_chunk(chunk, mandatory);
+                }
+            }
+        }
+    }
+
     do_something();
 }
 

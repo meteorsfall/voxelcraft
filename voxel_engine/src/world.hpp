@@ -9,11 +9,43 @@
 
 using fn_on_collide = std::function<void(vec3)>;
 
+class ChunkData {
+public:
+    ChunkData();
+    ChunkData(Chunk c);
+    int last_render_mark = 0;
+    bool mandatory;
+    bool generated = false;
+    Chunk chunk;
+};
+
+class Hasher
+{
+public:
+  size_t operator() (ivec3 const& key) const
+  {
+      size_t hash = 0;
+      for(size_t i = 0; i < 3; i++)
+      {
+          hash += (71*hash + key[i]) % 5;
+      }
+      return hash;
+  }
+};
+class EqualFn
+{
+public:
+  bool operator() (ivec3 const& t1, ivec3 const& t2) const
+  {
+    return t1 == t2;
+  }
+};
+
 class World {
 public:
     int world_id;
 
-    vector<Chunk> chunks;
+    unordered_map<ivec3, ChunkData, Hasher, EqualFn> chunks;
 
     World();
 
@@ -24,6 +56,10 @@ public:
 
     Chunk* get_chunk(int x, int y, int z);
     Chunk* make_chunk(int x, int y, int z);
+    // Mark chunk for rendering
+    void mark_chunk(ivec3 chunk_coords, bool mandatory);
+    void mark_generated(ivec3 chunk_coords);
+    bool is_generated(ivec3 chunk_coords);
 
     void render(mat4 &PV, TextureAtlasser& atlasser);
 
@@ -37,6 +73,9 @@ public:
     pair<byte*, int> serialize();
 
     void deserialize(byte* buffer, int size);
+private:
+    ChunkData* get_chunk_data(ivec3 chunk_coords);
+    int render_iteration = 0;
 };
 
 #endif

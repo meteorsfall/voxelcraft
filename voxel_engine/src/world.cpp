@@ -1,33 +1,73 @@
 #include "world.hpp"
 
+ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
+}
+
+ChunkData::ChunkData(Chunk c) : chunk(c) {
+    this->last_render_mark = -1;
+    this->generated = false;
+    this->mandatory = false;
+}
+
 World::World() {
 }
 
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
-    ivec3 test = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
-    for(Chunk& c : chunks) {
-        ivec3 l = c.location;
-        if (test.x == l.x && test.y == l.y && test.z == l.z) {
-            return &c;
-        }
+    ivec3 chunk_coords = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
+    if (chunks.count(chunk_coords)) {
+        return &chunks[chunk_coords].chunk;
+    } else {
+        return NULL;
     }
-    return NULL;
 }
 
 Chunk* World::make_chunk(int x, int y, int z) {
-    ivec3 test = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
-    for(Chunk& c : chunks) {
-        ivec3 l = c.location;
-        if (test.x == l.x && test.y == l.y && test.z == l.z) {
-            printf("TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
-            return NULL;
-        }
+    ivec3 chunk_coords = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
+    if (chunks.count(chunk_coords)) {
+        printf("TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
+        return NULL;
     }
-    chunks.push_back(Chunk(test, [](int block_type) -> BlockType* {
+    chunks[chunk_coords] = ChunkData(Chunk(chunk_coords, [](int block_type) -> BlockType* {
         return get_universe()->get_block_type(block_type);
     }));
-    return &chunks.back();
+    return &chunks[chunk_coords].chunk;
+}
+
+ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
+    if (chunks.count(chunk_coords)) {
+        return &chunks[chunk_coords];
+    } else {
+        return NULL;
+    }
+}
+
+void World::mark_chunk(ivec3 chunk_coords, bool mandatory) {
+    ChunkData* cd = get_chunk_data(chunk_coords);
+    if (cd) {
+        cd->last_render_mark = render_iteration;
+        cd->mandatory = mandatory;
+    } else {
+        printf("Marking render to nonexistent chunk!\n");
+    }
+}
+
+void World::mark_generated(ivec3 chunk_coords) {
+    ChunkData* cd = get_chunk_data(chunk_coords);
+    if (cd) {
+        cd->generated = true;
+    } else {
+        printf("Marking generated to nonexistent chunk!\n");
+    }
+}
+
+bool World::is_generated(ivec3 chunk_coords) {
+    ChunkData* cd = get_chunk_data(chunk_coords);
+    if (cd) {
+        return cd->generated;
+    } else {
+        return false;
+    }
 }
 
 void World::set_block(int x, int y, int z, int block_type) {
@@ -49,7 +89,7 @@ void World::refresh_block(int x, int y, int z) {
         
         Chunk* c = get_chunk(loc.x, loc.y, loc.z);
         if (c) {
-            c->chunk_rendering_cached = false;
+            c->invalidate_cache();
             Block* b = get_block(loc.x, loc.y, loc.z);
             if (b) {
                 b->neighbor_cache = 0;
@@ -74,9 +114,33 @@ void World::render(mat4 &PV, TextureAtlasser& atlasser) {
         return this->get_block(x, y, z);
     };
 
-    for(Chunk& c : chunks) {
-        c.render(PV, atlasser, my_get_block);
+    int number_of_chunks_constructed = 0;
+    for(auto& p : chunks) {
+        ChunkData& cd = p.second;
+        if (cd.last_render_mark == render_iteration) {
+            bool should_render = false;
+            bool problem = false;
+
+            bool is_cached = cd.chunk.is_cached();
+            if (is_cached || cd.mandatory) {
+                should_render = true;
+            } else {
+                should_render = number_of_chunks_constructed < 6;
+            }
+
+            if (should_render) {
+                if (!is_cached) {
+                    number_of_chunks_constructed++;
+                }
+                cd.chunk.render(PV, atlasser, my_get_block);
+                if (problem) {
+                    printf("Cached Now: %d\n", cd.chunk.is_cached());
+                }
+            }
+        }
     }
+
+    render_iteration++;
 }
 
 bool World::is_in_block(vec3 position) {
@@ -128,7 +192,8 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
     }
 }
 
-#define TOTAL_SERIALIZED_CHUNK_SIZE (1+3*3+SERIALIZED_CHUNK_SIZE)
+#define CHUNK_METADATA_SIZE 1
+#define TOTAL_SERIALIZED_CHUNK_SIZE (CHUNK_METADATA_SIZE+1+3*3+SERIALIZED_CHUNK_SIZE)
 
 // Note: The return buffer must be freed by the caller!
 pair<byte*, int> World::serialize() {
@@ -139,9 +204,25 @@ pair<byte*, int> World::serialize() {
     
     byte* buffer = new byte[buffer_size];
     
-    for(unsigned i = 0; i < chunks.size(); i++){
-        ivec3 location = chunks[i].location;
-        unsigned index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
+    int i = 0;
+    for(auto p : chunks) {
+        ChunkData& cd = p.second;
+        Chunk& chunk = cd.chunk;
+
+        unsigned start_index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
+
+        // ***************
+        // Serialize Chunk Metadata
+        // ***************
+
+        buffer[start_index] = cd.generated ? 1 : 0;
+
+        // ***************
+        // Serialize Chunk
+        // ***************
+
+        ivec3 location = chunk.location;
+        unsigned index = start_index + CHUNK_METADATA_SIZE;
 
         // Save sign of each coordinate
         buffer[index] = 0;
@@ -156,9 +237,11 @@ pair<byte*, int> World::serialize() {
         write_integer(buffer, index + 7, location.z);
 
         // Serialize individual chunk
-        auto [chunk_buffer, chunk_buffer_size] = chunks[i].serialize();
+        auto [chunk_buffer, chunk_buffer_size] = chunk.serialize();
         memcpy(&buffer[index+10], chunk_buffer, chunk_buffer_size);
         delete[] chunk_buffer;
+
+        i++;
     }
     
     return {buffer, buffer_size};
@@ -172,7 +255,9 @@ void World::deserialize(byte* buffer, int size) {
     chunks.clear();
 
     for(int i = 0; TOTAL_SERIALIZED_CHUNK_SIZE*i < size; i++) {
-        int index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
+        int start_index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
+        int index = start_index + CHUNK_METADATA_SIZE;
+
         int x_sign = bit_to_sign((buffer[index] >> 2) & 1);
         int y_sign = bit_to_sign((buffer[index] >> 1) & 1);
         int z_sign = bit_to_sign((buffer[index] >> 0) & 1);
@@ -184,5 +269,6 @@ void World::deserialize(byte* buffer, int size) {
         z_coord *= z_sign;
         Chunk* the_chunk = make_chunk(CHUNK_SIZE*x_coord, CHUNK_SIZE*y_coord, CHUNK_SIZE*z_coord);
         the_chunk->deserialize(buffer + index + 10, SERIALIZED_CHUNK_SIZE);
+        get_chunk_data(ivec3(x_coord, y_coord, z_coord))->generated = buffer[start_index];
     }
 }

@@ -45,12 +45,11 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
 
     // Check aabb of chunk against the view frustum
     AABB aabb(bottom_left, vec3(bottom_left) + vec3(CHUNK_SIZE));
-    if (!aabb.test_frustum(PV)) {
-        return;
-    }
 
     if (this->chunk_rendering_cached) {
-        cached_render(PV);
+        if (aabb.test_frustum(PV)) {
+            cached_render(PV);
+        }
         return;
     }
 
@@ -200,7 +199,11 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     this->num_triangles_cache = num_triangles;
     
     this->opengl_texture_atlas = texture_atlas.get_atlas_texture();
-    cached_render(PV);
+
+
+    if (aabb.test_frustum(PV)) {
+        cached_render(PV);
+    }
 
     delete[] chunk_vertex_buffer;
     delete[] chunk_uv_buffer;
@@ -282,4 +285,12 @@ void Chunk::deserialize(byte* buffer, int size) {
             }
         }
     }
+}
+
+bool Chunk::is_cached() {
+    return chunk_rendering_cached;
+}
+
+void Chunk::invalidate_cache() {
+    chunk_rendering_cached = false;
 }
