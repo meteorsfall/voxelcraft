@@ -65,8 +65,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
 
     int num_triangles = 0;
 
-    set<int> textures;
-    vector<pair<int, ivec2>> texture_choices;
+    vector<int> textures;
 
     auto is_opaque = [this](Block* b) {
         // If it exists, and it's not transparent
@@ -136,14 +135,12 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                         float avg_y = (uv_buffer_data[m+1] + uv_buffer_data[m+3] + uv_buffer_data[m+5])/3.0;
                         for(int n = 0; n < 6; n++) {
                             if (uv_buffer_data[m+n] < ((n & 1) == 0 ? avg_x : avg_y)) {
-                                uv_buffer_data[m+n] += 1.0f/48/50;
+                                uv_buffer_data[m+n] = 0.0f + 0.001f;
                             } else {
-                                uv_buffer_data[m+n] -= 1.0f/48/50;
+                                uv_buffer_data[m+n] = 1.0f - 0.001f;
                             }
                         }
                     }
-
-                    int uv_loc = chunk_uv_buffer_len/sizeof(GLfloat);
                     
                     // Memcpy vertex and uv buffers
                     memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
@@ -154,10 +151,13 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                     chunk_uv_buffer_len += uv_buffer_len;
                     num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
 
-                    // Save texture
-                    int texture = get_block_type(blocks[i][j][k].block_type)->texture;
-                    textures.insert(texture);
-                    texture_choices.push_back({texture, ivec2(uv_loc, uv_buffer_len/sizeof(GLfloat))});
+                    // Save textures
+                    for(int m = 0; m < 6; m++) {
+                        if (buf[m]) {
+                            int texture = get_block_type(blocks[i][j][k].block_type)->textures[m];
+                            textures.push_back(texture);
+                        }
+                    }
                 }
             }
         }
@@ -166,22 +166,25 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     //printf("New Size: %ld\n", texture_choices.size());
     int atlas_width = texture_atlas.get_atlas()->width;
     int atlas_height = texture_atlas.get_atlas()->height;
-    for(auto& texture_choice : texture_choices) {
-        int texture = texture_choice.first;
-        ivec2 uv_bounds = texture_choice.second;
+    int index = 0;
+    for(int texture : textures) {
         //printf("Bounds: (%d, %d)\n", uv_bounds[0], uv_bounds[1]);
-        for(int i = uv_bounds[0]; i < uv_bounds[0] + uv_bounds[1]; i += 2) {
+        for(int i = index; i < index + 2*3*2; i += 2) {
             float intgr = floor(chunk_uv_buffer[i] * texture_atlas.get_bmp(texture)->width);
             UNUSED(intgr);
             //printf("INT: %f\n", intgr);
             //printf("I: %d\n", i);
+
             ivec2 offset = texture_atlas.get_top_left(texture);
             //printf("Translating (%f, %f) / (%d, %d) based on (%d, %d) in (%d, %d)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1], texture_atlas.get_bmp(texture)->width, texture_atlas.get_bmp(texture)->height, offset.x, offset.y, atlas_width, atlas_height);
             // UV coordinates will range from (0, 0) to (atlas_width - 1, atlas_height - 1)
             //chunk_uv_buffer[i+0] = offset.x + floor(chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width);
             //chunk_uv_buffer[i+1] = offset.y + floor(chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height);
+            
+            // Reorient offset to bottom-left, with (0, 0) in the bottom-left
             offset.y += texture_atlas.get_bmp(texture)->height;
             offset.y = atlas_height - offset.y;
+            
             chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width / (float)atlas_width;
             chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height / (float)atlas_height;
             //if (chunk_uv_buffer[i+1] < 96.0/128.0) {
@@ -189,6 +192,11 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
             //}
             //printf("To: (%f, %f)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1]);
         }
+        index += 2*3*2;
+    }
+
+    if (index < (int)chunk_uv_buffer_len/(int)sizeof(GLfloat)) {
+        printf("Problem! %d vs %ld\n", index, chunk_uv_buffer_len/sizeof(GLfloat));
     }
 
     reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);

@@ -23,8 +23,13 @@ void Block::render(vec3 &position, mat4 &PV) {
     //this->block_type->render(position, PV, this->break_amount);
 }
 
-BlockType::BlockType(int texture, bool is_transparent) {
-    this->texture = texture;
+BlockType::BlockType(int nx, int px, int ny, int py, int nz, int pz, bool is_transparent) {
+    this->textures[0] = nx;
+    this->textures[1] = px;
+    this->textures[2] = ny;
+    this->textures[3] = py;
+    this->textures[4] = nz;
+    this->textures[5] = pz;
     this->is_transparent = is_transparent;
 
     // Save the cube vertex buffer data to this->vertex_buffer

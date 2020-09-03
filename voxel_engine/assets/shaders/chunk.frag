@@ -1,6 +1,7 @@
 #version 330 core
 
 centroid in vec2 uv;
+in vec2 extrapolated_uv;
 in float frag_break_amount;
 
 out vec4 color;
@@ -27,8 +28,8 @@ vec4 texturePixelAA(sampler2D tex, vec2 uv, vec2 w, vec2 texsize, float mm) {
 
 void main() {
     float mm = mip_map_level(uv * textureSize(my_texture, 0));
-    float lower_mm = min(floor(mm), 3.0);
-    float higher_mm = min(ceil(mm), 3.0);
+    float lower_mm = min(floor(mm), 2.0);
+    float higher_mm = min(ceil(mm), 2.0);
 
     vec2 lower_texture_size = textureSize(my_texture, int(lower_mm + 0.5));
     vec2 higher_texture_size = textureSize(my_texture, int(higher_mm + 0.5));

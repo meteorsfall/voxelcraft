@@ -13,10 +13,10 @@ public:
 
     int block_id;
     
-    int texture;
+    int textures[6];
     bool is_transparent;
 
-    BlockType(int texture, bool is_transparent);
+    BlockType(int px, int nx, int py, int ny, int pz, int nz, bool is_transparent);
 
     void render(Texture* texture, vec3 &position, mat4 &PV, float break_amount);
 };

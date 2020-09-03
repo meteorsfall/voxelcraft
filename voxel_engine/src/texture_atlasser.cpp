@@ -8,11 +8,12 @@ BMP* TextureAtlasser::get_atlas() {
         int padding = pow_of_two_demand/2;
         int tile_size = bmps[0].width + 2*padding;
 
+        // Round to next-heighest power-of-two
         int atlas_size = (int)(pow(2, ceil(log2((float)bmps_per_row*tile_size))) + 0.5);
         BMP atlas(atlas_size, atlas_size);
 
 
-        // Set entire atlas image to red, for easy identifying
+        // Set entire atlas image to red, for easily identifying the gaps
         for(int i = 0; i < atlas_size; i++) {
             for(int j = 0; j < atlas_size; j++) {
                 atlas.set_pixel(i, j, ivec3(255, 0, 0));
@@ -42,6 +43,7 @@ BMP* TextureAtlasser::get_atlas() {
         }
         this->texture_atlas = atlas;
         atlas_cached = true;
+        atlas.save("atlas.bmp");
     }
 
     return &texture_atlas;

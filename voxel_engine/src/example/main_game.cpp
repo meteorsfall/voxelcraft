@@ -58,15 +58,17 @@ Game::Game() {
 
     int stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
     int dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
-    int log_texture = get_universe()->register_atlas_texture("assets/images/log.bmp");
+    int log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
+    int log_top_texture = get_universe()->register_atlas_texture("assets/images/log_top.bmp");
     int leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
-    int grass_texture = get_universe()->register_atlas_texture("assets/images/grass.bmp");
+    int grass_side_texture = get_universe()->register_atlas_texture("assets/images/grass_side.bmp");
+    int grass_top_texture = get_universe()->register_atlas_texture("assets/images/grass_top.bmp");
  
-    stone_block = get_universe()->register_blocktype(stone_texture);
-    dirt_block = get_universe()->register_blocktype(dirt_texture);
-    log_block = get_universe()->register_blocktype(log_texture);
-    leaf_block = get_universe()->register_blocktype(leaves_texture, true);
-    grass_block = get_universe()->register_blocktype(grass_texture);
+    stone_block = get_universe()->register_blocktype(stone_texture, stone_texture, stone_texture, stone_texture, stone_texture, stone_texture);
+    dirt_block = get_universe()->register_blocktype(dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture);
+    log_block = get_universe()->register_blocktype(log_side_texture, log_side_texture, log_top_texture, log_top_texture, log_side_texture, log_side_texture);
+    leaf_block = get_universe()->register_blocktype(leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, true);
+    grass_block = get_universe()->register_blocktype(grass_side_texture, grass_side_texture, dirt_texture, grass_top_texture, grass_side_texture, grass_side_texture);
 
     last_space_release = this->last_time;
 
