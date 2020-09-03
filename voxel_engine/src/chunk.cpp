@@ -162,37 +162,21 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     
     double time = (glfwGetTime() - t1) * 1000.0;
     if (time > 4) {
-        dbg("Chunk Construction Time: %f", time);
+        //dbg("Chunk Construction Time: %f", time);
     }
 
-    //printf("New Size: %ld\n", texture_choices.size());
     int atlas_width = texture_atlas.get_atlas()->width;
     int atlas_height = texture_atlas.get_atlas()->height;
     int index = 0;
     for(int texture : textures) {
-        //printf("Bounds: (%d, %d)\n", uv_bounds[0], uv_bounds[1]);
         for(int i = index; i < index + 2*3*2; i += 2) {
-            float intgr = floor(chunk_uv_buffer[i] * texture_atlas.get_bmp(texture)->width);
-            UNUSED(intgr);
-            //printf("INT: %f\n", intgr);
-            //printf("I: %d\n", i);
-
             ivec2 offset = texture_atlas.get_top_left(texture);
-            //printf("Translating (%f, %f) / (%d, %d) based on (%d, %d) in (%d, %d)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1], texture_atlas.get_bmp(texture)->width, texture_atlas.get_bmp(texture)->height, offset.x, offset.y, atlas_width, atlas_height);
-            // UV coordinates will range from (0, 0) to (atlas_width - 1, atlas_height - 1)
-            //chunk_uv_buffer[i+0] = offset.x + floor(chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width);
-            //chunk_uv_buffer[i+1] = offset.y + floor(chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height);
-            
             // Reorient offset to bottom-left, with (0, 0) in the bottom-left
             offset.y += texture_atlas.get_bmp(texture)->height;
             offset.y = atlas_height - offset.y;
             
             chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width / (float)atlas_width;
             chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height / (float)atlas_height;
-            //if (chunk_uv_buffer[i+1] < 96.0/128.0) {
-            //    printf("Under: %f %d %d\n", chunk_uv_buffer[i+1], offset.x, offset.y);
-            //}
-            //printf("To: (%f, %f)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1]);
         }
         index += 2*3*2;
     }

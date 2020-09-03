@@ -120,12 +120,29 @@ void generate_tree_overhang(World& world, ivec3 loc) {
 }
 
 void generate_chunk(World& world, ivec3 chunk_coords) {
-    module::Perlin myModule;
-    myModule.SetOctaveCount(6);
-    myModule.SetFrequency(2.0);
-    myModule.SetPersistence(0.5);
+    module::Perlin perlin_height;
+    perlin_height.SetOctaveCount(6);
+    perlin_height.SetFrequency(2.0);
+    perlin_height.SetPersistence(0.5);
+    perlin_height.SetSeed(1);
 
-    const double perlin_scale = 128.0;
+    const double perlin_height_scale = 128.0;
+
+    module::Perlin perlin_stone_height;
+    perlin_stone_height.SetOctaveCount(6);
+    perlin_stone_height.SetFrequency(2.0);
+    perlin_stone_height.SetPersistence(0.5);
+    perlin_stone_height.SetSeed(2);
+
+    const double perlin_stone_height_scale = 128.0;
+
+    module::Perlin perlin_tree_probability;
+    perlin_tree_probability.SetOctaveCount(6);
+    perlin_tree_probability.SetFrequency(2.0);
+    perlin_tree_probability.SetPersistence(0.5);
+    perlin_tree_probability.SetSeed(3);
+
+    const double perlin_tree_scale = 128.0;
 
     if (world.is_generated(chunk_coords)) {
         printf("CANNOT GENERATE CHUNK TWICE!\n");
@@ -140,13 +157,16 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
         world.set_block(start.x, start.y, start.z, air_block);
         // Just air
     } else {
-        int heights[CHUNK_SIZE][CHUNK_SIZE];
+        static int heights[CHUNK_SIZE][CHUNK_SIZE];
+        static int stone_heights[CHUNK_SIZE][CHUNK_SIZE];
 
         for(int i = 0; i < CHUNK_SIZE; i++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
                 ivec3 loc = start + ivec3(i, 0, k);
-                int height = 9 + 4 * myModule.GetValue(loc.x / perlin_scale, 0, loc.z / perlin_scale);
+                int height = 11 + 4 * perlin_height.GetValue(loc.x / perlin_height_scale, 0, loc.z / perlin_height_scale);
                 heights[i][k] = height;
+                int stone_height = 4 * perlin_stone_height.GetValue(loc.x / perlin_stone_height_scale, 0, loc.z / perlin_stone_height_scale);
+                stone_heights[i][k] = stone_height;
             }
         }
         
@@ -154,18 +174,14 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
             for(int j = 0; j < CHUNK_SIZE; j++) {
                 for(int k = 0; k < CHUNK_SIZE; k++) {
                     ivec3 loc = start + ivec3(i, j, k);
-                    if (chunk_coords.y < 0) {
-                        world.set_block(loc.x, loc.y, loc.z, stone_block);
-                        continue;
-                    }
                     //dbg("Value: (%d, %d, %d) -> %f", loc.x, loc.y, loc.z, myModule.GetValue(loc.x, loc.y, loc.z));
                     int height = heights[i][k];
-                    if (j <= 1) {
+                    if (loc.y < stone_heights[i][k]) {
                         world.set_block(loc.x, loc.y, loc.z, stone_block);
-                    } else if (j == height) {
-                        world.set_block(loc.x, loc.y, loc.z, grass_block);
-                    } else if (j < height) {
+                    } else if (loc.y < height) {
                         world.set_block(loc.x, loc.y, loc.z, dirt_block);
+                    } else if (loc.y == height) {
+                        world.set_block(loc.x, loc.y, loc.z, grass_block);
                     }
                 }
             }
@@ -174,7 +190,9 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
         if (chunk_coords.y == 0) {
             for(int i = 0; i < CHUNK_SIZE; i++) {
                 for(int k = 0; k < CHUNK_SIZE; k++) {
-                    if (rand() % 50 == 0) {
+                    float prob = perlin_tree_probability.GetValue((start.x + i) / perlin_tree_scale, 0, (start.y + i) / perlin_tree_scale);
+                    prob = clamp(0.005 + 0.02*prob, 0.0, 0.02);
+                    if (rand() % 10000 < 10000 * prob) {
                         int tree_extra_height = rand() % 2;
                         for(int m = 0; m < tree_extra_height; m++) {
                             world.set_block(start.x+i, heights[i][k] + 1 + m, start.z+k, log_block);
@@ -188,8 +206,8 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
 
     double time = 1000*(glfwGetTime() - start_time);
 
-    if (time > 4) {
-        dbg("Generate Time: %f", time);
+    if (time > 12) {
+        //dbg("Generate Time: %f", time);
     }
 
     world.mark_generated(chunk_coords);

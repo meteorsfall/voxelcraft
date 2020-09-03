@@ -9,6 +9,7 @@ int stone_block;
 int log_block;
 int leaf_block;
 int grass_block;
+int up_block;
 
 void Game::save_world(const char* filename) {
     auto [buffer, buffer_len] = world.serialize();
@@ -63,14 +64,14 @@ Game::Game() {
     int leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
     int grass_side_texture = get_universe()->register_atlas_texture("assets/images/grass_side.bmp");
     int grass_top_texture = get_universe()->register_atlas_texture("assets/images/grass_top.bmp");
+    int up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
  
     stone_block = get_universe()->register_blocktype(stone_texture, stone_texture, stone_texture, stone_texture, stone_texture, stone_texture);
     dirt_block = get_universe()->register_blocktype(dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture);
     log_block = get_universe()->register_blocktype(log_side_texture, log_side_texture, log_top_texture, log_top_texture, log_side_texture, log_side_texture);
     leaf_block = get_universe()->register_blocktype(leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, true);
     grass_block = get_universe()->register_blocktype(grass_side_texture, grass_side_texture, dirt_texture, grass_top_texture, grass_side_texture, grass_side_texture);
-
-    last_space_release = this->last_time;
+    up_block = get_universe()->register_blocktype(up_texture, up_texture, up_texture, up_texture, up_texture, up_texture);
 
     restart_world();
 }
@@ -80,37 +81,8 @@ Game::~Game() {
 
 void Game::restart_world() {
     this->world = World();
-
-    // 1-7, dirt 8-16 stone
-    /*
-    //world.set_block(0, 0, 0, dirt_block);
-    //world.set_block(0, 1, 0, stone_block);
-
-    const int radius = 1;
-    for(int i = -radius*CHUNK_SIZE; i <= radius*CHUNK_SIZE; i++) {
-        for(int j = 0; j < CHUNK_SIZE; j++) {
-            for(int k = -radius*CHUNK_SIZE; k <= radius*CHUNK_SIZE; k++) {
-                if (j <= 7) {
-                    world.set_block(i,j,k, stone_block);
-                } else if (j == CHUNK_SIZE - 1) {
-                    world.set_block(i,j,k, grass_block);
-                } else {
-                    world.set_block(i,j,k, dirt_block);
-                }
-            }
-        }
-    }
-
-    for(int i = -radius*CHUNK_SIZE; i <= radius*CHUNK_SIZE; i++) {
-        for(int k = -radius*CHUNK_SIZE; k <= radius*CHUNK_SIZE; k++) {
-            if (rand() % 50 == 0) {
-                generate_random_tree(world, ivec3(i, CHUNK_SIZE, k));
-            }
-        }
-    }*/
-
     this->player = Player();
-	player.hand = leaf_block;
+	player.hand = dirt_block;
 }
 
 void Game::iterate(InputState& input) {
@@ -125,10 +97,10 @@ void Game::iterate(InputState& input) {
 
     // If unpaused:
     if (input.keys[GLFW_KEY_1] == GLFW_PRESS) {
-        player.hand = leaf_block;
+        player.hand = dirt_block;
     }
     if (input.keys[GLFW_KEY_2] == GLFW_PRESS) {
-        player.hand = log_block;
+        player.hand = stone_block;
     }
 
     ivec3 current_chunk = floor(floor(player.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
@@ -228,6 +200,8 @@ void Game::place_block(int block) {
 }
 
 void Game::handle_player_movement(double current_time, float deltaTime) {
+    UNUSED(current_time);
+    
     vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
 
     vec3 original_position = player.position;
@@ -254,15 +228,14 @@ void Game::handle_player_movement(double current_time, float deltaTime) {
     vec3 dir = player.position - original_position;
     vec3 jump_velocity = vec3(0.0);
 
-    if (input.keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
-        if ((current_time - last_space_release) < 0.3) {
-            player.set_fly(!player.is_flying);
-            this->flying_speed = MOVEMENT_SPEED;
-            // Reset velocity when changing modes
-            player.velocity = vec3(0.0);
-        }
-        last_space_release = current_time;
+    if (input.keys[GLFW_KEY_C] == GLFW_PRESS) {
+        player.set_fly(!player.is_flying);
+        this->flying_speed = MOVEMENT_SPEED;
+        // Reset velocity when changing modes
+        player.velocity = vec3(0.0);
+    }
 
+    if (input.keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
         if (!player.is_flying && player.is_on_floor) {
             jump_velocity = vec3(dir.x, 9.8, dir.z);
             jump_velocity = normalize(jump_velocity) * JUMP_INITIAL_VELOCITY;

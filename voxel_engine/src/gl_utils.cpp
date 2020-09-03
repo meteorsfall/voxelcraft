@@ -176,43 +176,45 @@ static GLfloat g_cube_vertex_buffer_data[] = {
 };
 
 static GLfloat g_cube_uv_buffer_data[] = {
-    0.000000f, 1.000000f-0.000000f, // Triangle 0
-    0.000000f, 1.000000f-0.500000f,
-    0.333333f, 1.000000f-0.500000f,
-    0.000000f, 1.000000f-0.000000f, // Triangle 1
-    0.333333f, 1.000000f-0.500000f,
-    0.333333f, 1.000000f-0.000000f,
-    0.333333f, 1.000000f-0.500000f, // Triangle 2
-    0.666666f, 1.000000f-0.000000f,
-    0.333333f, 1.000000f-0.000000f,
-    0.666666f, 1.000000f-0.000000f, // Triangle 3
-    0.333333f, 1.000000f-0.500000f,
-    0.666666f, 1.000000f-0.500000f,
-    0.666666f, 1.000000f-0.500000f, // Triangle 4
-    0.333333f, 1.000000f-1.000000f,
-    0.666666f, 1.000000f-1.000000f,
-    0.666666f, 1.000000f-0.500000f, // Triangle 5
-    0.333333f, 1.000000f-0.500000f,
-    0.333333f, 1.000000f-1.000000f,
-    0.000000f, 1.000000f-0.500000f, // Triangle 6
-    0.333333f, 1.000000f-1.000000f,
-    0.333333f, 1.000000f-0.500000f,
-    0.000000f, 1.000000f-0.500000f, // Triangle 7
-    0.000000f, 1.000000f-1.000000f,
-    0.333333f, 1.000000f-1.000000f,
-    1.000000f, 1.000000f-0.000000f, // Triangle 8
-    0.666666f, 1.000000f-0.500000f,
-    1.000000f, 1.000000f-0.500000f,
-    1.000000f, 1.000000f-0.000000f, // Triangle 9
-    0.666666f, 1.000000f-0.000000f,
-    0.666666f, 1.000000f-0.500000f,
-    1.000000f, 1.000000f-1.000000f, // Triangle 10
-    1.000000f, 1.000000f-0.500000f,
-    0.666666f, 1.000000f-0.500000f,
-    0.666666f, 1.000000f-1.000000f, // Triangle 11
-    1.000000f, 1.000000f-1.000000f,
-    0.666666f, 1.000000f-0.500000f
+    0.0f, 0.0f, // Triangle 0 (-x)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 0.0f, // Triangle 1
+    1.0f, 1.0f,
+    0.0f, 1.0f, 
+    1.0f, 0.0f, // Triangle 2 (+x)
+    0.0f, 1.0f,
+    0.0f, 0.0f,
+    0.0f, 1.0f, // Triangle 3
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    1.0f, 1.0f, // Triangle 4 (-y)
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f, // Triangle 5
+    0.0f, 1.0f,
+    0.0f, 0.0f,
+    0.0f, 1.0f, // Triangle 6 (+y)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f, // Triangle 7
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    0.0f, 1.0f, // Triangle 8 (-z)
+    1.0f, 0.0f,
+    1.0f, 1.0f,
+    0.0f, 1.0f, // Triangle 9
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    0.0f, 1.0f, // Triangle 10 (+z)
+    0.0f, 0.0f,
+    1.0f, 0.0f,
+    1.0f, 1.0f, // Triangle 11
+    0.0f, 1.0f,
+    1.0f, 0.0f
 };
+
+
 
 static GLfloat g_plane_vertex_buffer_data[] = {
    -1.0f,-1.0f, 0.0f, // triangle 1 : begin
@@ -284,17 +286,6 @@ pair<GLfloat*, int> get_specific_cube_uv_coordinates(int bitmask) {
                 // Will copy the face into cube_buf
                 memcpy(dst, src, 12*sizeof(GLfloat));
                 len += 12;
-            }
-        }
-        for(int m = 0; m < len; m += 6) {
-            float avg_x = (memo_cube_buf[m+0] + memo_cube_buf[m+2] + memo_cube_buf[m+4])/3.0;
-            float avg_y = (memo_cube_buf[m+1] + memo_cube_buf[m+3] + memo_cube_buf[m+5])/3.0;
-            for(int n = 0; n < 6; n++) {
-                if (memo_cube_buf[m+n] < ((n & 1) == 0 ? avg_x : avg_y)) {
-                    memo_cube_buf[m+n] = 0.0f + 0.001f;
-                } else {
-                    memo_cube_buf[m+n] = 1.0f - 0.001f;
-                }
             }
         }
         memo[bitmask] = {memo_cube_buf, len*sizeof(GLfloat)};
