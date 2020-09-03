@@ -232,7 +232,7 @@ static GLfloat g_plane_uv_buffer_data[] = {
     1.0f, 0.0f,
 };
 
-pair<GLfloat*, int> get_specific_cube_vertex_coordinates(bool f[6]) {
+pair<GLfloat*, int> get_specific_cube_vertex_coordinates(int bitmask) {
  
     // 0 => Yellow (-x)
     // 1 => Magenta (+x)
@@ -241,37 +241,71 @@ pair<GLfloat*, int> get_specific_cube_vertex_coordinates(bool f[6]) {
     // 4 => Blue (-z)
     // 5 => Red (+z)
 
-    static GLfloat cube_buf[18*6];
-    int len = 0;
-    for(int i = 0; i < 6; i++) {
-        if (f[i]) {
-            // src will contain a pointer to the i'th face
-            GLfloat* src = &g_cube_vertex_buffer_data[18*i];
-            // dst will contain a pointer to the top of cube_buf (Past the already saved data)
-            GLfloat* dst = &cube_buf[len];
-            // Will copy the face into cube_buf
-            memcpy(dst, src, 18*sizeof(GLfloat));
-            len += 18;
+    static map<int, pair<GLfloat*, int>> memo;
+
+    if (!memo.count(bitmask)) {
+        GLfloat* memo_cube_buf = new GLfloat[18*6];
+        int len = 0;
+        for(int i = 0; i < 6; i++) {
+            if ((bitmask >> i) & 1) {
+                // src will contain a pointer to the i'th face
+                GLfloat* src = &g_cube_vertex_buffer_data[18*i];
+                // dst will contain a pointer to the top of cube_buf (Past the already saved data)
+                GLfloat* dst = &memo_cube_buf[len];
+                // Will copy the face into cube_buf
+                memcpy(dst, src, 18*sizeof(GLfloat));
+                len += 18;
+            }
         }
+        memo[bitmask] = {memo_cube_buf, len*sizeof(GLfloat)};
     }
-    return {cube_buf, len*sizeof(GLfloat)};
+
+    auto [buf, len] = memo[bitmask];
+    
+    static GLfloat cube_buf[18*6];
+    memcpy(cube_buf, buf, len);
+
+    return {cube_buf, len};
 }
 
-pair<GLfloat*, int> get_specific_cube_uv_coordinates(bool f[6]) {
-    static GLfloat cube_buf[12*6];
-    int len = 0;
-    for(int i = 0; i < 6; i++) {
-        if (f[i]) {
-            // src will contain a pointer to the i'th face
-            GLfloat* src = &g_cube_uv_buffer_data[12*i];
-            // dst will contain a pointer to the top of cube_buf (Past the already saved data)
-            GLfloat* dst = &cube_buf[len];
-            // Will copy the face into cube_buf
-            memcpy(dst, src, 12*sizeof(GLfloat));
-            len += 12;
+pair<GLfloat*, int> get_specific_cube_uv_coordinates(int bitmask) {
+
+    static map<int, pair<GLfloat*, int>> memo;
+
+    if (!memo.count(bitmask)) {
+        GLfloat* memo_cube_buf = new GLfloat[18*6];
+        int len = 0;
+        for(int i = 0; i < 6; i++) {
+            if ((bitmask >> i) & 1) {
+                // src will contain a pointer to the i'th face
+                GLfloat* src = &g_cube_uv_buffer_data[12*i];
+                // dst will contain a pointer to the top of cube_buf (Past the already saved data)
+                GLfloat* dst = &memo_cube_buf[len];
+                // Will copy the face into cube_buf
+                memcpy(dst, src, 12*sizeof(GLfloat));
+                len += 12;
+            }
         }
+        for(int m = 0; m < len; m += 6) {
+            float avg_x = (memo_cube_buf[m+0] + memo_cube_buf[m+2] + memo_cube_buf[m+4])/3.0;
+            float avg_y = (memo_cube_buf[m+1] + memo_cube_buf[m+3] + memo_cube_buf[m+5])/3.0;
+            for(int n = 0; n < 6; n++) {
+                if (memo_cube_buf[m+n] < ((n & 1) == 0 ? avg_x : avg_y)) {
+                    memo_cube_buf[m+n] = 0.0f + 0.001f;
+                } else {
+                    memo_cube_buf[m+n] = 1.0f - 0.001f;
+                }
+            }
+        }
+        memo[bitmask] = {memo_cube_buf, len*sizeof(GLfloat)};
     }
-    return {cube_buf, len*sizeof(GLfloat)};
+
+    auto [buf, len] = memo[bitmask];
+    
+    static GLfloat cube_buf[12*6];
+    memcpy(cube_buf, buf, len);
+
+    return {cube_buf, len};
 }
 
 pair<const GLfloat*, int> get_cube_vertex_coordinates() {

@@ -119,22 +119,24 @@ void World::render(mat4 &PV, TextureAtlasser& atlasser) {
         ChunkData& cd = p.second;
         if (cd.last_render_mark == render_iteration) {
             bool should_render = false;
-            bool problem = false;
 
             bool is_cached = cd.chunk.is_cached();
             if (is_cached || cd.mandatory) {
                 should_render = true;
             } else {
-                should_render = number_of_chunks_constructed < 6;
+                should_render = number_of_chunks_constructed < 1;
             }
 
             if (should_render) {
+                bool con = false;
                 if (!is_cached) {
                     number_of_chunks_constructed++;
+                    con = true;
                 }
+                double start = glfwGetTime();
                 cd.chunk.render(PV, atlasser, my_get_block);
-                if (problem) {
-                    printf("Cached Now: %d\n", cd.chunk.is_cached());
+                if (con) {
+                    //dbg("Constructed: %f", (glfwGetTime() - start)*1000);
                 }
             }
         }

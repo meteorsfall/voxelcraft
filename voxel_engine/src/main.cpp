@@ -71,7 +71,7 @@ int main( void )
 		return -1;
 	}
 
-	glfwSwapInterval(1);
+	glfwSwapInterval(0);
 
     // Seems legit
     GLuint VertexArrayID;
@@ -142,8 +142,8 @@ int main( void )
 
 		game.render();
 
-		if (frame_index % 250 == 0) {
-			printf("CPU Render Time: %f\n", (glfwGetTime() - t1) * 1000.0);
+		if (frame_index % 1 == 0) {
+			//printf("CPU Render Time: %f\n", (glfwGetTime() - t1) * 1000.0);
 		}
 
         // ********************

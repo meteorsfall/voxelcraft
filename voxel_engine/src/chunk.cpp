@@ -66,11 +66,15 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     int num_triangles = 0;
 
     vector<int> textures;
+    // 6 sides per cube
+    textures.reserve(CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*6);
 
     auto is_opaque = [this](Block* b) {
         // If it exists, and it's not transparent
         return b && !this->get_block_type(b->block_type)->is_transparent;
     };
+    
+	double t1 = glfwGetTime();
 
     for(int i = 0; i < CHUNK_SIZE; i++) {
         for(int j = 0; j < CHUNK_SIZE; j++) {
@@ -114,12 +118,10 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                     // Generate boolean array from visible neighbor bitset
                     // This will represent which faces to include and which to cull
                     vec3 fpos(position);
-                    bool buf[6];
-                    for(int m = 0; m < 6; m++) buf[m] = (visible_neighbors >> m) & 1;
 
                     // Get vertex buffer and uv buffer data with any undesired faced culled
-                    auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(buf);
-                    auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(buf);
+                    auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(visible_neighbors);
+                    auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(visible_neighbors);
                     
                     // Translate vertices and save vertex-specific metadata
                     for(int m = 0; m < vertex_buffer_len/(int)sizeof(GLfloat); m += 3) {
@@ -128,18 +130,6 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
                         vertex_buffer_data[m+2] += fpos.z;
                         chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
                         chunk_break_amount_buffer_len += sizeof(GLfloat);
-                    }
-
-                    for(int m = 0; m < uv_buffer_len/(int)sizeof(GLfloat); m += 6) {
-                        float avg_x = (uv_buffer_data[m+0] + uv_buffer_data[m+2] + uv_buffer_data[m+4])/3.0;
-                        float avg_y = (uv_buffer_data[m+1] + uv_buffer_data[m+3] + uv_buffer_data[m+5])/3.0;
-                        for(int n = 0; n < 6; n++) {
-                            if (uv_buffer_data[m+n] < ((n & 1) == 0 ? avg_x : avg_y)) {
-                                uv_buffer_data[m+n] = 0.0f + 0.001f;
-                            } else {
-                                uv_buffer_data[m+n] = 1.0f - 0.001f;
-                            }
-                        }
                     }
                     
                     // Memcpy vertex and uv buffers
@@ -153,7 +143,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
 
                     // Save textures
                     for(int m = 0; m < 6; m++) {
-                        if (buf[m]) {
+                        if ((visible_neighbors >> m) & 1) {
                             int texture = get_block_type(blocks[i][j][k].block_type)->textures[m];
                             textures.push_back(texture);
                         }
@@ -162,6 +152,8 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
             }
         }
     }
+	
+    //dbg("Chunk Construction Time: %f\n", (glfwGetTime() - t1) * 1000.0);
 
     //printf("New Size: %ld\n", texture_choices.size());
     int atlas_width = texture_atlas.get_atlas()->width;
@@ -193,10 +185,6 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
             //printf("To: (%f, %f)\n", chunk_uv_buffer[i+0], chunk_uv_buffer[i+1]);
         }
         index += 2*3*2;
-    }
-
-    if (index < (int)chunk_uv_buffer_len/(int)sizeof(GLfloat)) {
-        printf("Problem! %d vs %ld\n", index, chunk_uv_buffer_len/sizeof(GLfloat));
     }
 
     reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);
