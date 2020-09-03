@@ -40,16 +40,20 @@ Block* Chunk::get_block(int x, int y, int z) {
     return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
-void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master_get_block) {
+void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
     ivec3 bottom_left = location*CHUNK_SIZE;
 
     // Check aabb of chunk against the view frustum
     AABB aabb(bottom_left, vec3(bottom_left) + vec3(CHUNK_SIZE));
 
-    if (this->chunk_rendering_cached) {
+    if (this->chunk_rendering_cached || (dont_rerender && this->has_ever_cached)) {
         if (aabb.test_frustum(PV)) {
             cached_render(PV);
         }
+        return;
+    }
+
+    if (dont_rerender) {
         return;
     }
 
@@ -153,8 +157,11 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
             }
         }
     }
-	
-    //dbg("Chunk Construction Time: %f\n", (glfwGetTime() - t1) * 1000.0);
+    
+    double time = (glfwGetTime() - t1) * 1000.0;
+    if (time > 4) {
+        dbg("Chunk Construction Time: %f\n", time);
+    }
 
     //printf("New Size: %ld\n", texture_choices.size());
     int atlas_width = texture_atlas.get_atlas()->width;
@@ -193,6 +200,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     reuse_array_buffer(opengl_break_amount_buffer, chunk_break_amount_buffer, chunk_break_amount_buffer_len);
 
     this->chunk_rendering_cached = true;
+    this->has_ever_cached = true;
     this->num_triangles_cache = num_triangles;
     
     this->opengl_texture_atlas = texture_atlas.get_atlas_texture();

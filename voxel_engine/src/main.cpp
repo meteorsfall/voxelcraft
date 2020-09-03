@@ -71,7 +71,7 @@ int main( void )
 		return -1;
 	}
 
-	glfwSwapInterval(0);
+	glfwSwapInterval(1);
 
     // Seems legit
     GLuint VertexArrayID;
