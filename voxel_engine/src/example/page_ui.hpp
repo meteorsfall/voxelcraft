@@ -20,11 +20,13 @@ private:
 class PageUI {
 public:
     vector<Button> buttons;
+    optional<UI_Element> background;
+    Font* font;
 
     PageUI();
 
     void click(ivec2 position);
-    void render(Font& font);
+    void render();
 };
 
 #endif

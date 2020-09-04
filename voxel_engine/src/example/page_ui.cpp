@@ -13,16 +13,24 @@ void PageUI::click(ivec2 position) {
     }
 }
 
-void PageUI::render(Font& font) {
+void PageUI::render() {
     float font_scale = 0.3f;
+    
+    if(background){
+        background.value().render();
+    }
+    
     for(int i = 0; i < (int)buttons.size(); i++) {
         UI_Element& elem = buttons.at(i).elem;
         elem.render();
 
-        const char* text = buttons.at(i).text.c_str();
-        int width = font.get_width(text);
-        TextureRenderer::render_text(font, elem.location + elem.size / 2 + ivec2(-width*font_scale/2,8), font_scale, text, ivec3(255));
+        if (buttons.at(i).text.size() > 0) {
+            const char* text = buttons.at(i).text.c_str();
+            int width = font->get_width(text);
+            TextureRenderer::render_text(*font, elem.location + elem.size / 2 + ivec2(-width*font_scale/2,8), font_scale, text, ivec3(255));
+        }
     }
+  
 }
 
 Button::Button(UI_Element elem, string text, fn_on_click on_click_function) {

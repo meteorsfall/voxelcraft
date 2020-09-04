@@ -22,6 +22,7 @@ public:
 private:
     UI_Element crosshair;
     UI_Element play_button;
+    PageUI hotbar_menu;
 
     MenuState menu;
     PageUI main_menu;

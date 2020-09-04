@@ -4,6 +4,8 @@ int crosshair_texture;
 int main_button_texture;
 int button_texture;
 int button_selection_texture;
+int hotbar_texture;
+int hotbar_button_texture;
 
 MainUI::MainUI(Game* game) {
     // Initialization of main UI stuff
@@ -11,10 +13,31 @@ MainUI::MainUI(Game* game) {
     main_button_texture = get_universe()->register_texture("assets/images/boxes_test.bmp", ivec3(255, 0, 255));
     button_texture = get_universe()->register_texture("assets/images/save_button.bmp", ivec3(255, 0, 255));
     button_selection_texture = get_universe()->register_texture("assets/images/button_selected.bmp", ivec3(255, 0, 255));
+    hotbar_texture = get_universe()->register_texture("assets/images/hotbar.bmp", ivec3(255, 0, 255));
+    hotbar_button_texture = get_universe()->register_texture("assets/images/hotbar_button.bmp", ivec3(255, 0, 255));
+
+    int dirt_texture = get_universe()->register_texture("assets/images/dirt.bmp");
+    int stone_texture = get_universe()->register_texture("assets/images/stone.bmp");
+    int log_side_texture = get_universe()->register_texture("assets/images/log_side.bmp");
 
     this->game = game;
     this->crosshair = UI_Element(crosshair_texture);
     crosshair.size = ivec2(25);
+    hotbar_menu.background = UI_Element(hotbar_texture);
+    hotbar_menu.background.value().size = ivec2(163, 21) * 5;
+
+    vector<int> hotbar_textures = {dirt_texture, stone_texture, log_side_texture};
+    for(int i = 4; i <= 9; i++) {
+        hotbar_textures.push_back(hotbar_button_texture);
+    }
+    for(int i = 1; i <= 9; i++) {
+        hotbar_menu.buttons.push_back(Button(UI_Element(hotbar_textures[i - 1]), "", [](){}));
+    }
+
+    main_menu.font = &font;
+    save_menu.font = &font;
+    load_menu.font = &font;
+    hotbar_menu.font = &font;
 
     main_menu.buttons = {
         Button(UI_Element(main_button_texture), "Play", [this]() {
@@ -94,6 +117,16 @@ MainUI::MainUI(Game* game) {
 void MainUI::iterate(InputState& input, int width, int height) {
     // Set crosshair position to center of screen
     crosshair.location = ivec2(width/2, height/2) - crosshair.size / 2;
+    int hotbar_size_multiple = (int)(width/(float)163/2 + 0.5);
+    UI_Element& hotbar = hotbar_menu.background.value();
+    hotbar.size = ivec2(163, 21) * hotbar_size_multiple;
+    hotbar.location = ivec2(width/2 - hotbar.size.x/2, height - 15 - hotbar.size.y);
+
+    for(int i = 0; i <= 8; i++){
+        UI_Element& elem = hotbar_menu.buttons[i].elem;
+        elem.size = ivec2(8,8)*hotbar_size_multiple;
+        elem.location = hotbar.location + ivec2(6 + 18*i, 7)*hotbar_size_multiple;
+    }
 
     auto position_page = [width, height](PageUI& page) {
         // Position the buttons of the given page
@@ -144,6 +177,8 @@ void MainUI::render() {
         PageUI& visible_page = menu == MenuState::MainMenu ? main_menu
                             : (menu == MenuState::SaveMenu ? save_menu
                             : load_menu);
-        visible_page.render(font);
+        visible_page.render();
+    } else {
+        hotbar_menu.render();
     }
 }

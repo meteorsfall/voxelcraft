@@ -72,8 +72,8 @@ void generate_tree_cute(World& world, ivec3 loc) {
     world.set_block(loc.x, loc.y, loc.z, log_block);
     world.set_block(loc.x, loc.y+1, loc.z, log_block);
 
-    for(int dx = -2; dx <= 2; dx++){
-        for(int dz = -2; dz <= 2; dz++){
+    for(int dx = -1; dx <= 1; dx++){
+        for(int dz = -1; dz <= 1; dz++){
             for(int dy = 2; dy <= 3; dy++){
                 world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block);
             }

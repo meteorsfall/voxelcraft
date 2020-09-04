@@ -11,6 +11,16 @@ int leaf_block;
 int grass_block;
 int up_block;
 
+
+int stone_texture;
+int dirt_texture;
+int log_side_texture;
+int log_top_texture;
+int leaves_texture;
+int grass_side_texture;
+int grass_top_texture;
+int up_texture;
+
 void Game::save_world(const char* filename) {
     auto [buffer, buffer_len] = world.serialize();
 
@@ -57,14 +67,14 @@ void Game::load_world(const char* filename) {
 Game::Game() {
     srand (time(NULL));
 
-    int stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
-    int dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
-    int log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
-    int log_top_texture = get_universe()->register_atlas_texture("assets/images/log_top.bmp");
-    int leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
-    int grass_side_texture = get_universe()->register_atlas_texture("assets/images/grass_side.bmp");
-    int grass_top_texture = get_universe()->register_atlas_texture("assets/images/grass_top.bmp");
-    int up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
+    stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
+    dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
+    log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
+    log_top_texture = get_universe()->register_atlas_texture("assets/images/log_top.bmp");
+    leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
+    grass_side_texture = get_universe()->register_atlas_texture("assets/images/grass_side.bmp");
+    grass_top_texture = get_universe()->register_atlas_texture("assets/images/grass_top.bmp");
+    up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
  
     stone_block = get_universe()->register_blocktype(stone_texture, stone_texture, stone_texture, stone_texture, stone_texture, stone_texture);
     dirt_block = get_universe()->register_blocktype(dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture);

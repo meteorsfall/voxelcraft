@@ -38,7 +38,7 @@ endif()
 else ()
 add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Werror -Wfatal-errors)
 add_link_options(-rdynamic)
-set(CMAKE_CXX_FLAGS_DEBUG "-Og -g")
+set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
 endif ()
 
