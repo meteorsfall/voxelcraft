@@ -1,4 +1,6 @@
 #include "world_gen.hpp"
+#include <stdlib.h>
+#include <time.h>
 #include <libnoise/noise.h>
 using namespace noise;
 
@@ -10,7 +12,7 @@ extern int leaf_block;
 extern int grass_block;
 
 void generate_random_tree(World& world, ivec3 loc) {
-    int r = rand() % 4;
+    int r = hash_ivec3(loc) % 4;
     switch(r) {
     case 0:
         generate_tree_pyramid(world, loc);

@@ -1,5 +1,10 @@
 #include "world.hpp"
 
+size_t hash_ivec3(ivec3 const& key) {
+    // Using random primes
+    return (((((456818903 + key.x) * 832251403) + key.y) * 1349392157) + key.z) * 1866190769;
+}
+
 ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
 }
 

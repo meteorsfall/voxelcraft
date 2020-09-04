@@ -3,16 +3,22 @@ project(VoxelCraft)
 
 set(default_build_type "Release")
 
-ADD_CUSTOM_COMMAND(OUTPUT precompiled.h.gch
-  file(WRITE precompiled.h.gch "GCH Written!")
-  DEPENDS src/utils.h
-  IMPICIT_DEPENDS src/utils.h
+set(CUSTOM_CACHE ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/custom_cache)
+file(MAKE_DIRECTORY ${CUSTOM_CACHE})
+
+ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
+  COMMAND ${CMAKE_COMMAND} -E echo "Compiled GCH!" > "${CUSTOM_CACHE}/precompiled.h.gch"
+  DEPENDS "src/utils.hpp"
+  IMPLICIT_DEPENDS CXX "src/utils.hpp"
+  COMMENT "GCH requires recompile ${CUSTOM_CACHE}"
 )
+
+message(STATUS "Test ${CUSTOM_CACHE}")
 
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
-  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
+  DEPENDS "precompiled.h.gch"
   COMMENT "Creating the executable in release mode."
 )
 

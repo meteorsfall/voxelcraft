@@ -2,8 +2,6 @@
 #define _WORLD_GEN_HPP_
 
 #include "main_game.hpp"
-#include <stdlib.h>
-#include <time.h>
 
 void generate_chunk(World& world, ivec3 chunk_coords);
 
