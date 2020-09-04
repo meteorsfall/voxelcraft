@@ -19,9 +19,9 @@ MainUI::MainUI(Game* game) {
     hotbar_selected_texture = get_universe()->register_texture("assets/images/hotbar_selected.bmp", ivec3(255, 0, 255));
 
     int dirt_texture = get_universe()->register_texture("assets/images/dirt.bmp");
-    int stone_texture = get_universe()->register_texture("assets/images/stone.bmp");
-    int log_side_texture = get_universe()->register_texture("assets/images/log_side.bmp");
-
+    int cobblestone_texture = get_universe()->register_texture("assets/images/cobblestone.bmp");
+    int plank_texture = get_universe()->register_texture("assets/images/planks.bmp");
+    
     this->game = game;
     this->crosshair = UI_Element(crosshair_texture);
     crosshair.size = ivec2(25);
@@ -29,7 +29,7 @@ MainUI::MainUI(Game* game) {
     hotbar_menu.background = UI_Element(hotbar_texture);
     hotbar_menu.background.value().size = ivec2(163, 21) * 5;
 
-    vector<int> hotbar_textures = {dirt_texture, stone_texture, log_side_texture};
+    vector<int> hotbar_textures = {dirt_texture, cobblestone_texture, plank_texture};
     for(int i = 4; i <= 9; i++) {
         hotbar_textures.push_back(hotbar_button_texture);
     }

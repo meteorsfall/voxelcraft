@@ -9,6 +9,9 @@ int stone_block;
 int log_block;
 int leaf_block;
 int grass_block;
+int cobblestone_block;
+int plank_block;
+
 int up_block;
 
 int stone_texture;
@@ -18,6 +21,9 @@ int log_top_texture;
 int leaves_texture;
 int grass_side_texture;
 int grass_top_texture;
+int cobblestone_texture;
+int plank_texture;
+
 int up_texture;
 
 void Game::save_world(const char* filename) {
@@ -73,6 +79,8 @@ Game::Game() {
     leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
     grass_side_texture = get_universe()->register_atlas_texture("assets/images/grass_side.bmp");
     grass_top_texture = get_universe()->register_atlas_texture("assets/images/grass_top.bmp");
+    cobblestone_texture = get_universe()->register_atlas_texture("assets/images/cobblestone.bmp");
+    plank_texture = get_universe()->register_atlas_texture("assets/images/planks.bmp");
     up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
  
     stone_block = get_universe()->register_blocktype(stone_texture, stone_texture, stone_texture, stone_texture, stone_texture, stone_texture);
@@ -80,6 +88,8 @@ Game::Game() {
     log_block = get_universe()->register_blocktype(log_side_texture, log_side_texture, log_top_texture, log_top_texture, log_side_texture, log_side_texture);
     leaf_block = get_universe()->register_blocktype(leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, true);
     grass_block = get_universe()->register_blocktype(grass_side_texture, grass_side_texture, dirt_texture, grass_top_texture, grass_side_texture, grass_side_texture);
+    cobblestone_block = get_universe()->register_blocktype(cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture);
+    plank_block = get_universe()->register_blocktype(plank_texture, plank_texture, plank_texture, plank_texture, plank_texture, plank_texture);
     up_block = get_universe()->register_blocktype(up_texture, up_texture, up_texture, up_texture, up_texture, up_texture);
 
     restart_world();
@@ -92,8 +102,8 @@ void Game::restart_world() {
     this->world = World();
     this->player = Player();
     player.hotbar[0] = dirt_block;
-    player.hotbar[1] = stone_block;
-    player.hotbar[2] = log_block;
+    player.hotbar[1] = cobblestone_block;
+    player.hotbar[2] = plank_block;
 	player.hand = 0;
 }
 
