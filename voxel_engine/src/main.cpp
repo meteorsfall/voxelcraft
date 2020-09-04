@@ -97,8 +97,6 @@ int main( void )
 	Game game;
 	// MAKE ALL CUSTOM UIs HERE
 	MainUI main_ui(&game);
-
-	int skybox_id = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
     
     // START MAIN GAME LOOP
 	for (int frame_index = 0; true; frame_index++) {
@@ -156,9 +154,6 @@ int main( void )
 			UNUSED(game_timer_time);
 			//dbg("CPU Render Time: %f", game_timer_time);
 		}
-
-		// Render skybox behind everything else
-		get_texture_renderer()->render_skybox(game.player.camera.get_origin_camera_matrix(width/(float)height), *get_universe()->get_cubemap_texture(skybox_id));
 
         // ********************
         // Rendering UI Elements

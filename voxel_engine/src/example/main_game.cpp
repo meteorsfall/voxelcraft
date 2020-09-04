@@ -1,5 +1,6 @@
 #include "main_game.hpp"
 #include "world_gen.hpp"
+#include "../texture_renderer.hpp"
 #include <fstream>
 #include <filesystem>
 
@@ -11,7 +12,6 @@ int leaf_block;
 int grass_block;
 int cobblestone_block;
 int plank_block;
-
 int up_block;
 
 int stone_texture;
@@ -23,8 +23,9 @@ int grass_side_texture;
 int grass_top_texture;
 int cobblestone_texture;
 int plank_texture;
-
 int up_texture;
+
+int skybox_texture;
 
 void Game::save_world(const char* filename) {
     auto [buffer, buffer_len] = world.serialize();
@@ -91,6 +92,8 @@ Game::Game() {
     cobblestone_block = get_universe()->register_blocktype(cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture);
     plank_block = get_universe()->register_blocktype(plank_texture, plank_texture, plank_texture, plank_texture, plank_texture, plank_texture);
     up_block = get_universe()->register_blocktype(up_texture, up_texture, up_texture, up_texture, up_texture, up_texture);
+
+	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
 
     restart_world();
 }
@@ -161,11 +164,17 @@ void Game::iterate(InputState& input) {
 }
 
 void Game::render() {
-    // Get Projection-View matrix
-    mat4 PV = player.camera.get_camera_matrix(input.screen_dimensions.x / (float)input.screen_dimensions.y);
+    float aspect_ratio = input.screen_dimensions.x / (float)input.screen_dimensions.y;
 
-    // Render
+    // Get Projection-View matrix
+    mat4 PV = player.camera.get_camera_matrix(aspect_ratio);
+    mat4 PV_origin = player.camera.get_origin_camera_matrix(aspect_ratio);
+
+    // Render World
     world.render(PV, *get_universe()->get_atlasser());
+
+    // Render Skybox
+    TextureRenderer::render_skybox(PV_origin, *get_universe()->get_cubemap_texture(skybox_texture));
 }
 
 const float MOVEMENT_SPEED = 5.0;

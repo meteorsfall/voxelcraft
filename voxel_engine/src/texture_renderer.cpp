@@ -71,7 +71,7 @@ void TextureRenderer::render(Texture& texture, GLuint shader_id, ivec2 top_left,
     get_texture_renderer()->internal_render(texture, shader_id, top_left, size);
 }
 
-void TextureRenderer::render_skybox(mat4&& PV, CubeMapTexture& texture) {
+void TextureRenderer::render_skybox(mat4& PV, CubeMapTexture& texture) {
     int shader_id = get_texture_renderer()->skybox_shader;
 
     glUseProgram(shader_id);
