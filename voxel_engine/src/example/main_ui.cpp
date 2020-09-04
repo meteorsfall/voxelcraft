@@ -6,6 +6,7 @@ int button_texture;
 int button_selection_texture;
 int hotbar_texture;
 int hotbar_button_texture;
+int hotbar_selected_texture;
 
 MainUI::MainUI(Game* game) {
     // Initialization of main UI stuff
@@ -15,6 +16,7 @@ MainUI::MainUI(Game* game) {
     button_selection_texture = get_universe()->register_texture("assets/images/button_selected.bmp", ivec3(255, 0, 255));
     hotbar_texture = get_universe()->register_texture("assets/images/hotbar.bmp", ivec3(255, 0, 255));
     hotbar_button_texture = get_universe()->register_texture("assets/images/hotbar_button.bmp", ivec3(255, 0, 255));
+    hotbar_selected_texture = get_universe()->register_texture("assets/images/hotbar_selected.bmp", ivec3(255, 0, 255));
 
     int dirt_texture = get_universe()->register_texture("assets/images/dirt.bmp");
     int stone_texture = get_universe()->register_texture("assets/images/stone.bmp");
@@ -23,6 +25,7 @@ MainUI::MainUI(Game* game) {
     this->game = game;
     this->crosshair = UI_Element(crosshair_texture);
     crosshair.size = ivec2(25);
+    hotbar_selected = UI_Element(hotbar_selected_texture);
     hotbar_menu.background = UI_Element(hotbar_texture);
     hotbar_menu.background.value().size = ivec2(163, 21) * 5;
 
@@ -124,9 +127,12 @@ void MainUI::iterate(InputState& input, int width, int height) {
 
     for(int i = 0; i <= 8; i++){
         UI_Element& elem = hotbar_menu.buttons[i].elem;
-        elem.size = ivec2(8,8)*hotbar_size_multiple;
-        elem.location = hotbar.location + ivec2(6 + 18*i, 7)*hotbar_size_multiple;
+        elem.size = ivec2(8, 8)*hotbar_size_multiple;
+        elem.location = hotbar.location + ivec2(6 + 18*i, 6)*hotbar_size_multiple;
     }
+
+    hotbar_selected.size = ivec2(22, 21)*hotbar_size_multiple;
+    hotbar_selected.location = hotbar_menu.buttons[game->player.hand].elem.location - ivec2(7, 7)*hotbar_size_multiple;
 
     auto position_page = [width, height](PageUI& page) {
         // Position the buttons of the given page
@@ -179,6 +185,8 @@ void MainUI::render() {
                             : load_menu);
         visible_page.render();
     } else {
+        hotbar_menu.background.value().render();
+        hotbar_selected.render();
         hotbar_menu.render();
     }
 }

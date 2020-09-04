@@ -92,7 +92,10 @@ Game::~Game() {
 void Game::restart_world() {
     this->world = World();
     this->player = Player();
-	player.hand = dirt_block;
+    player.hotbar[0] = dirt_block;
+    player.hotbar[1] = stone_block;
+    player.hotbar[2] = log_block;
+	player.hand = 0;
 }
 
 void Game::iterate(InputState& input) {
@@ -106,11 +109,10 @@ void Game::iterate(InputState& input) {
     }
 
     // If unpaused:
-    if (input.keys[GLFW_KEY_1] == GLFW_PRESS) {
-        player.hand = dirt_block;
-    }
-    if (input.keys[GLFW_KEY_2] == GLFW_PRESS) {
-        player.hand = stone_block;
+    for(int i = 0; i < 9; i++) {
+        if (input.keys[GLFW_KEY_1 + i] == GLFW_PRESS) {
+            player.hand = i;
+        }
     }
 
     ivec3 current_chunk = floor(floor(player.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
@@ -187,7 +189,7 @@ void Game::do_something() {
         static double last_right_click_press = 0.0;
         if (input.right_mouse != GLFW_RELEASE) {
             if (current_time - last_right_click_press > 0.25) {
-                place_block(player.hand);
+                place_block(player.hotbar[player.hand]);
                 last_right_click_press = current_time;
             }
         }

@@ -214,24 +214,22 @@ static GLfloat g_cube_uv_buffer_data[] = {
     1.0f, 0.0f
 };
 
-
-
 static GLfloat g_plane_vertex_buffer_data[] = {
    -1.0f,-1.0f, 0.0f, // triangle 1 : begin
     1.0f, 1.0f, 0.0f,
-   -1.0f, 1.0f, 1.0f, // triangle 1 : end
+   -1.0f, 1.0f, 0.0f, // triangle 1 : end
    -1.0f,-1.0f, 0.0f, // triangle 2 : begin
     1.0f,-1.0f, 0.0f,
     1.0f, 1.0f, 0.0f, // triangle 2 : end
 };
 
 static GLfloat g_plane_uv_buffer_data[] = {
-    0.0f, 1.0f,
-    1.0f, 0.0f,
     0.0f, 0.0f,
-    0.0f, 1.0f,
     1.0f, 1.0f,
+    0.0f, 1.0f,
+    0.0f, 0.0f,
     1.0f, 0.0f,
+    1.0f, 1.0f,
 };
 
 pair<GLfloat*, int> get_specific_cube_vertex_coordinates(int bitmask) {

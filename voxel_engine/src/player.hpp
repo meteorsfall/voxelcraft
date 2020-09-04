@@ -8,6 +8,7 @@
 class Player {
 public:
     int hand = 0;
+    int hotbar[9] = {0};
     Camera camera;
 
     vec3 position;

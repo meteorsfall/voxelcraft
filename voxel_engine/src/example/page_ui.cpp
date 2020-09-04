@@ -1,7 +1,6 @@
 #include "page_ui.hpp"
 
 PageUI::PageUI() {
-
 }
 
 void PageUI::click(ivec2 position) {
@@ -15,10 +14,6 @@ void PageUI::click(ivec2 position) {
 
 void PageUI::render() {
     float font_scale = 0.3f;
-    
-    if(background){
-        background.value().render();
-    }
     
     for(int i = 0; i < (int)buttons.size(); i++) {
         UI_Element& elem = buttons.at(i).elem;
