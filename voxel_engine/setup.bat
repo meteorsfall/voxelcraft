@@ -1,7 +1,7 @@
-CALL :import bin.zip "https://www.dropbox.com/s/ob70jwjonhm9rek/bin.zip?dl=1" .
-CALL :import lib.zip "https://www.dropbox.com/s/uehggk5i7yymmg9/lib.zip?dl=1" .
-CALL :import include.zip "https://www.dropbox.com/s/tcpgqpx9taj1d31/include.zip?dl=1" .
-CALL :import assets.zip "https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1" ./assets
+CALL :import bin.zip "https://www.dropbox.com/sh/olgddijjxcdoabc/AACkBaPfRkmUXkXRjapfQ1-ya?dl=1" bin
+CALL :import lib.zip "https://www.dropbox.com/sh/1p5yfvm1ipowdy4/AAAG7fXpmhTStNWb1yjT_q5Ta?dl=1" lib
+CALL :import include.zip "https://www.dropbox.com/sh/8wcwnom54d3iub1/AADdoO609RsbOt1JrdCAp6tIa?dl=1" include
+CALL :import assets.zip "https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1" assets
 cnmake
 nmake debug
 EXIT /B 0
