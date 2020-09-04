@@ -79,7 +79,7 @@ int main( void )
     glBindVertexArray(VertexArrayID);
 
 	// Dark blue background
-	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0x96/255.0f, 0xdd/255.0f, 0xf8/255.0f, 1.0f);
 
     glEnable(GL_CULL_FACE);
 	glEnable(GL_SAMPLE_ALPHA_TO_MASK_EXT);
