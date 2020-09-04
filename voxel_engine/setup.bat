@@ -11,4 +11,5 @@ mkdir %~3 2> NUL
 powershell.exe -nologo -noprofile -command "(New-Object Net.WebClient).DownloadFile('%~2', '%~1')"
 powershell.exe -nologo -noprofile -command "& { $shell = New-Object -COM Shell.Application; $dst = Resolve-Path %~3; $src = Resolve-Path '%~1'; $target = $shell.NameSpace($dst.Path); $zip = $shell.NameSpace($src.Path); $target.CopyHere($zip.Items(), 16); }"
 del %~1
+powershell.exe -nologo -noprofile -command "foreach($file in Get-ChildItem -Recurse %~3) {$(Get-Item $file.Fullname).lastwritetime=$(Get-Date)}"
 EXIT /B 0
