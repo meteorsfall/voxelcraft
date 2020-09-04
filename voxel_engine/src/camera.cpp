@@ -71,3 +71,20 @@ mat4 Camera::get_camera_matrix(float aspect_ratio) {
 
     return ProjectionMatrix * ViewMatrix;
 }
+
+mat4 Camera::get_origin_camera_matrix(float aspect_ratio) {
+    vec3 direction = this->get_direction();
+    vec3 right = this->get_right();
+    vec3 up = cross( right, direction );
+
+	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+    mat4 ProjectionMatrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 100.0f);
+    // Camera matrix
+    mat4 ViewMatrix = lookAt(
+        vec3(0),   // Camera is here
+        direction, // and looks here : at the same position, plus "direction"
+        up         // Head is up (set to 0,-1,0 to look upside-down)
+    );
+
+    return ProjectionMatrix * ViewMatrix;
+}

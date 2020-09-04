@@ -10,9 +10,12 @@ TextureRenderer* get_texture_renderer() {
 TextureRenderer::TextureRenderer() {
     auto [vertex_buffer_data, vertex_buffer_len] = get_plane_vertex_coordinates();
     auto [uv_buffer_data, uv_buffer_len] = get_plane_uv_coordinates();
+    auto [skybox_buffer_data, skybox_buffer_len] = get_skybox_vertex_coordinates();
 
     this->vertex_buffer = create_array_buffer(vertex_buffer_data, vertex_buffer_len);
     this->uv_buffer = create_array_buffer(uv_buffer_data, uv_buffer_len);
+    this->skybox_buffer = create_array_buffer(skybox_buffer_data, skybox_buffer_len);
+    this->skybox_shader = load_shaders("assets/shaders/skybox.vert", "assets/shaders/skybox.frag");
 }
 
 void TextureRenderer::set_window_dimensions(int width, int height) {
@@ -68,6 +71,20 @@ void TextureRenderer::render(Texture& texture, GLuint shader_id, ivec2 top_left,
     get_texture_renderer()->internal_render(texture, shader_id, top_left, size);
 }
 
+void TextureRenderer::render_skybox(mat4& PV, CubeMapTexture& texture) {
+    int shader_id = get_texture_renderer()->skybox_shader;
+
+    glUseProgram(shader_id);
+
+    GLuint cubemap_PV_pointer = glGetUniformLocation(shader_id, "PV");
+    glUniformMatrix4fv(cubemap_PV_pointer, 1, GL_FALSE, &PV[0][0]);
+
+    GLuint cubemap_shader_pointer = glGetUniformLocation(shader_id, "skybox");
+    bind_texture_cubemap(0, cubemap_shader_pointer, texture.opengl_texture_id);
+
+    bind_array(0, get_texture_renderer()->skybox_buffer, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+}
 
 void TextureRenderer::render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color) {
     location.y = get_texture_renderer()->height - 1 - location.y;

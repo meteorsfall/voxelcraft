@@ -9,6 +9,7 @@
 class TextureRenderer {
 public:
     static void render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size);
+    static void render_skybox(mat4& PV, CubeMapTexture& texture);
     static void render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color);
 
     TextureRenderer();
@@ -17,6 +18,8 @@ public:
 private:
     GLuint vertex_buffer;
     GLuint uv_buffer;
+    GLuint skybox_buffer;
+    GLuint skybox_shader;
     int width;
     int height;
 };

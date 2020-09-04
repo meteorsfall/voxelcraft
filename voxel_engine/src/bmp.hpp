@@ -26,11 +26,15 @@ public:
 	GLuint generate_texture(bool mipmapped = false);
 	// At this bmp's (x, y), paste another bmp
     void blit(int x, int y, BMP& other);
+	// Crops the bmp and returns the crop
+	BMP crop(int x, int y, int width, int height);
 	// Save BMP object to a .bmp file
 	void save(const char* filename);
+	
+	// Internal data array
+	vector<byte> data;
 private:
     bool valid;
-	vector<unsigned char> data;
 };
 
 #endif

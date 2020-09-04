@@ -79,7 +79,7 @@ int main( void )
     glBindVertexArray(VertexArrayID);
 
 	// Dark blue background
-	glClearColor(0x96/255.0f, 0xdd/255.0f, 0xf8/255.0f, 1.0f);
+	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 
     glEnable(GL_CULL_FACE);
 	glEnable(GL_SAMPLE_ALPHA_TO_MASK_EXT);
@@ -97,6 +97,8 @@ int main( void )
 	Game game;
 	// MAKE ALL CUSTOM UIs HERE
 	MainUI main_ui(&game);
+
+	int skybox_id = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
     
     // START MAIN GAME LOOP
 	for (int frame_index = 0; true; frame_index++) {
@@ -130,18 +132,17 @@ int main( void )
 			UNUSED(iter_timer_time);
 			//dbg("Game Iterate Time: %f", iter_timer_time);
 		}
-
+		
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
 		glDisable(GL_BLEND);
 		// Accept fragment if it closer to the camera than the former one
-		glDepthFunc(GL_LESS);
+		glDepthFunc(GL_LEQUAL);
 
 		// Clear the screen. It's not mentioned before Tutorial 02, but it can cause flickering, so it's there nonetheless.
 		glViewport(0, 0, width, height);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDepthMask(GL_TRUE);
-
+		
         // ********************
         // Rendering Geometry
         // ********************
@@ -155,6 +156,9 @@ int main( void )
 			UNUSED(game_timer_time);
 			//dbg("CPU Render Time: %f", game_timer_time);
 		}
+
+		// Render skybox behind everything else
+		get_texture_renderer()->render_skybox(game.player.camera.get_origin_camera_matrix(width/(float)height), *get_universe()->get_cubemap_texture(skybox_id));
 
         // ********************
         // Rendering UI Elements

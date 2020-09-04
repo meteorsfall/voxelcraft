@@ -14,4 +14,14 @@ public:
     Texture(BMP image);
 };
 
+class CubeMapTexture {
+public:
+    int texture_id;
+    GLuint opengl_texture_id;
+    BMP bmp;
+    
+    CubeMapTexture();
+    CubeMapTexture(BMP image);
+};
+
 #endif

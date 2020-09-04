@@ -86,6 +86,37 @@ GLuint load_shaders(const char * vertex_file_path, const char * fragment_file_pa
 	return ProgramID;
 }
 
+GLuint load_cubemap(byte* sides[6], int size)
+{
+    GLuint textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    byte* img = new byte[4*size*size];
+    for (uint i = 0; i < 6; i++)
+    {
+        // Flip image
+        // https://stackoverflow.com/questions/11685608/convention-of-faces-in-opengl-cubemapping
+        for(int y = 0; y < size; y++) {
+            memcpy(&img[y*size*4], &sides[i][(size-1-y)*size*4], size*4);
+        }
+
+        // Save Texture
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+                     0, GL_RGBA, size, size, 0, GL_RGBA, GL_UNSIGNED_BYTE, img
+        );
+    }
+    delete[] img;
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
+}  
+
 GLuint create_array_buffer(const GLfloat* data, int len) {
     // The array buffer id
     GLuint id;
@@ -115,6 +146,19 @@ void bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_
     glActiveTexture(GL_TEXTURE0 + texture_num);
     // gl_active_texture = texture_num;
     glBindTexture(GL_TEXTURE_2D, opengl_texture_id);
+    // GL_TEXTURE_2D[gl_active_texture] = my_texture_id;
+    glUniform1i(shader_texture_pointer, texture_num);
+    // *shader_texture_pointer = GL_TEXTURE_2D[texture_num]
+}
+
+void bind_texture_cubemap(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id) {
+    if (texture_num < 0 || texture_num >= GL_MAX_TEXTURE_UNITS) {
+        printf("BAD TEXTURE NUM: %d / %d", texture_num, GL_MAX_TEXTURE_UNITS);
+    }
+
+    glActiveTexture(GL_TEXTURE0 + texture_num);
+    // gl_active_texture = texture_num;
+    glBindTexture(GL_TEXTURE_CUBE_MAP, opengl_texture_id);
     // GL_TEXTURE_2D[gl_active_texture] = my_texture_id;
     glUniform1i(shader_texture_pointer, texture_num);
     // *shader_texture_pointer = GL_TEXTURE_2D[texture_num]
@@ -309,4 +353,53 @@ pair<const GLfloat*, int> get_plane_vertex_coordinates() {
 }
 pair<const GLfloat*, int> get_plane_uv_coordinates() {
     return {g_plane_uv_buffer_data, sizeof(g_plane_uv_buffer_data)};
+}
+
+float g_skybox_vertex_data[] = {
+    // positions          
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
+
+pair<const GLfloat*, int> get_skybox_vertex_coordinates() {
+    return {g_skybox_vertex_data, sizeof(g_skybox_vertex_data)};
 }

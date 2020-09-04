@@ -31,6 +31,17 @@ int Universe::register_texture(const char* texture_path, ivec3 color_key) {
     return textures.size();
 }
 
+int Universe::register_cubemap_texture(const char* texture_path, ivec3 color_key) {
+    BMP cubemap = BMP(texture_path, color_key);
+    BMP sides;
+    cubemap_textures.push_back(CubeMapTexture(cubemap));
+    return cubemap_textures.size();
+}
+
+CubeMapTexture* Universe::get_cubemap_texture(int texture_id) {
+    return &cubemap_textures.at(texture_id-1);
+}
+
 Texture* Universe::get_texture(int texture_id) {
     return &textures.at(texture_id - 1);
 }
