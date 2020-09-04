@@ -3,15 +3,23 @@ project(VoxelCraft)
 
 set(default_build_type "Release")
 
+ADD_CUSTOM_COMMAND(OUTPUT precompiled.h.gch
+  file(WRITE precompiled.h.gch "GCH Written!")
+  DEPENDS src/utils.h
+  IMPICIT_DEPENDS src/utils.h
+)
+
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
   COMMENT "Creating the executable in release mode."
 )
 
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
   COMMENT "Creating the executable in debug mode."
 )
 
@@ -77,6 +85,8 @@ include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 
 # Define VoxelCraft executable
 add_executable(vc src/main.cpp src/utils.cpp src/universe.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp)
+
+target_precompile_headers(vc PRIVATE src/utils.hpp)
 
 if (WIN32)
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 noise freetype)
