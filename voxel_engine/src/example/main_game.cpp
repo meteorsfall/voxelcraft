@@ -11,7 +11,6 @@ int leaf_block;
 int grass_block;
 int up_block;
 
-
 int stone_texture;
 int dirt_texture;
 int log_side_texture;
@@ -104,16 +103,6 @@ void Game::iterate(InputState& input) {
     if (input.keys[GLFW_KEY_ESCAPE] == GLFW_PRESS && !paused) {
         paused = true;
     }
-    if (paused) {
-        return;
-    }
-
-    // If unpaused:
-    for(int i = 0; i < 9; i++) {
-        if (input.keys[GLFW_KEY_1 + i] == GLFW_PRESS) {
-            player.hand = i;
-        }
-    }
 
     ivec3 current_chunk = floor(floor(player.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
 
@@ -144,6 +133,17 @@ void Game::iterate(InputState& input) {
                     world.mark_chunk(chunk, mandatory);
                 }
             }
+        }
+    }
+
+    if (paused) {
+        return;
+    }
+
+    // If unpaused:
+    for(int i = 0; i < 9; i++) {
+        if (input.keys[GLFW_KEY_1 + i] == GLFW_PRESS) {
+            player.hand = i;
         }
     }
 

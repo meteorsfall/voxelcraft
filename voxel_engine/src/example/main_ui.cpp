@@ -175,18 +175,17 @@ void MainUI::iterate(InputState& input, int width, int height) {
 }
 
 void MainUI::render() {
-    crosshair.render();
-	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
-   
-    // Render buttons on the visible page
     if(game->paused) {
+        // Render buttons on the visible page
         PageUI& visible_page = menu == MenuState::MainMenu ? main_menu
                             : (menu == MenuState::SaveMenu ? save_menu
                             : load_menu);
         visible_page.render();
     } else {
+        crosshair.render();
         hotbar_menu.background.value().render();
         hotbar_selected.render();
         hotbar_menu.render();
     }
+   	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
 }
