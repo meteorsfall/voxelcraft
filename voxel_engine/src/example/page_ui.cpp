@@ -6,7 +6,6 @@ PageUI::PageUI() {
 void PageUI::click(ivec2 position) {
     for(int i = 0; i < (int)buttons.size(); i++) {
         if (buttons.at(i).elem.intersect(position)) {
-            printf("Clicked %d!\n", i);
             buttons.at(i).on_click_function();
         }
     }

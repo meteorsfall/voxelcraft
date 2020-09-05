@@ -71,8 +71,6 @@ void Game::load_world(const char* filename) {
 }
 
 Game::Game() {
-    srand (time(NULL));
-
     stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
     dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
     log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
@@ -119,31 +117,68 @@ void Game::iterate(InputState& input) {
 
     ivec3 current_chunk = floor(floor(player.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
 
+    double time_started = glfwGetTime();
+
     bool already_generated_chunk = false;
-    int radius = 3;
+    int radius = 15;
+    int mandatory_radius = 2;
+    int vertical_radius = 1;
+
+    int dist_above_floor = max(current_chunk.y, 0);
+
+    vector<pair<int, ivec3>> chunk_coords;
     for(int dx = -radius; dx <= radius; dx++) {
-        for(int dy = -radius; dy <= radius; dy++) {
+        for(int dy = -vertical_radius - min(dist_above_floor, 5); dy <= vertical_radius; dy++) {
             for(int dz = -radius; dz <= radius; dz++) {
-                ivec3 chunk = current_chunk + ivec3(dx, dy, dz);
+                chunk_coords.push_back({dx*dx+dy*dy+dz*dz, ivec3(dx, dy, dz)});
+            }
+        }
+    }
+    sort(chunk_coords.begin(), chunk_coords.end(), [](pair<int, ivec3>& a, pair<int, ivec3>& b) -> bool {
+        return a.first < b.first;
+    });
 
-                bool mandatory = abs(dx) <= 1 && abs(dy) <= 1 && abs(dz) <= 1;
-                bool chunk_exists = false;
+    for(auto& p : chunk_coords) {
+        int dx = p.second[0];
+        int dy = p.second[1];
+        int dz = p.second[2];
 
-                // Generate chunk if it needs to be generated
-                if (world.is_generated(chunk)) {
-                    chunk_exists = true;
-                } else {
-                    // If it does, only generate if its mandatory or if we haven't generated a chunk this frame
-                    if (mandatory || !already_generated_chunk) {
-                        generate_chunk(world, chunk);
-                        chunk_exists = true;
-                        already_generated_chunk = true;
-                    }
-                }
-                
-                // Mark chunk for render, if it exists
-                if (chunk_exists) {
-                    world.mark_chunk(chunk, mandatory);
+        ivec3 chunk = current_chunk + ivec3(dx, dy, dz);
+
+        bool mandatory = abs(dx) <= mandatory_radius && abs(dy) <= mandatory_radius && abs(dz) <= mandatory_radius;
+        bool chunk_exists = false;
+
+        int priority;
+        if (mandatory) {
+            priority = 0;
+        } else {
+            priority = dx*dx + dy*dy + dz*dz;
+        }
+
+        // Generate chunk if it needs to be generated
+        if (world.is_generated(chunk)) {
+            chunk_exists = true;
+        } else {
+            // If it does, only generate if its mandatory or if we haven't generated a chunk this frame
+            if (mandatory || !already_generated_chunk || (glfwGetTime() - time_started)*1000.0 < 8.0) {
+                generate_chunk(world, chunk);
+                chunk_exists = true;
+                already_generated_chunk = true;
+            }
+        }
+        
+        // Mark chunk for render, if it exists
+        if (chunk_exists) {
+            if (mandatory) {
+                world.mark_chunk(chunk, priority);
+            } else {
+                if (world.is_generated(chunk)
+                    && world.is_generated(ivec3(chunk.x-1, chunk.y, chunk.z))
+                    && world.is_generated(ivec3(chunk.x+1, chunk.y, chunk.z))
+                    && world.is_generated(ivec3(chunk.x, chunk.y, chunk.z-1))
+                    && world.is_generated(ivec3(chunk.x, chunk.y, chunk.z+1))
+                ) {
+                    world.mark_chunk(chunk, priority);
                 }
             }
         }

@@ -8,9 +8,9 @@ file(MAKE_DIRECTORY ${CUSTOM_CACHE})
 
 ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
   COMMAND ${CMAKE_COMMAND} -E echo "Compiled GCH!" > "${CUSTOM_CACHE}/precompiled.h.gch"
-  DEPENDS "src/utils.hpp"
-  IMPLICIT_DEPENDS CXX "src/utils.hpp"
-  COMMENT "GCH requires recompile ${CUSTOM_CACHE}"
+  DEPENDS "src/includes.hpp"
+  IMPLICIT_DEPENDS CXX "src/includes.hpp"
+  COMMENT "GCH requires recompile"
 )
 
 message(STATUS "Test ${CUSTOM_CACHE}")
@@ -41,7 +41,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 if (WIN32)
   add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2 /GS-")
   if (CMAKE_BUILD_TYPE MATCHES Release)
     add_link_options(/LTCG)
   endif ()
@@ -92,7 +92,7 @@ include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 # Define VoxelCraft executable
 add_executable(vc src/main.cpp src/utils.cpp src/universe.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp)
 
-target_precompile_headers(vc PRIVATE src/utils.hpp)
+target_precompile_headers(vc PRIVATE src/includes.hpp)
 
 if (WIN32)
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 noise freetype)

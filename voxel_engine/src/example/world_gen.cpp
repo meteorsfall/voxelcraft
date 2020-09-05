@@ -1,6 +1,4 @@
 #include "world_gen.hpp"
-#include <stdlib.h>
-#include <time.h>
 #include <libnoise/noise.h>
 using namespace noise;
 
@@ -12,7 +10,8 @@ extern int leaf_block;
 extern int grass_block;
 
 void generate_random_tree(World& world, ivec3 loc) {
-    int r = hash_ivec3(loc) % 4;
+    // Random number for a nonce
+    int r = hash_ivec4(ivec4(loc.x, loc.y, loc.z, 137421)) % 4;
     switch(r) {
     case 0:
         generate_tree_pyramid(world, loc);
@@ -165,6 +164,11 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
         for(int i = 0; i < CHUNK_SIZE; i++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
                 ivec3 loc = start + ivec3(i, 0, k);
+                if (loc.y < -5) {
+                    heights[i][k] = 0;
+                    stone_heights[i][k] = 0;
+                    continue;
+                }
                 int height = 11 + 4 * perlin_height.GetValue(loc.x / perlin_height_scale, 0, loc.z / perlin_height_scale);
                 heights[i][k] = height;
                 int stone_height = 4 * perlin_stone_height.GetValue(loc.x / perlin_stone_height_scale, 0, loc.z / perlin_stone_height_scale);
@@ -178,7 +182,8 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                     ivec3 loc = start + ivec3(i, j, k);
                     //dbg("Value: (%d, %d, %d) -> %f", loc.x, loc.y, loc.z, myModule.GetValue(loc.x, loc.y, loc.z));
                     int height = heights[i][k];
-                    if (loc.y < stone_heights[i][k]) {
+                    int stone_height = stone_heights[i][k];
+                    if (loc.y < stone_height) {
                         world.set_block(loc.x, loc.y, loc.z, stone_block);
                     } else if (loc.y < height) {
                         world.set_block(loc.x, loc.y, loc.z, dirt_block);
@@ -192,10 +197,11 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
         if (chunk_coords.y == 0) {
             for(int i = 0; i < CHUNK_SIZE; i++) {
                 for(int k = 0; k < CHUNK_SIZE; k++) {
-                    float prob = perlin_tree_probability.GetValue((start.x + i) / perlin_tree_scale, 0, (start.y + i) / perlin_tree_scale);
+                    ivec3 loc = ivec3(start.x + i, 0, start.z + k);
+                    float prob = perlin_tree_probability.GetValue(loc.x / perlin_tree_scale, 0, loc.z / perlin_tree_scale);
                     prob = clamp(0.005 + 0.02*prob, 0.0, 0.02);
-                    if (rand() % 10000 < 10000 * prob) {
-                        int tree_extra_height = rand() % 2;
+                    if (hash_ivec3(loc, 4930214) % 10000 < 10000 * prob) {
+                        int tree_extra_height = hash_ivec3(loc, 4321) % 2;
                         for(int m = 0; m < tree_extra_height; m++) {
                             world.set_block(start.x+i, heights[i][k] + 1 + m, start.z+k, log_block);
                         }

@@ -1,29 +1,8 @@
 #ifndef _UTILS_HPP_
 #define _UTILS_HPP_
 
-// Include GLEW
-#include <GL/glew.h>
+#include "includes.hpp"
 
-// Include GLFW
-#include <GLFW/glfw3.h>
-
-// Include GLM
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-using namespace glm;
-
-// Include c standards
-#include <cstring>
-// Include standard library
-#include <functional>
-#include <vector>
-#include <optional>
-#include <map>
-#include <unordered_map>
-#include <iostream>
-#include <string>
-#include <set>
-#include <tuple>
 using std::function;
 using std::vector;
 using std::optional;
@@ -34,9 +13,7 @@ using std::unordered_map;
 using std::string;
 using std::set;
 using std::tuple;
-
-// Include fn_pointer
-#include "fn_pointer.hpp"
+using std::sort;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))
@@ -47,7 +24,13 @@ using std::tuple;
 #endif
 #define dbg(fmt, ...) printf("%20s:%-10d " fmt "\n", __FILENAME__, __LINE__, ##__VA_ARGS__)
 
+#define FRAME_TIMER false
+
 typedef unsigned char byte;
+
+size_t hash_ivec3(ivec3 const& key);
+size_t hash_ivec3(ivec3 const& key, int nonce);
+size_t hash_ivec4(ivec4 const& key);
 
 void write_integer(byte* buffer, unsigned i, int magnitude);
 

@@ -110,12 +110,18 @@ int main( void )
         // ********************
         // Input Handling
         // ********************
+
+		double input_time = glfwGetTime();
         
         InputState input_state = input_handler.handle_input(!game.paused);
 
 		if (input_handler.exiting || glfwWindowShouldClose(window)) {
 			break;
 		}
+		
+#if FRAME_TIMER
+		dbg("Input Time: %f", (glfwGetTime() - input_time) * 1000.0);
+#endif
 
         // ********************
         // Iterate the Game State
@@ -126,10 +132,9 @@ int main( void )
 		game.iterate(input_state);
 
 		double iter_timer_time = (glfwGetTime() - iter_timer) * 1000.0;
-		if (iter_timer_time > 4) {
-			UNUSED(iter_timer_time);
-			//dbg("Game Iterate Time: %f", iter_timer_time);
-		}
+#if FRAME_TIMER
+		dbg("Game Iterate Time: %f", iter_timer_time);
+#endif
 		
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
@@ -150,10 +155,9 @@ int main( void )
 		game.render();
 
 		double game_timer_time = (glfwGetTime() - game_timer) * 1000.0;
-		if (game_timer_time > 4) {
-			UNUSED(game_timer_time);
-			//dbg("CPU Render Time: %f", game_timer_time);
-		}
+#if FRAME_TIMER
+		dbg("CPU Render Time: %f", game_timer_time);
+#endif
 
         // ********************
         // Rendering UI Elements
@@ -169,15 +173,21 @@ int main( void )
 		if (main_ui.exiting) break;
 		main_ui.render();
 
-		//static float last_frame_time = 0.0;
-		//printf("Frame Time: %f\n", (glfwGetTime() - last_frame_time)*1000);
+		static float last_frame_time = 0.0;
+#if FRAME_TIMER
+		dbg("Frame Time: %f", (glfwGetTime() - last_frame_time)*1000);
+		dbg("** End Frame\n");
+#endif
 
         // ********************
         // Display the image buffer
         // ********************
 		glfwSwapBuffers(window);
 
-		//last_frame_time = glfwGetTime();
+#if FRAME_TIMER
+		dbg("** Begin Frame");
+#endif
+		last_frame_time = glfwGetTime();
 	}
 
 	// Close OpenGL window and terminate GLFW

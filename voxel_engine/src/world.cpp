@@ -1,17 +1,11 @@
 #include "world.hpp"
 
-size_t hash_ivec3(ivec3 const& key) {
-    // Using random primes
-    return (((((456818903 + key.x) * 832251403) + key.y) * 1349392157) + key.z) * 1866190769;
-}
-
 ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
 }
 
 ChunkData::ChunkData(Chunk c) : chunk(c) {
     this->last_render_mark = -1;
     this->generated = false;
-    this->mandatory = false;
 }
 
 World::World() {
@@ -47,11 +41,12 @@ ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
     }
 }
 
-void World::mark_chunk(ivec3 chunk_coords, bool mandatory) {
+void World::mark_chunk(ivec3 chunk_coords, int priority) {
     ChunkData* cd = get_chunk_data(chunk_coords);
     if (cd) {
         cd->last_render_mark = render_iteration;
-        cd->mandatory = mandatory;
+        cd->priority = priority;
+        marked_chunks.push_back({priority, chunk_coords});
     } else {
         printf("Marking render to nonexistent chunk!\n");
     }
@@ -119,14 +114,20 @@ void World::render(mat4 &PV, TextureAtlasser& atlasser) {
         return this->get_block(x, y, z);
     };
 
+    sort(marked_chunks.begin(), marked_chunks.end(), [](pair<int, ivec3>& a, pair<int, ivec3>& b) -> bool {
+        return a.first < b.first;
+    });
+
     int number_of_chunks_constructed = 0;
-    for(auto& p : chunks) {
-        ChunkData& cd = p.second;
+    for(auto& p : marked_chunks) {
+        int priority = p.first;
+        ChunkData& cd = *get_chunk_data(p.second);
+
         if (cd.last_render_mark == render_iteration) {
             bool should_render = false;
 
             bool is_cached = cd.chunk.is_cached();
-            if (is_cached || cd.mandatory) {
+            if (is_cached || cd.priority == 0) {
                 should_render = true;
             } else {
                 should_render = number_of_chunks_constructed < 1;
@@ -150,6 +151,8 @@ void World::render(mat4 &PV, TextureAtlasser& atlasser) {
             }
         }
     }
+
+    marked_chunks.resize(0);
 
     render_iteration++;
 }

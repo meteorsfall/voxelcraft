@@ -14,12 +14,10 @@ public:
     ChunkData();
     ChunkData(Chunk c);
     int last_render_mark = 0;
-    bool mandatory;
+    int priority;
     bool generated = false;
     Chunk chunk;
 };
-
-size_t hash_ivec3(ivec3 const& key);
 
 class IVec3Hasher
 {
@@ -54,7 +52,7 @@ public:
     Chunk* get_chunk(int x, int y, int z);
     Chunk* make_chunk(int x, int y, int z);
     // Mark chunk for rendering
-    void mark_chunk(ivec3 chunk_coords, bool mandatory);
+    void mark_chunk(ivec3 chunk_coords, int priority);
     void mark_generated(ivec3 chunk_coords);
     bool is_generated(ivec3 chunk_coords);
 
@@ -71,6 +69,7 @@ public:
 
     void deserialize(byte* buffer, int size);
 private:
+    vector<pair<int, ivec3>> marked_chunks;
     ChunkData* get_chunk_data(ivec3 chunk_coords);
     int render_iteration = 0;
 };
