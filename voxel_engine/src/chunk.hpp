@@ -26,7 +26,7 @@ public:
 
     Block* get_block(int x, int y, int z);
 
-    void render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block get_block, bool dont_rerender);
+    void render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_block get_block, bool dont_rerender);
 
     pair<byte*, int> serialize();
 
@@ -44,7 +44,7 @@ private:
     int num_triangles_cache = 0;
     bool chunk_rendering_cached = false;
     bool has_ever_cached = false;
-    void cached_render(mat4& PV);
+    void cached_render(mat4& P, mat4& V);
 };
 
 #endif

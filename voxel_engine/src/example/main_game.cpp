@@ -120,7 +120,7 @@ void Game::iterate(InputState& input) {
     double time_started = glfwGetTime();
 
     bool already_generated_chunk = false;
-    int radius = 15;
+    int radius = 20;
     int mandatory_radius = 2;
     int vertical_radius = 1;
 
@@ -205,11 +205,12 @@ void Game::render() {
     float aspect_ratio = input.screen_dimensions.x / (float)input.screen_dimensions.y;
 
     // Get Projection-View matrix
-    mat4 PV = player.camera.get_camera_matrix(aspect_ratio);
+    mat4 P = player.camera.get_camera_projection_matrix(aspect_ratio);
+    mat4 V = player.camera.get_camera_view_matrix();
     mat4 PV_origin = player.camera.get_origin_camera_matrix(aspect_ratio);
 
     // Render World
-    world.render(PV, *get_universe()->get_atlasser());
+    world.render(P, V, *get_universe()->get_atlasser());
 
     // Render Skybox
     TextureRenderer::render_skybox(PV_origin, *get_universe()->get_cubemap_texture(skybox_texture));

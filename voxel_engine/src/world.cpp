@@ -107,7 +107,7 @@ Block* World::get_block(int x, int y, int z) {
     }
 }
 
-void World::render(mat4 &PV, TextureAtlasser& atlasser) {
+void World::render(mat4 &P, mat4 &V, TextureAtlasser& atlasser) {
     atlasser.get_atlas_texture();
     
     fn_get_block my_get_block = [this](int x, int y, int z) {
@@ -142,12 +142,12 @@ void World::render(mat4 &PV, TextureAtlasser& atlasser) {
                 double start = glfwGetTime();
                 UNUSED(start);
                 
-                cd.chunk.render(PV, atlasser, my_get_block, false);
+                cd.chunk.render(P, V, atlasser, my_get_block, false);
                 if (con) {
                     //dbg("Constructed: %f", (glfwGetTime() - start)*1000);
                 }
             } else {
-                cd.chunk.render(PV, atlasser, my_get_block, true);
+                cd.chunk.render(P, V, atlasser, my_get_block, true);
             }
         }
     }

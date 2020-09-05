@@ -33,7 +33,7 @@ optional<double> AABB::test_plane(vec3 point, vec3 normal) {
 
 // Check if frustum intersects the AABB
 // Note: This test may have rare false positives, claiming an interesection when there is none.
-bool AABB::test_frustum(mat4& PV) {
+bool AABB::test_frustum(const mat4& PV) {
 
     // Generate all 8 points of the AABB
     vec4 points[8];
@@ -75,7 +75,7 @@ bool AABB::test_frustum(mat4& PV) {
     return true;
 }
 
-bool AABB::is_colliding(AABB other) {
+bool AABB::is_colliding(const AABB& other) {
     bool max_valid = other.min_point.x < this->max_point.x
                   && other.min_point.y < this->max_point.y
                   && other.min_point.z < this->max_point.z;

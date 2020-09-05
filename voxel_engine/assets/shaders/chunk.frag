@@ -3,6 +3,7 @@
 centroid in vec2 uv;
 in vec2 extrapolated_uv;
 in float frag_break_amount;
+in float dist_to_camera;
 
 out vec4 color;
 
@@ -44,13 +45,22 @@ void main() {
     
     vec4 texture_color = mix(lower_texture_color, higher_texture_color, fract(mm));
 
-    /*
-    float dist = gl_FragCoord.z / gl_FragCoord.w;
-    float close_fog = 40.0;
-    float far_fog = 80.0;
-    float fog = clamp((dist - close_fog) / (far_fog-close_fog), 0.0, 1.0);
-    texture_color.a *= 1.0 - fog;
-    */
+    float close_fog = 130.0;
+    float far_fog = 220.0;
+    float fog = clamp((dist_to_camera - close_fog) / (far_fog-close_fog), 0.0, 1.0);
+
+    float close_alpha_fog = 190.0;
+    float far_alpha_fog = far_fog;
+    float alpha_fog = clamp((dist_to_camera - close_alpha_fog) / (far_alpha_fog-close_alpha_fog), 0.0, 1.0);
+
+    vec3 fog_color = vec3(0x77/255.0, 0x84/255.0, 0x95/255.0);
+    
+    texture_color.rgb = mix(texture_color.rgb, fog_color, fog);
+    texture_color *= 1.0 - alpha_fog;
+    //texture_color.a = 1.0 - fog;
+    //texture_color.r = 0.0;//texture_color.a;
+    //texture_color.g = 1.0 - fog;
+    //texture_color.b = 0.0;
 
     // Unmultiply by alpha in this step
     float scale = (1.0 - 0.8*frag_break_amount) / (0.01+texture_color.a);

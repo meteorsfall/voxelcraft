@@ -42,19 +42,21 @@ Block* Chunk::get_block(int x, int y, int z) {
     return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
-void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
+void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
     ivec3 bottom_left = location*CHUNK_SIZE;
-
+    
     // Check aabb of chunk against the view frustum
     AABB aabb(bottom_left, vec3(bottom_left) + vec3(CHUNK_SIZE));
 
+    // If it's cached, or if we don't care about rerendering an out-of-date cached chunk
     if (this->chunk_rendering_cached || (dont_rerender && this->has_ever_cached)) {
-        if (aabb.test_frustum(PV)) {
-            cached_render(PV);
+        if (aabb.test_frustum(P*V)) {
+            cached_render(P, V);
         }
         return;
     }
 
+    // If we don't care about rerendering it, but it's never cached, then we can't draw it this frame
     if (dont_rerender) {
         return;
     }
@@ -192,8 +194,8 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
     this->opengl_texture_atlas = texture_atlas.get_atlas_texture();
 
 
-    if (aabb.test_frustum(PV)) {
-        cached_render(PV);
+    if (aabb.test_frustum(P*V)) {
+        cached_render(P, V);
     }
 
     delete[] chunk_vertex_buffer;
@@ -202,7 +204,7 @@ void Chunk::render(mat4 &PV, TextureAtlasser& texture_atlas, fn_get_block master
 }
 
 // Render the chunk presuming all of its rendering data has been cached
-void Chunk::cached_render(mat4& PV) {
+void Chunk::cached_render(mat4& P, mat4& V) {
     if (num_triangles_cache == 0) {
         // No need to render if there are no triangles
         return;
@@ -217,14 +219,13 @@ void Chunk::cached_render(mat4& PV) {
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation
-    GLuint PV_matrix_shader_pointer = glGetUniformLocation(chunk_shader_id, "PV");
-    GLuint M_matrix_shader_pointer = glGetUniformLocation(chunk_shader_id, "M");
+    GLuint P_matrix_shader_pointer = glGetUniformLocation(chunk_shader_id, "P");
+    GLuint V_matrix_shader_pointer = glGetUniformLocation(chunk_shader_id, "V");
     
     // Send our transformation to the currently bound shader, in the "MVP" uniform
     // This is done in the main loop since each model will have a different MVP matrix (At least for the M part)
-    glUniformMatrix4fv(PV_matrix_shader_pointer, 1, GL_FALSE, &PV[0][0]);
-    vec3 position(0.0f);
-    glUniform3fv(M_matrix_shader_pointer, 1, &position[0]);
+    glUniformMatrix4fv(P_matrix_shader_pointer, 1, GL_FALSE, &P[0][0]);
+    glUniformMatrix4fv(V_matrix_shader_pointer, 1, GL_FALSE, &V[0][0]);
     //"vertex_shader.MVP = &mvp[0][0]"
 
     // Draw nothing, see you in tutorial 2 !

@@ -56,7 +56,7 @@ public:
     void mark_generated(ivec3 chunk_coords);
     bool is_generated(ivec3 chunk_coords);
 
-    void render(mat4 &PV, TextureAtlasser& atlasser);
+    void render(mat4 &P, mat4 &V, TextureAtlasser& atlasser);
 
     bool is_in_block(vec3 position);
 

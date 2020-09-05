@@ -55,13 +55,32 @@ void Camera::rotate(vec2 change) {
     this->vertical_angle = clamp(this->vertical_angle, -pi<float>()/2 + 0.01f, pi<float>()/2 - 0.01f);
 }
 
+mat4 Camera::get_camera_projection_matrix(float aspect_ratio) {
+    mat4 projection_matrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 230.0f);
+    return projection_matrix;
+}
+
+mat4 Camera::get_camera_view_matrix() {
+    vec3 direction = this->get_direction();
+    vec3 right = this->get_right();
+    vec3 up = cross( right, direction );
+
+    mat4 view_matrix = lookAt(
+        this->position,           // Camera is here
+        this->position+direction, // and looks here : at the same position, plus "direction"
+        up                        // Head is up (set to 0,-1,0 to look upside-down)
+    );
+
+    return view_matrix;
+}
+
 mat4 Camera::get_camera_matrix(float aspect_ratio) {
     vec3 direction = this->get_direction();
     vec3 right = this->get_right();
     vec3 up = cross( right, direction );
 
 	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    mat4 ProjectionMatrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 200.0f);
+    mat4 ProjectionMatrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 280.0f);
     // Camera matrix
     mat4 ViewMatrix = lookAt(
         this->position,           // Camera is here
