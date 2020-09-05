@@ -37,6 +37,17 @@ InputState InputHandler::handle_input(bool relative_mouse) {
     int w, h;
     glfwGetWindowSize(window, &w, &h);
 
+    static optional<bool> previous_relative_mouse = nullopt;
+
+    if (!previous_relative_mouse) {
+        previous_relative_mouse = {relative_mouse};
+        if (relative_mouse) {
+            glfwSetCursorPos(window, w/2, h/2);
+        }
+    } else if (previous_relative_mouse.value() != relative_mouse && relative_mouse) {
+        glfwSetCursorPos(window, w/2, h/2);
+    }
+
     double xpos, ypos;
     // Get mouse position offset from center
     glfwGetCursorPos(window, &xpos, &ypos);
