@@ -130,6 +130,9 @@ void Game::iterate(InputState& input) {
     for(int dx = -radius; dx <= radius; dx++) {
         for(int dy = -vertical_radius - min(dist_above_floor, 5); dy <= vertical_radius; dy++) {
             for(int dz = -radius; dz <= radius; dz++) {
+                if (dx*dx + dy*dy + dz*dz > radius*radius) {
+                    continue;
+                }
                 chunk_coords.push_back({dx*dx+dy*dy+dz*dz, ivec3(dx, dy, dz)});
             }
         }

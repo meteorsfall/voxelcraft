@@ -44,6 +44,14 @@ void main() {
     
     vec4 texture_color = mix(lower_texture_color, higher_texture_color, fract(mm));
 
+    /*
+    float dist = gl_FragCoord.z / gl_FragCoord.w;
+    float close_fog = 40.0;
+    float far_fog = 80.0;
+    float fog = clamp((dist - close_fog) / (far_fog-close_fog), 0.0, 1.0);
+    texture_color.a *= 1.0 - fog;
+    */
+
     // Unmultiply by alpha in this step
     float scale = (1.0 - 0.8*frag_break_amount) / (0.01+texture_color.a);
     texture_color.r *= scale;

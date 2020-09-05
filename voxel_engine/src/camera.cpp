@@ -61,7 +61,7 @@ mat4 Camera::get_camera_matrix(float aspect_ratio) {
     vec3 up = cross( right, direction );
 
 	// Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    mat4 ProjectionMatrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 100.0f);
+    mat4 ProjectionMatrix = perspective(radians(this->fov), aspect_ratio, 0.1f, 200.0f);
     // Camera matrix
     mat4 ViewMatrix = lookAt(
         this->position,           // Camera is here
