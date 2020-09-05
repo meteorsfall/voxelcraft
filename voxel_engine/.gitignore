@@ -3,6 +3,7 @@ lib
 include
 
 saves
+extras
 assets/images
 assets/fonts
 gmon.out

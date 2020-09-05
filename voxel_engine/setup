@@ -11,6 +11,5 @@ function import {
 sudo apt install wget unzip cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglm-dev libfreetype6-dev libnoise-dev
 
 import assets.zip https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1 ./assets
+import extras.zip https://www.dropbox.com/sh/ivstaw0kblgimwe/AADib2fNuH0XbmpP-jshBWoTa?dl=1 ./extras
 
-cmake .
-make debug

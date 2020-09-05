@@ -1,4 +1,6 @@
 #include "world.hpp"
+#include <zip.hpp>
+#include <fstream>
 
 ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
 }
@@ -313,4 +315,44 @@ void World::deserialize(byte* buffer, int size) {
         the_chunk->deserialize(buffer + index + 10, SERIALIZED_CHUNK_SIZE);
         get_chunk_data(ivec3(x_coord, y_coord, z_coord))->generated = buffer[start_index];
     }
+}
+
+void World::save(const char* filepath) {
+    auto [buffer, buffer_len] = serialize();
+
+    struct zip_t *zip = zip_open(filepath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+    zip_entry_open(zip, "chunk");
+    zip_entry_write(zip, buffer, buffer_len);
+    zip_entry_close(zip);
+    zip_close(zip);
+
+    delete[] buffer;
+}
+
+bool World::load(const char* filepath) {
+    // Open save file
+    std::ifstream save_file;
+    save_file.open(filepath, std::ios::binary);
+    if (!save_file.good()) {
+        return false;
+    }
+    save_file.close();
+
+    int length;
+    byte* buffer;
+
+    struct zip_t *zip = zip_open(filepath, 0, 'r');
+    zip_entry_open(zip, "chunk");
+    length = zip_entry_size(zip);
+    buffer = new byte[length];
+    zip_entry_noallocread(zip, buffer, length);
+    zip_entry_close(zip);
+    zip_close(zip);
+
+    // Deserialize the world
+    deserialize(buffer, length);
+
+    delete[] buffer;
+
+    return true;
 }

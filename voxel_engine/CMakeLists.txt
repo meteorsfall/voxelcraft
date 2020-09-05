@@ -88,9 +88,10 @@ endif ()
 
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
+include_directories(SYSTEM extras)
 
 # Define VoxelCraft executable
-add_executable(vc src/main.cpp src/utils.cpp src/universe.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp)
+add_executable(vc src/main.cpp src/utils.cpp src/universe.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
 
 target_precompile_headers(vc PRIVATE src/includes.hpp)
 

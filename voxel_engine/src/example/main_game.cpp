@@ -28,46 +28,17 @@ int up_texture;
 int skybox_texture;
 
 void Game::save_world(const char* filename) {
-    auto [buffer, buffer_len] = world.serialize();
-
     // Open save file
     std::error_code ec;
     std::filesystem::create_directory("saves", ec);
-    std::ofstream save_file;
-    save_file.open(filename, std::ios::binary);
 
-    // Write serialized world to the file
-    save_file.write((char*)buffer, buffer_len);
-    save_file.close();
-
-    delete[] buffer;
+    world.save(filename);
 }
 
 void Game::load_world(const char* filename) {
-    // Open save file
-    std::ifstream save_file;
-    save_file.open(filename, std::ios::binary);
-    if (!save_file.good()) {
+    if (!world.load(filename)) {
         restart_world();
-        return;
     }
-
-    // Seek to end and get file length
-    save_file.seekg(0, save_file.end);
-    int length = save_file.tellg();
-
-    // Seek back to the beginning
-    save_file.seekg(0, save_file.beg);
-
-    // Read the buffer from the file
-    byte* buffer = new byte[length];
-    save_file.read((char*)buffer, length);
-    save_file.close();
-
-    // Deserialize the world
-    world.deserialize(buffer, length);
-
-    delete[] buffer;
 }
 
 Game::Game() {

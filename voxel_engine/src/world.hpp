@@ -68,6 +68,9 @@ public:
     pair<byte*, int> serialize();
 
     void deserialize(byte* buffer, int size);
+
+    void save(const char* filepath);
+    bool load(const char* filepath);
 private:
     vector<pair<int, ivec3>> marked_chunks;
     ChunkData* get_chunk_data(ivec3 chunk_coords);
