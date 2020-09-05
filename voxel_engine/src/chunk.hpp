@@ -37,7 +37,6 @@ public:
     bool is_cached();
 
     void invalidate_cache();
-
 private:
     GLuint opengl_vertex_buffer;
     GLuint opengl_uv_buffer;

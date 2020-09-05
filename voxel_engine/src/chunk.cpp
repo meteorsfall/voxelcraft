@@ -68,13 +68,13 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
     }
 
     // 12 triangles in a cube, 3 vertices in a triangle, 3 position floats in a vertex
-    GLfloat* chunk_vertex_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3*3];
+    static GLfloat chunk_vertex_buffer[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3*3];
     int chunk_vertex_buffer_len = 0;
     // 12 triangles in a cube, 3 vertices in a triangle, 2 uv floats in a vertex
-    GLfloat* chunk_uv_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3*2];
+    static GLfloat chunk_uv_buffer[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3*2];
     int chunk_uv_buffer_len = 0;
     // 1 break amount per cube
-    GLfloat* chunk_break_amount_buffer = new GLfloat[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3];
+    static GLfloat chunk_break_amount_buffer[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12*3];
     int chunk_break_amount_buffer_len = 0;
 
     int num_triangles = 0;
@@ -206,10 +206,6 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
     if (aabb.test_frustum(P*V)) {
         cached_render(P, V);
     }
-
-    delete[] chunk_vertex_buffer;
-    delete[] chunk_uv_buffer;
-    delete[] chunk_break_amount_buffer;
 }
 
 // Render the chunk presuming all of its rendering data has been cached

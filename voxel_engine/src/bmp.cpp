@@ -169,6 +169,8 @@ void BMP::save(const char* filename) {
 
 	file.write((char*)file_data, height*row_size);
 	file.close();
+	
+	delete[] file_data;
 }
 
 ivec4 BMP::get_pixel(int x, int y) {
