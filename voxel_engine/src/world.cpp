@@ -43,7 +43,7 @@ Chunk* World::make_chunk(int x, int y, int z) {
     cd.chunk = Chunk(chunk_coords, [](int block_type) -> BlockType* {
         return get_universe()->get_block_type(block_type);
     });
-    return &chunks[chunk_coords].chunk;
+    return &cd.chunk;
 }
 
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
