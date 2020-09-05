@@ -79,7 +79,7 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
 
     auto is_opaque = [this](Block* b) {
         // If it exists, and it's not transparent
-        return b && !this->get_block_type(b->block_type)->is_transparent;
+        return b && b->block_type > 0 && !this->get_block_type(b->block_type)->is_transparent;
     };
     
 	double t1 = glfwGetTime();
@@ -95,6 +95,9 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
 
                 ivec3 position = bottom_left + ivec3(i, j, k);
 
+// Optimize by only calling master_get_block if its outside of the current chunk
+#define get_neighboring_block(xx, yy, zz, outside) ((outside) ? master_get_block(position.x+xx, position.y+yy, position.z+zz) : &blocks[i+xx][j+yy][k+zz])
+
                 int visible_neighbors = 0;
                 if (blocks[i][j][k].neighbor_cache) {
                     visible_neighbors = blocks[i][j][k].neighbor_cache;
@@ -102,22 +105,22 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
                     // Keep 1 << 7 so that visible_neighbors remains true even if all-zero data
                     visible_neighbors = 1 << 7;
                     // If master_get_block doesn't exist, then it must be air, so we must display that face
-                    if (!is_opaque(master_get_block(position.x-1, position.y, position.z))) {
+                    if (!is_opaque(get_neighboring_block(-1, 0, 0, i == 0))) {
                         visible_neighbors |= 1 << 0;
                     }
-                    if (!is_opaque(master_get_block(position.x+1, position.y, position.z))) {
+                    if (!is_opaque(get_neighboring_block(1, 0, 0, i == CHUNK_SIZE-1))) {
                         visible_neighbors |= 1 << 1;
                     }
-                    if (!is_opaque(master_get_block(position.x, position.y-1, position.z))) {
+                    if (!is_opaque(get_neighboring_block(0, -1, 0, j == 0))) {
                         visible_neighbors |= 1 << 2;
                     }
-                    if (!is_opaque(master_get_block(position.x, position.y+1, position.z))) {
+                    if (!is_opaque(get_neighboring_block(0, 1, 0, j == CHUNK_SIZE-1))) {
                         visible_neighbors |= 1 << 3;
                     }
-                    if (!is_opaque(master_get_block(position.x, position.y, position.z-1))) {
+                    if (!is_opaque(get_neighboring_block(0, 0, -1, k == 0))) {
                         visible_neighbors |= 1 << 4;
                     }
-                    if (!is_opaque(master_get_block(position.x, position.y, position.z+1))) {
+                    if (!is_opaque(get_neighboring_block(0, 0, 1, k == CHUNK_SIZE-1))) {
                         visible_neighbors |= 1 << 5;
                     }
                     blocks[i][j][k].neighbor_cache = visible_neighbors;
