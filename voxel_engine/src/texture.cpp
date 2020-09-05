@@ -14,8 +14,6 @@ CubeMapTexture::CubeMapTexture() {
 }
 
 CubeMapTexture::CubeMapTexture(BMP image) {
-    this->bmp = image;
-
     int size = image.width / 4;
 
     byte* buf[6];
