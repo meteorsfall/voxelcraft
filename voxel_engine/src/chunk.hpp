@@ -21,6 +21,8 @@ public:
     fn_get_blocktype get_block_type;
 
     Chunk(ivec3 location, fn_get_blocktype get_block_type);
+    Chunk(const Chunk &p2) = delete;
+    ~Chunk();
 
     void set_block(int x, int y, int z, int b);
 

@@ -20,6 +20,12 @@ Chunk::Chunk(ivec3 location, fn_get_blocktype get_block_type) {
     opengl_break_amount_buffer = create_array_buffer(NULL, 1);
 }
 
+Chunk::~Chunk() {
+    glDeleteBuffers(1, &opengl_vertex_buffer);
+    glDeleteBuffers(1, &opengl_uv_buffer);
+    glDeleteBuffers(1, &opengl_uv_buffer);
+}
+
 void Chunk::set_block(int x, int y, int z, int b) {
     x -= location.x * CHUNK_SIZE;
     y -= location.y * CHUNK_SIZE;

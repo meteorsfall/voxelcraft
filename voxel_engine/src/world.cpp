@@ -5,11 +5,6 @@
 ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
 }
 
-ChunkData::ChunkData(Chunk c) : chunk(c) {
-    this->last_render_mark = -1;
-    this->generated = false;
-}
-
 World::World() {
 }
 
@@ -36,16 +31,18 @@ Chunk* World::get_chunk(int x, int y, int z) {
 
 Chunk* World::make_chunk(int x, int y, int z) {
     ivec3 chunk_coords(floor_div(x, CHUNK_SIZE), floor_div(y, CHUNK_SIZE), floor_div(z, CHUNK_SIZE));
-    // Inserts into hashmap, but checks to ensure that the element didn't already exist
-    if (!chunks.insert({
-        chunk_coords,
-        ChunkData(Chunk(chunk_coords, [](int block_type) -> BlockType* {
-            return get_universe()->get_block_type(block_type);
-        }))
-    }).second) {
+
+    // Checks to ensure that the element didn't already exist
+    if (chunks.count(chunk_coords)) {
         dbg("ERROR: TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
         return NULL;
     }
+
+    // Inserts into hashmap
+    ChunkData& cd = chunks[chunk_coords];
+    cd.chunk = Chunk(chunk_coords, [](int block_type) -> BlockType* {
+        return get_universe()->get_block_type(block_type);
+    });
     return &chunks[chunk_coords].chunk;
 }
 
@@ -249,7 +246,7 @@ pair<byte*, int> World::serialize() {
     byte* buffer = new byte[buffer_size];
     
     int i = 0;
-    for(auto p : chunks) {
+    for(auto& p : chunks) {
         ChunkData& cd = p.second;
         Chunk& chunk = cd.chunk;
 

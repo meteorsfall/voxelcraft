@@ -12,7 +12,6 @@ using fn_on_collide = std::function<void(vec3)>;
 class ChunkData {
 public:
     ChunkData();
-    ChunkData(Chunk c);
     int last_render_mark = 0;
     int priority;
     bool generated = false;
