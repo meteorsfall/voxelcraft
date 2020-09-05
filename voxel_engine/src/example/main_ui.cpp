@@ -187,5 +187,5 @@ void MainUI::render() {
         hotbar_selected.render();
         hotbar_menu.render();
     }
-   	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.0", ivec3(240, 0, 0));
+   	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.1", ivec3(240, 0, 0));
 }

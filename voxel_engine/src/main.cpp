@@ -71,7 +71,14 @@ int main( void )
 		return -1;
 	}
 
-	glfwSwapInterval(1);
+	if (glfwExtensionSupported("WGL_EXT_swap_control_tear") == GLFW_TRUE
+ 	 || glfwExtensionSupported("GLX_EXT_swap_control_tear") == GLFW_TRUE) {
+		dbg("Supports adaptive vsync!");
+		glfwSwapInterval(-1);
+	} else {
+		dbg("No adaptive vsync support");
+		glfwSwapInterval(1);
+	}
 
     // Seems legit
     GLuint VertexArrayID;
@@ -99,7 +106,13 @@ int main( void )
 	MainUI main_ui(&game);
     
     // START MAIN GAME LOOP
+	float last_frame_time;
 	for (int frame_index = 0; true; frame_index++) {
+#if FRAME_TIMER
+		dbg("** Begin Frame");
+#endif
+		last_frame_time = glfwGetTime();
+
 		frames++;
 		if (glfwGetTime() - time > 3.0) {
 			dbg("FPS: %f", frames / (glfwGetTime() - time));
@@ -163,6 +176,8 @@ int main( void )
         // Rendering UI Elements
         // ********************
 
+		double ui_timer = glfwGetTime();
+
 		// Setup transparency and disable depth buffer writing
 		glDisable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
@@ -172,22 +187,22 @@ int main( void )
 		main_ui.iterate(input_state, width, height);
 		if (main_ui.exiting) break;
 		main_ui.render();
-
-		static float last_frame_time = 0.0;
 #if FRAME_TIMER
-		dbg("Frame Time: %f", (glfwGetTime() - last_frame_time)*1000);
-		dbg("** End Frame\n");
+		dbg("UI CPU Render Time: %f", (glfwGetTime() - ui_timer)*1000.0);
 #endif
+
+		double pre_swap_time = glfwGetTime();
 
         // ********************
         // Display the image buffer
         // ********************
 		glfwSwapBuffers(window);
-
+		
 #if FRAME_TIMER
-		dbg("** Begin Frame");
+		dbg("GPU Buffer Time: %f", (glfwGetTime() - pre_swap_time)*1000);
+		dbg("Frame Time: %f", (glfwGetTime() - last_frame_time)*1000);
+		dbg("** End Frame\n");
 #endif
-		last_frame_time = glfwGetTime();
 	}
 
 	// Close OpenGL window and terminate GLFW
