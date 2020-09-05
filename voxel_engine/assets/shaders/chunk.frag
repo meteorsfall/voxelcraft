@@ -45,12 +45,12 @@ void main() {
     
     vec4 texture_color = mix(lower_texture_color, higher_texture_color, fract(mm));
 
-    float close_fog = 130.0;
-    float far_fog = 220.0;
+    float close_fog = 120.0;
+    float far_fog = 200.0;
     float fog = clamp((dist_to_camera - close_fog) / (far_fog-close_fog), 0.0, 1.0);
 
-    float close_alpha_fog = 190.0;
-    float far_alpha_fog = far_fog;
+    float close_alpha_fog = 185.0;
+    float far_alpha_fog = 210.0;
     float alpha_fog = clamp((dist_to_camera - close_alpha_fog) / (far_alpha_fog-close_alpha_fog), 0.0, 1.0);
 
     vec3 fog_color = vec3(0x77/255.0, 0x84/255.0, 0x95/255.0);
