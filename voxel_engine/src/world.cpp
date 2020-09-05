@@ -17,7 +17,8 @@ int floor_div(int a, int b) {
     return r ? (d - ((a < 0) ^ (b < 0))) : d;
 }
 
-#define abs_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
+// Mod, but works on negatives
+#define pos_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
 
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
@@ -99,8 +100,8 @@ void World::refresh_block(int x, int y, int z) {
     ivec3 pos(x, y, z);
 
     // Only call get_chunk once if possible
-    int px = abs(x) % CHUNK_SIZE;
-    int py = abs(y) % CHUNK_SIZE;
+    int px = abs(x) % CHUNK_SIZE; // NOTE: abs(x) % CHUNK_SIZE != pos_mod(x, CHUNK_SIZE)
+    int py = abs(y) % CHUNK_SIZE; // But it's still good for our main_chunk check
     int pz = abs(z) % CHUNK_SIZE;
     Chunk* main_chunk = NULL;
     if (px > 0 && px < CHUNK_SIZE - 1
@@ -117,7 +118,7 @@ void World::refresh_block(int x, int y, int z) {
         Chunk* c = main_chunk ? main_chunk : get_chunk(loc.x, loc.y, loc.z);
         if (c) {
             c->invalidate_cache();
-            Block* b = &c->blocks[abs_mod(loc.x, CHUNK_SIZE)][abs_mod(loc.y, CHUNK_SIZE)][abs_mod(loc.z, CHUNK_SIZE)];
+            Block* b = &c->blocks[pos_mod(loc.x, CHUNK_SIZE)][pos_mod(loc.y, CHUNK_SIZE)][pos_mod(loc.z, CHUNK_SIZE)];
             if (b) {
                 b->neighbor_cache = 0;
             }
