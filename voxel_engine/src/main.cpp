@@ -71,7 +71,14 @@ int main( void )
 		return -1;
 	}
 
-	glfwSwapInterval(1);
+	if (glfwExtensionSupported("WGL_EXT_swap_control_tear") == GLFW_TRUE
+ 	 || glfwExtensionSupported("GLX_EXT_swap_control_tear") == GLFW_TRUE) {
+		dbg("Supports adaptive vsync!");
+		glfwSwapInterval(-1);
+	} else {
+		dbg("No adaptive vsync support");
+		glfwSwapInterval(1);
+	}
 
     // Seems legit
     GLuint VertexArrayID;
