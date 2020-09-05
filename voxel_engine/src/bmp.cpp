@@ -288,11 +288,10 @@ void BMP::blit(int x, int y, BMP& bmp) {
 // Crops the bmp and returns the crop
 BMP BMP::crop(int x, int y, int width, int height) {
 	BMP ret(width, height);
-    for(int xx = 0; xx < width; xx++) {
-        for(int yy = 0; yy < height; yy++) {
-            ivec4 pixel = this->get_pixel(x+xx, y+yy);
-            ret.set_pixel(xx, yy, ivec3(pixel.x, pixel.y, pixel.z));
-        }
-    }
+	for(int yy = 0; yy < height; yy++) {
+		int nyy = height - 1 - yy;
+		int ny = this->height - 1 - (y+yy);
+		memcpy(&ret.data[(nyy*width)*4], &this->data[((ny)*this->width + x)*4], width*4);
+	}
 	return ret;
 }

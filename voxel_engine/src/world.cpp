@@ -11,31 +11,45 @@ ChunkData::ChunkData(Chunk c) : chunk(c) {
 World::World() {
 }
 
+int floor_div(int a, int b) {
+    int d = a / b;
+    int r = a % b;  /* optimizes into single division. */
+    return r ? (d - ((a < 0) ^ (b < 0))) : d;
+}
+
+#define abs_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
+
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
-    ivec3 chunk_coords = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
-    if (chunks.count(chunk_coords)) {
-        return &chunks[chunk_coords].chunk;
+    ivec3 chunk_coords(floor_div(x, CHUNK_SIZE), floor_div(y, CHUNK_SIZE), floor_div(z, CHUNK_SIZE));
+    //ivec3 chunk_coords = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
+    auto found = chunks.find(chunk_coords);
+    if (found != chunks.end()) {
+        return &found->second.chunk;
     } else {
         return NULL;
     }
 }
 
 Chunk* World::make_chunk(int x, int y, int z) {
-    ivec3 chunk_coords = floor(vec3(x, y, z) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
-    if (chunks.count(chunk_coords)) {
-        printf("ERROR: TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
+    ivec3 chunk_coords(floor_div(x, CHUNK_SIZE), floor_div(y, CHUNK_SIZE), floor_div(z, CHUNK_SIZE));
+    // Inserts into hashmap, but checks to ensure that the element didn't already exist
+    if (!chunks.insert({
+        chunk_coords,
+        ChunkData(Chunk(chunk_coords, [](int block_type) -> BlockType* {
+            return get_universe()->get_block_type(block_type);
+        }))
+    }).second) {
+        dbg("ERROR: TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
         return NULL;
     }
-    chunks[chunk_coords] = ChunkData(Chunk(chunk_coords, [](int block_type) -> BlockType* {
-        return get_universe()->get_block_type(block_type);
-    }));
     return &chunks[chunk_coords].chunk;
 }
 
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
-    if (chunks.count(chunk_coords)) {
-        return &chunks[chunk_coords];
+    auto found = chunks.find(chunk_coords);
+    if (found != chunks.end()) {
+        return &found->second;
     } else {
         return NULL;
     }
@@ -83,14 +97,27 @@ void World::set_block(int x, int y, int z, int block_type) {
 
 void World::refresh_block(int x, int y, int z) {
     ivec3 pos(x, y, z);
+
+    // Only call get_chunk once if possible
+    int px = abs(x) % CHUNK_SIZE;
+    int py = abs(y) % CHUNK_SIZE;
+    int pz = abs(z) % CHUNK_SIZE;
+    Chunk* main_chunk = NULL;
+    if (px > 0 && px < CHUNK_SIZE - 1
+     && py > 0 && py < CHUNK_SIZE - 1
+     && pz > 0 && pz < CHUNK_SIZE - 1
+    ) {
+        main_chunk = get_chunk(x, y, z);
+    }
+
     ivec3 diffs[] = {ivec3(1, 0, 0), ivec3(-1, 0, 0), ivec3(0, 1, 0), ivec3(0, -1, 0), ivec3(0, 0, 1), ivec3(0, 0, -1)};
     for(int i = 0; i < 6; i++) {
         ivec3 loc = pos + diffs[i];
         
-        Chunk* c = get_chunk(loc.x, loc.y, loc.z);
+        Chunk* c = main_chunk ? main_chunk : get_chunk(loc.x, loc.y, loc.z);
         if (c) {
             c->invalidate_cache();
-            Block* b = get_block(loc.x, loc.y, loc.z);
+            Block* b = &c->blocks[abs_mod(loc.x, CHUNK_SIZE)][abs_mod(loc.y, CHUNK_SIZE)][abs_mod(loc.z, CHUNK_SIZE)];
             if (b) {
                 b->neighbor_cache = 0;
             }
@@ -107,7 +134,7 @@ Block* World::get_block(int x, int y, int z) {
     }
 }
 
-void World::render(mat4 &P, mat4 &V, TextureAtlasser& atlasser) {
+void World::render(mat4& P, mat4& V, TextureAtlasser& atlasser) {
     atlasser.get_atlas_texture();
     
     fn_get_block my_get_block = [this](int x, int y, int z) {
