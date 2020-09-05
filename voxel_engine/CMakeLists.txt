@@ -10,7 +10,7 @@ ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
   COMMAND ${CMAKE_COMMAND} -E echo "Compiled GCH!" > "${CUSTOM_CACHE}/precompiled.h.gch"
   DEPENDS "src/includes.hpp"
   IMPLICIT_DEPENDS CXX "src/includes.hpp"
-  COMMENT "GCH requires recompile"
+  COMMENT "Checking GCH Compilation"
 )
 
 message(STATUS "Test ${CUSTOM_CACHE}")
