@@ -1,3 +1,5 @@
 #!/bin/bash
+set -e
+make release
 ./build/release/vc $@ 2>&1 2>output.log
 
