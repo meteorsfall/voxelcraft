@@ -8,7 +8,7 @@ function import {
     rm $1
 }
 
-pkgs='wget unzip cmake make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglm-dev libfreetype6-dev libnoise-dev'
+pkgs='wget unzip make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglm-dev libfreetype6-dev libnoise-dev'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs
 fi
