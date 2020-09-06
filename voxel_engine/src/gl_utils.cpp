@@ -16,6 +16,7 @@ GLArrayBuffer::~GLArrayBuffer()
 
 GLArrayBuffer::GLArrayBuffer(const GLArrayBuffer& other) // copy constructor
 {
+    UNUSED(other);
     this->valid = false;
 }
 
