@@ -40,7 +40,7 @@ public:
 class MegaChunk {
 public:
   ivec3 location;
-  optional<ChunkData> chunks[MEGACHUNK_SIZE][MEGACHUNK_SIZE][MEGACHUNK_SIZE];
+  optional<int> chunks[MEGACHUNK_SIZE][MEGACHUNK_SIZE][MEGACHUNK_SIZE];
   pair<byte*, int> serialize();
   void deserialize(byte* buffer, int size);
 };

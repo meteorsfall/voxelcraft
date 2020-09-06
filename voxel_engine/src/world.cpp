@@ -2,6 +2,38 @@
 #include <zip.hpp>
 #include <fstream>
 
+vector<ChunkData*> chunk_allocations;
+vector<int> unused_chunk_allocations;
+
+int alloc_chunkdata() {
+    int index;
+    if (unused_chunk_allocations.size() > 0) {
+        index = unused_chunk_allocations.back();
+        unused_chunk_allocations.pop_back();
+        // Regenerate chunk data
+        *chunk_allocations[index] = ChunkData();
+    } else {
+        chunk_allocations.push_back(new ChunkData());
+        index = chunk_allocations.size() - 1;
+    }
+    return index;
+}
+
+ChunkData* get_allocated_chunkdata(int chunkdata_id) {
+    return chunk_allocations.at(chunkdata_id);
+}
+
+void free_chunkdata(int chunkdata_id) {
+    unused_chunk_allocations.push_back(chunkdata_id);
+}
+
+void clear_chunkdata() {
+    unused_chunk_allocations.reserve(chunk_allocations.size());
+    for(int i = 0; i < chunk_allocations.size(); i++) {
+        unused_chunk_allocations.push_back(i);
+    }
+}
+
 #define MAX_LOADED_CHUNKS 4096
 
 #define CHUNK_METADATA_SIZE 1
@@ -56,16 +88,13 @@ Chunk* World::make_chunk(int x, int y, int z) {
             int unused_megachunk_index = unused_megachunks.back();
             unused_megachunks.pop_back();
             // Reinitialize megachunk
-            dbg("Reusing megachunk!");
-            delete megachunks.at(unused_megachunk_index);
-            megachunks.at(unused_megachunk_index) = new MegaChunk();
+            *megachunks.at(unused_megachunk_index) = MegaChunk();
             megachunk = megachunks.at(unused_megachunk_index);
             // Keep track of megachunk index
             megachunk_index_from_megachunk_coords[megachunk_coords] = unused_megachunk_index;
             megachunk_index[chunk_coords] = unused_megachunk_index;
         } else {
             // Otherwise, we must make a new megachunk
-            dbg("Creating new megachunk!");
             megachunk = new MegaChunk();
             megachunks.push_back(megachunk);
             // Keep track of megachunk index
@@ -88,18 +117,20 @@ Chunk* World::make_chunk(int x, int y, int z) {
     }
 
     // Create chunk
-    optional_chunkdata = ChunkData();
-    optional_chunkdata.value().chunk = Chunk(chunk_coords, [](int block_type) -> BlockType* {
+    optional_chunkdata = alloc_chunkdata();
+    ChunkData* cd = get_allocated_chunkdata(optional_chunkdata.value());
+    cd->chunk = Chunk(chunk_coords, [](int block_type) -> BlockType* {
         return get_universe()->get_block_type(block_type);
     });
 
-    return &optional_chunkdata.value().chunk;
+    return &cd->chunk;
 }
 
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
     auto found = megachunk_index.find(chunk_coords);
     if (found != megachunk_index.end()) {
-        return &megachunks[found->second]->chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)].value();
+        int chunkdata_index = megachunks[found->second]->chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)].value();
+        return get_allocated_chunkdata(chunkdata_index);
     } else {
         return NULL;
     }
@@ -300,9 +331,8 @@ pair<byte*, int> World::serialize() {
     int i = 0;
     for(auto& p : megachunk_index) {
         const ivec3& chunk_coords = p.first;
-        MegaChunk* megachunk = megachunks[p.second];
-        ChunkData& cd = megachunk->chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)].value();
-        Chunk& chunk = cd.chunk;
+        ChunkData* cd = get_chunk_data(chunk_coords);
+        Chunk& chunk = cd->chunk;
 
         unsigned start_index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
 
@@ -310,7 +340,7 @@ pair<byte*, int> World::serialize() {
         // Serialize Chunk Metadata
         // ***************
 
-        buffer[start_index] = cd.generated ? 1 : 0;
+        buffer[start_index] = cd->generated ? 1 : 0;
 
         // ***************
         // Serialize Chunk
@@ -352,6 +382,7 @@ void World::deserialize(byte* buffer, int size) {
     for(int i = 0; i < megachunks.size(); i++) {
         unused_megachunks.push_back(i);
     }
+    clear_chunkdata();
 
     for(int i = 0; TOTAL_SERIALIZED_CHUNK_SIZE*i < size; i++) {
         int start_index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
@@ -372,14 +403,23 @@ void World::deserialize(byte* buffer, int size) {
     }
 }
 
+#define ZIP_COMPRESSION true
+
 void World::save(const char* filepath) {
     auto [buffer, buffer_len] = serialize();
 
+#if ZIP_COMPRESSION
     struct zip_t *zip = zip_open(filepath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
     zip_entry_open(zip, "chunk");
     zip_entry_write(zip, buffer, buffer_len);
     zip_entry_close(zip);
     zip_close(zip);
+#else
+    std::ofstream save_file;
+    save_file.open(filepath, std::ios::binary);
+    save_file.write((const char*)buffer, buffer_len);
+    save_file.close();
+#endif
 }
 
 bool World::load(const char* filepath) {
@@ -389,6 +429,8 @@ bool World::load(const char* filepath) {
     if (!save_file.good()) {
         return false;
     }
+
+#if ZIP_COMPRESSION
     save_file.close();
 
     int length;
@@ -405,6 +447,19 @@ bool World::load(const char* filepath) {
     zip_entry_noallocread(zip, buf, length);
     zip_entry_close(zip);
     zip_close(zip);
+#else
+    save_file.seekg(0, save_file.end);
+    long length = save_file.tellg();
+    save_file.seekg(0);
+
+    if (length > buf_len) {
+        dbg("ERROR: File too large!");
+        return false;
+    }
+
+    save_file.read((char*)buf, length);
+    save_file.close();
+#endif
 
     // Deserialize the world
     deserialize(buf, length);

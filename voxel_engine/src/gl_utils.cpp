@@ -2,6 +2,49 @@
 #include <fstream>
 #include <sstream>
 
+GLArrayBuffer::GLArrayBuffer() {this->valid = false;}
+GLArrayBuffer::GLArrayBuffer(const GLfloat* data, int len) { init(data, len); }
+
+GLArrayBuffer::~GLArrayBuffer()
+{
+    if (this->valid) {
+        dbg("Deallocating %d!", this->array_buffer_id);
+        glDeleteBuffers(1, &this->array_buffer_id);
+        this->valid = false;
+    }
+}
+
+GLArrayBuffer::GLArrayBuffer(const GLArrayBuffer& other) // copy constructor
+{
+    this->valid = false;
+}
+
+GLArrayBuffer& GLArrayBuffer::operator=(const GLArrayBuffer& other) // copy assignment
+{
+    if(this != &other) {
+        // Do nothing, don't copy it
+    }
+    return *this;
+}
+
+void GLArrayBuffer::reuse(const GLfloat* data, int len) {
+    if (valid) {
+        reuse_array_buffer(this->array_buffer_id, data, len);
+    } else {
+        init(data, len);
+    }
+}
+
+void GLArrayBuffer::bind(int array_num, GLint size) {
+    bind_array(array_num, this->array_buffer_id, size);
+}
+
+void GLArrayBuffer::init(const GLfloat* data, int len) {
+    this->len = len;
+    this->array_buffer_id = create_array_buffer(data, len);
+    valid = true;
+}
+
 GLuint load_shaders(const char * vertex_file_path, const char * fragment_file_path){
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -135,6 +178,9 @@ void reuse_array_buffer(GLuint array_buffer_id, const GLfloat* data, int len) {
     // Make GL_ARRAY_BUFFER point to vertexbuffer
     glBindBuffer(GL_ARRAY_BUFFER, array_buffer_id);
     // Give our vertices to GL_ARRAY_BUFFER (ie, vertexbuffer)
+    //void* ptr = glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+    //memcpy(ptr, data, len);
+    //glUnmapBuffer(GL_ARRAY_BUFFER);
     glBufferData(GL_ARRAY_BUFFER, len, data, GL_STATIC_DRAW);
 }
 

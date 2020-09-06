@@ -17,20 +17,6 @@ Chunk::Chunk(ivec3 location, fn_get_blocktype get_block_type) {
     this->get_block_type = get_block_type;
 }
 
-Chunk::Chunk(const Chunk &p2) {
-    *this = p2;
-    // When copying a chunk, don't pass on the opengl buffers, they're invalid
-    this->valid_opengl_buffers = false;
-}
-
-Chunk::~Chunk() {
-    if (this->valid_opengl_buffers) {
-        glDeleteBuffers(1, &opengl_vertex_buffer);
-        glDeleteBuffers(1, &opengl_uv_buffer);
-        glDeleteBuffers(1, &opengl_uv_buffer);
-    }
-}
-
 void Chunk::set_block(int x, int y, int z, int b) {
     x -= location.x * CHUNK_SIZE;
     y -= location.y * CHUNK_SIZE;
@@ -54,15 +40,6 @@ Block* Chunk::get_block(int x, int y, int z) {
 }
 
 void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
-    if (!this->valid_opengl_buffers) {
-        // If the opengl buffers are invalid, the cache is invalid as well
-        this->invalidate_cache();
-        opengl_vertex_buffer = create_array_buffer(NULL, 1);
-        opengl_uv_buffer = create_array_buffer(NULL, 1);
-        opengl_break_amount_buffer = create_array_buffer(NULL, 1);
-        this->valid_opengl_buffers = true;
-    }
-
     ivec3 bottom_left = location*CHUNK_SIZE;
     
     // Check aabb of chunk against the view frustum
@@ -206,15 +183,15 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
         index += 2*3*2;
     }
 
-    reuse_array_buffer(opengl_vertex_buffer, chunk_vertex_buffer, chunk_vertex_buffer_len);
-    reuse_array_buffer(opengl_uv_buffer, chunk_uv_buffer, chunk_uv_buffer_len);
-    reuse_array_buffer(opengl_break_amount_buffer, chunk_break_amount_buffer, chunk_break_amount_buffer_len);
+    opengl_vertex_buffer.reuse(chunk_vertex_buffer, chunk_vertex_buffer_len);
+    opengl_uv_buffer.reuse(chunk_uv_buffer, chunk_uv_buffer_len);
+    opengl_break_amount_buffer.reuse(chunk_break_amount_buffer, chunk_break_amount_buffer_len);
 
     this->chunk_rendering_cached = true;
     this->has_ever_cached = true;
     this->num_triangles_cache = num_triangles;
     
-    this->opengl_texture_atlas = texture_atlas.get_atlas_texture();
+    this->opengl_texture_atlas_cache = texture_atlas.get_atlas_texture();
 
 
     if (aabb.test_frustum(P*V)) {
@@ -234,7 +211,7 @@ void Chunk::cached_render(mat4& P, mat4& V) {
     GLuint shader_texture_id = glGetUniformLocation(chunk_shader_id, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    bind_texture(0, shader_texture_id, opengl_texture_atlas);
+    bind_texture(0, shader_texture_id, opengl_texture_atlas_cache);
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation
@@ -249,19 +226,20 @@ void Chunk::cached_render(mat4& P, mat4& V) {
 
     // Draw nothing, see you in tutorial 2 !
     // 1st attribute buffer : vertices
-    bind_array(0, opengl_vertex_buffer, 3);
+    opengl_vertex_buffer.bind(0, 3);
 
     // 2nd attribute buffer : colors
-    bind_array(1, opengl_uv_buffer, 2);
+    opengl_uv_buffer.bind(1, 2);
 
     // 3rd attribute buffer : break amount
-    bind_array(2, opengl_break_amount_buffer, 1);
+    opengl_break_amount_buffer.bind(2, 1);
 
     // Draw the triangle !
     glDrawArrays(GL_TRIANGLES, 0, num_triangles_cache*3); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
     glDisableVertexAttribArray(0);
     glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(2);
 }
 
 // Makes the buffer object. First 2 bytes of each block is block_id, 3rd byte is break_amount
