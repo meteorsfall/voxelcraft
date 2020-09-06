@@ -16,13 +16,19 @@ GLArrayBuffer::~GLArrayBuffer()
 
 GLArrayBuffer::GLArrayBuffer(const GLArrayBuffer& other) // copy constructor
 {
+    if (other.valid) {
+        dbg("ERROR: Tried to copy construct an allocated GLArrayBuffer");
+    }
     this->valid = false;
 }
 
 GLArrayBuffer& GLArrayBuffer::operator=(const GLArrayBuffer& other) // copy assignment
 {
+    if (other.valid) {
+        dbg("ERROR: Tried to copy assignment construct an allocated GLArrayBuffer");
+    }
     if(this != &other) {
-        // Do nothing, don't copy it
+        // Copy constructor will be left blank
     }
     return *this;
 }
