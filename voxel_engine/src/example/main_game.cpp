@@ -1,8 +1,6 @@
 #include "main_game.hpp"
 #include "world_gen.hpp"
 #include "../texture_renderer.hpp"
-#include <fstream>
-#include <filesystem>
 
 int air_block = 0;
 int dirt_block;
@@ -27,16 +25,17 @@ int up_texture;
 
 int skybox_texture;
 
-void Game::save_world(const char* filename) {
+void Game::save_world(const char* filepath) {
     // Open save file
     std::error_code ec;
     std::filesystem::create_directory("saves", ec);
+    std::filesystem::create_directory(filepath, ec);
 
-    world.save(filename);
+    world.save(filepath);
 }
 
-void Game::load_world(const char* filename) {
-    if (!world.load(filename)) {
+void Game::load_world(const char* filepath) {
+    if (!world.load(filepath)) {
         restart_world();
     }
 }

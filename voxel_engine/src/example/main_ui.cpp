@@ -80,7 +80,7 @@ MainUI::MainUI(Game* game) {
         Button(UI_Element(button_texture), "Save", [this]() {
             if (this->save_selected > 0) {
                 char filename[128];
-                snprintf(filename, sizeof(filename), "saves/save_%d.save", this->save_selected);
+                snprintf(filename, sizeof(filename), "saves/save_%d", this->save_selected);
                 this->game->save_world(filename);
                 this->save_loaded = this->save_selected;
                 this->menu = MenuState::MainMenu;
@@ -105,7 +105,7 @@ MainUI::MainUI(Game* game) {
         Button(UI_Element(button_texture), "Load", [this]() {
             if (this->save_selected > 0) {
                 char filename[128];
-                snprintf(filename, sizeof(filename), "saves/save_%d.save", this->save_selected);
+                snprintf(filename, sizeof(filename), "saves/save_%d", this->save_selected);
                 this->game->load_world(filename);
                 this->save_loaded = this->save_selected;
                 this->menu = MenuState::MainMenu;

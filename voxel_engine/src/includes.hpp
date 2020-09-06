@@ -25,6 +25,8 @@ using namespace glm;
 #include <set>
 #include <tuple>
 #include <algorithm>
+#include <fstream>
+#include <filesystem>
 
 // Include fn_pointer
 #include "fn_pointer.hpp"

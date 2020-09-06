@@ -34,14 +34,6 @@ void clear_chunkdata() {
     }
 }
 
-#define MAX_LOADED_CHUNKS 4096
-
-#define CHUNK_METADATA_SIZE 1
-#define TOTAL_SERIALIZED_CHUNK_SIZE (CHUNK_METADATA_SIZE+1+3*3+SERIALIZED_CHUNK_SIZE)
-
-static int buf_len = MAX_LOADED_CHUNKS*TOTAL_SERIALIZED_CHUNK_SIZE;
-static byte buf[MAX_LOADED_CHUNKS*TOTAL_SERIALIZED_CHUNK_SIZE];
-
 ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
 }
 
@@ -53,9 +45,6 @@ int floor_div(int a, int b) {
     int r = a % b;  /* optimizes into single division. */
     return r ? (d - ((a < 0) ^ (b < 0))) : d;
 }
-
-// Mod, but works on negatives
-#define pos_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
 
 // POINTER WILL NOT BE VALID AFTER A SET_BLOCK
 Chunk* World::get_chunk(int x, int y, int z) {
@@ -71,66 +60,38 @@ Chunk* World::get_chunk(int x, int y, int z) {
 Chunk* World::make_chunk(int x, int y, int z) {
     ivec3 chunk_coords(floor_div(x, CHUNK_SIZE), floor_div(y, CHUNK_SIZE), floor_div(z, CHUNK_SIZE));
 
-    // Checks to ensure that the element didn't already exist
-    if (megachunk_index.count(chunk_coords)) {
-        dbg("ERROR: TRIED TO MAKE CHUNK THAT ALREADY EXISTS!");
-        return NULL;
-    }
-
     // Inserts into hashmap
     ivec3 megachunk_coords(floor_div(chunk_coords.x, MEGACHUNK_SIZE), floor_div(chunk_coords.y, MEGACHUNK_SIZE), floor_div(chunk_coords.z, MEGACHUNK_SIZE));
     
+    auto& found = megachunks.find(megachunk_coords);
+
     MegaChunk* megachunk;
-    if (!megachunk_index_from_megachunk_coords.count(megachunk_coords)) {
-        // If megachunk doesn't exist, Allocate new megachunk
-        if (unused_megachunks.size() > 0) {
-            // If we have an unused megachunk, let's use it
-            int unused_megachunk_index = unused_megachunks.back();
-            unused_megachunks.pop_back();
-            // Reinitialize megachunk
-            *megachunks.at(unused_megachunk_index) = MegaChunk();
-            megachunk = megachunks.at(unused_megachunk_index);
-            // Keep track of megachunk index
-            megachunk_index_from_megachunk_coords[megachunk_coords] = unused_megachunk_index;
-            megachunk_index[chunk_coords] = unused_megachunk_index;
-        } else {
-            // Otherwise, we must make a new megachunk
-            megachunk = new MegaChunk();
-            megachunks.push_back(megachunk);
-            // Keep track of megachunk index
-            megachunk_index_from_megachunk_coords[megachunk_coords] = megachunks.size() - 1;
-            megachunk_index[chunk_coords] = megachunks.size() - 1;
-        }
+    if (found == megachunks.end()) {
+        // If megachunk didn't exist, let's create one and grab a reference
+        MegaChunk& mc = megachunks[megachunk_coords];
+        // Update location and keep pointer
+        mc.location = megachunk_coords;
+        megachunk = &mc;
     } else {
-        // Otherwise, use the existant megachunk
-        int mega_index = megachunk_index_from_megachunk_coords[megachunk_coords];
-        megachunk = megachunks.at(mega_index);
-        megachunk_index[chunk_coords] = mega_index;
+        megachunk = &found->second;
     }
 
-    auto& optional_chunkdata = megachunk->chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)];
-
-    // Verify that chunk has not yet been created
-    if (optional_chunkdata) {
-        dbg("INTERNAL ERROR: Chunk not in megachunk_index but exists in optional chunk!");
-        return NULL;
-    }
-
-    // Create chunk
-    optional_chunkdata = alloc_chunkdata();
-    ChunkData* cd = get_allocated_chunkdata(optional_chunkdata.value());
-    cd->chunk = Chunk(chunk_coords, [](int block_type) -> BlockType* {
-        return get_universe()->get_block_type(block_type);
-    });
+    ChunkData* cd = megachunk->create_chunk(chunk_coords);
 
     return &cd->chunk;
 }
 
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
-    auto found = megachunk_index.find(chunk_coords);
-    if (found != megachunk_index.end()) {
-        int chunkdata_index = megachunks[found->second]->chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)].value();
-        return get_allocated_chunkdata(chunkdata_index);
+    ivec3 megachunk_coords(floor_div(chunk_coords.x, MEGACHUNK_SIZE), floor_div(chunk_coords.y, MEGACHUNK_SIZE), floor_div(chunk_coords.z, MEGACHUNK_SIZE));
+    
+    auto& found = megachunks.find(megachunk_coords);
+    if (found != megachunks.end()) {
+        auto& chunkdata_index = found->second.chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)];
+        if (chunkdata_index) {
+            return get_allocated_chunkdata(chunkdata_index.value());
+        } else {
+            return NULL;
+        }
     } else {
         return NULL;
     }
@@ -314,106 +275,27 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
     }
 }
 
-// Note: The return buffer must be freed by the caller!
-pair<byte*, int> World::serialize() {
-    //char negatives; // "00000XXX"
-    int num_chunks = megachunk_index.size();
-    // 1 byte for negatives, 3 bytes per coordinate,  
-    int buffer_size = TOTAL_SERIALIZED_CHUNK_SIZE*num_chunks;
-
-    if (buffer_size > buf_len) {
-        dbg("World is too large to serialize!");
-        return {NULL, 0};
-    }
-    
-    byte* buffer = buf;
-    
-    int i = 0;
-    for(auto& p : megachunk_index) {
-        const ivec3& chunk_coords = p.first;
-        ChunkData* cd = get_chunk_data(chunk_coords);
-        Chunk& chunk = cd->chunk;
-
-        unsigned start_index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
-
-        // ***************
-        // Serialize Chunk Metadata
-        // ***************
-
-        buffer[start_index] = cd->generated ? 1 : 0;
-
-        // ***************
-        // Serialize Chunk
-        // ***************
-
-        ivec3 location = chunk.location;
-        unsigned index = start_index + CHUNK_METADATA_SIZE;
-
-        // Save sign of each coordinate
-        buffer[index] = 0;
-        buffer[index] |= (location.x < 0 ? 1 : 0) << 2;
-        buffer[index] |= (location.y < 0 ? 1 : 0) << 1;
-        buffer[index] |= (location.z < 0 ? 1 : 0) << 0;
-
-        // Save each integer
-        // (from most significant bit, to least significant bit)
-        write_integer(buffer, index + 1, location.x);
-        write_integer(buffer, index + 4, location.y);
-        write_integer(buffer, index + 7, location.z);
-
-        // Serialize individual chunk
-        auto [chunk_buffer, chunk_buffer_size] = chunk.serialize();
-        memcpy(&buffer[index+10], chunk_buffer, chunk_buffer_size);
-
-        i++;
-    }
-    
-    return {buffer, buffer_size};
-}
-
-void World::deserialize(byte* buffer, int size) {
-    if (size % TOTAL_SERIALIZED_CHUNK_SIZE != 0) {
-        printf("Size is not a multiple of TOTAL_SERIALIZED_CHUNK_SIZE! %d", size);
-        return;
-    }
-    megachunk_index.clear();
-    megachunk_index_from_megachunk_coords.clear();
-    unused_megachunks.clear();
-    for(int i = 0; i < megachunks.size(); i++) {
-        unused_megachunks.push_back(i);
-    }
-    clear_chunkdata();
-
-    for(int i = 0; TOTAL_SERIALIZED_CHUNK_SIZE*i < size; i++) {
-        int start_index = TOTAL_SERIALIZED_CHUNK_SIZE*i;
-        int index = start_index + CHUNK_METADATA_SIZE;
-
-        int x_sign = bit_to_sign((buffer[index] >> 2) & 1);
-        int y_sign = bit_to_sign((buffer[index] >> 1) & 1);
-        int z_sign = bit_to_sign((buffer[index] >> 0) & 1);
-        int x_coord = buffer[index + 3] + buffer[index + 2]*256 + buffer[index + 1]*256*256;
-        x_coord *= x_sign;
-        int y_coord = buffer[index + 6] + buffer[index + 5]*256 + buffer[index + 4]*256*256;
-        y_coord *= y_sign;
-        int z_coord = buffer[index + 9] + buffer[index + 8]*256 + buffer[index + 7]*256*256;
-        z_coord *= z_sign;
-        Chunk* the_chunk = make_chunk(CHUNK_SIZE*x_coord, CHUNK_SIZE*y_coord, CHUNK_SIZE*z_coord);
-        the_chunk->deserialize(buffer + index + 10, SERIALIZED_CHUNK_SIZE);
-        get_chunk_data(ivec3(x_coord, y_coord, z_coord))->generated = buffer[start_index];
-    }
-}
-
 #define ZIP_COMPRESSION true
 
 void World::save(const char* filepath) {
-    auto [buffer, buffer_len] = serialize();
-
+    char megachunk_filename[2048];
+    snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data", filepath);
+    std::error_code ec;
+    std::filesystem::create_directory(megachunk_filename);
+    
 #if ZIP_COMPRESSION
-    struct zip_t *zip = zip_open(filepath, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
-    zip_entry_open(zip, "chunk");
-    zip_entry_write(zip, buffer, buffer_len);
-    zip_entry_close(zip);
-    zip_close(zip);
+    for(auto& p : megachunks) {
+        auto [buffer, buffer_len] = p.second.serialize();
+
+        ivec3 loc = p.second.location;
+        snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data/%d_%d_%d.data", filepath, loc.x, loc.y, loc.z);
+
+        struct zip_t *zip = zip_open(megachunk_filename, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+        zip_entry_open(zip, "chunk");
+        zip_entry_write(zip, buffer, buffer_len);
+        zip_entry_close(zip);
+        zip_close(zip);
+    }
 #else
     std::ofstream save_file;
     save_file.open(filepath, std::ios::binary);
@@ -423,30 +305,34 @@ void World::save(const char* filepath) {
 }
 
 bool World::load(const char* filepath) {
-    // Open save file
-    std::ifstream save_file;
-    save_file.open(filepath, std::ios::binary);
-    if (!save_file.good()) {
+    megachunks.clear();
+    clear_chunkdata();
+
+    if (!std::filesystem::is_directory(filepath)) {
         return false;
     }
 
 #if ZIP_COMPRESSION
-    save_file.close();
+    char megachunk_filename[2048];
+    snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data", filepath);
+    
+    for (const auto& entry : std::filesystem::directory_iterator(megachunk_filename)) {
+        //dbg("Path: %s", entry.path().string().c_str());
+        struct zip_t *zip = zip_open(entry.path().string().c_str(), 0, 'r');
+        zip_entry_open(zip, "chunk");
 
-    int length;
-
-    struct zip_t *zip = zip_open(filepath, 0, 'r');
-    zip_entry_open(zip, "chunk");
-    length = zip_entry_size(zip);
-    if (length > buf_len) {
-        dbg("ERROR: Too many chunks to load!");
+        // Deserialize megachunk
+        int length = zip_entry_size(zip);
+        byte* buf = megachunk_serialization_buffer;
+        zip_entry_noallocread(zip, buf, length);
         zip_entry_close(zip);
+
+        MegaChunk megachunk;
+        megachunk.deserialize(buf, length);
+        megachunks[megachunk.location] = megachunk;
+
         zip_close(zip);
-        return false;
     }
-    zip_entry_noallocread(zip, buf, length);
-    zip_entry_close(zip);
-    zip_close(zip);
 #else
     save_file.seekg(0, save_file.end);
     long length = save_file.tellg();
@@ -460,9 +346,6 @@ bool World::load(const char* filepath) {
     save_file.read((char*)buf, length);
     save_file.close();
 #endif
-
-    // Deserialize the world
-    deserialize(buf, length);
 
     return true;
 }
