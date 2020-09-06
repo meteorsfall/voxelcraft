@@ -21,7 +21,7 @@ public:
     fn_get_blocktype get_block_type;
 
     Chunk(ivec3 location, fn_get_blocktype get_block_type);
-    Chunk(const Chunk &p2) = delete;
+    Chunk(const Chunk &p2);
     ~Chunk();
 
     void set_block(int x, int y, int z, int b);
@@ -38,6 +38,7 @@ public:
 
     void invalidate_cache();
 private:
+    bool valid_opengl_buffers = false;
     GLuint opengl_vertex_buffer;
     GLuint opengl_uv_buffer;
     GLuint opengl_break_amount_buffer;

@@ -35,11 +35,30 @@ public:
   }
 };
 
+#define MEGACHUNK_SIZE 16
+
+class MegaChunk {
+public:
+  ivec3 location;
+  optional<ChunkData> chunks[MEGACHUNK_SIZE][MEGACHUNK_SIZE][MEGACHUNK_SIZE];
+  pair<byte*, int> serialize();
+  void deserialize(byte* buffer, int size);
+};
+
 class World {
 public:
     int world_id;
 
-    unordered_map<ivec3, ChunkData, IVec3Hasher, IVec3EqualFn> chunks;
+    // Megachunks can only be created, not destroyed
+    vector<MegaChunk*> megachunks;
+    // Free megachunks are kept track of here
+    vector<int> unused_megachunks;
+    // Map from chunk_coords to megachunks is here
+    unordered_map<ivec3, int, IVec3Hasher, IVec3EqualFn> megachunk_index;
+    // Map from megachunk_coords to megachunks is here
+    unordered_map<ivec3, int, IVec3Hasher, IVec3EqualFn> megachunk_index_from_megachunk_coords;
+
+    //unordered_map<ivec3, ChunkData, IVec3Hasher, IVec3EqualFn> chunks;
 
     World();
 

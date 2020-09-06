@@ -15,15 +15,20 @@ Chunk::Chunk(ivec3 location, fn_get_blocktype get_block_type) {
 
     this->location = location;
     this->get_block_type = get_block_type;
-    opengl_vertex_buffer = create_array_buffer(NULL, 1);
-    opengl_uv_buffer = create_array_buffer(NULL, 1);
-    opengl_break_amount_buffer = create_array_buffer(NULL, 1);
+}
+
+Chunk::Chunk(const Chunk &p2) {
+    *this = p2;
+    // When copying a chunk, don't pass on the opengl buffers, they're invalid
+    this->valid_opengl_buffers = false;
 }
 
 Chunk::~Chunk() {
-    glDeleteBuffers(1, &opengl_vertex_buffer);
-    glDeleteBuffers(1, &opengl_uv_buffer);
-    glDeleteBuffers(1, &opengl_uv_buffer);
+    if (this->valid_opengl_buffers) {
+        glDeleteBuffers(1, &opengl_vertex_buffer);
+        glDeleteBuffers(1, &opengl_uv_buffer);
+        glDeleteBuffers(1, &opengl_uv_buffer);
+    }
 }
 
 void Chunk::set_block(int x, int y, int z, int b) {
@@ -49,6 +54,15 @@ Block* Chunk::get_block(int x, int y, int z) {
 }
 
 void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
+    if (!this->valid_opengl_buffers) {
+        // If the opengl buffers are invalid, the cache is invalid as well
+        this->invalidate_cache();
+        opengl_vertex_buffer = create_array_buffer(NULL, 1);
+        opengl_uv_buffer = create_array_buffer(NULL, 1);
+        opengl_break_amount_buffer = create_array_buffer(NULL, 1);
+        this->valid_opengl_buffers = true;
+    }
+
     ivec3 bottom_left = location*CHUNK_SIZE;
     
     // Check aabb of chunk against the view frustum
@@ -79,9 +93,9 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
 
     int num_triangles = 0;
 
-    vector<int> textures;
     // 6 sides per cube
-    textures.reserve(CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*6);
+    static int textures[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*6];
+    int textures_len = 0;
 
     auto is_opaque = [this](Block* b) {
         // If it exists, and it's not transparent
@@ -163,7 +177,7 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
                     for(int m = 0; m < 6; m++) {
                         if ((visible_neighbors >> m) & 1) {
                             int texture = get_block_type(blocks[i][j][k].block_type)->textures[m];
-                            textures.push_back(texture);
+                            textures[textures_len++] = texture;
                         }
                     }
                 }
@@ -252,7 +266,7 @@ void Chunk::cached_render(mat4& P, mat4& V) {
 
 // Makes the buffer object. First 2 bytes of each block is block_id, 3rd byte is break_amount
 pair<byte*, int> Chunk::serialize() {
-    byte* buffer = new byte[SERIALIZED_CHUNK_SIZE];
+    static byte buffer[SERIALIZED_CHUNK_SIZE];
     for(unsigned i = 0; i < CHUNK_SIZE; i++){
         for(unsigned j = 0; j < CHUNK_SIZE; j++){
             for(unsigned k = 0; k < CHUNK_SIZE; k++){
