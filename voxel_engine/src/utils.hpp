@@ -17,6 +17,9 @@ using std::sort;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))
+// Mod, but works on negatives
+#define pos_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
+
 #ifdef _WIN32
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else

@@ -141,9 +141,9 @@ void World::refresh_block(int x, int y, int z) {
     ivec3 pos(x, y, z);
 
     // Only call get_chunk once if possible
-    int px = abs(x) % CHUNK_SIZE; // NOTE: abs(x) % CHUNK_SIZE != pos_mod(x, CHUNK_SIZE)
-    int py = abs(y) % CHUNK_SIZE; // But it's still good for our main_chunk check
-    int pz = abs(z) % CHUNK_SIZE;
+    int px = pos_mod(x, CHUNK_SIZE);
+    int py = pos_mod(y, CHUNK_SIZE);
+    int pz = pos_mod(z, CHUNK_SIZE);
     Chunk* main_chunk = NULL;
     if (px > 0 && px < CHUNK_SIZE - 1
      && py > 0 && py < CHUNK_SIZE - 1

@@ -4,9 +4,6 @@
 #include "chunk.hpp"
 #include "universe.hpp"
 
-// Mod, but works on negatives
-#define pos_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
-
 class ChunkData {
 public:
     ChunkData();
