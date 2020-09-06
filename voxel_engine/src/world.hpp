@@ -33,6 +33,7 @@ public:
 
     // Map from megachunk_coords to megachunks is here
     unordered_map<ivec3, MegaChunk, IVec3Hasher, IVec3EqualFn> megachunks;
+    unordered_map<ivec3, string, IVec3Hasher, IVec3EqualFn> disk_megachunks;
 
     World();
 
@@ -57,13 +58,13 @@ public:
 
     void collide(AABB collision_box, fn_on_collide on_collide);
 
-    pair<byte*, int> serialize();
-
-    void deserialize(byte* buffer, int size);
+    void load_disk_megachunk(ivec3 megachunk_coords);
+    void save_megachunk(ivec3 megachunk_coords);
 
     void save(const char* filepath);
     bool load(const char* filepath);
 private:
+    string save_filepath;
     vector<pair<int, ivec3>> marked_chunks;
     ChunkData* get_chunk_data(ivec3 chunk_coords);
     int render_iteration = 0;

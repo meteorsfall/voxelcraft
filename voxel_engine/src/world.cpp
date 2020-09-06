@@ -81,6 +81,80 @@ Chunk* World::make_chunk(int x, int y, int z) {
     return &cd->chunk;
 }
 
+void World::load_disk_megachunk(ivec3 megachunk_coords) {
+    auto& disk_found = disk_megachunks.find(megachunk_coords);
+    
+    // Check for errors
+    if (disk_found == disk_megachunks.end()) {
+        dbg("Loading nonexistent megachunk!");
+        return;
+    }
+    if (megachunks.count(megachunk_coords)) {
+        dbg("Loading from disk, but megachunk already exists!");
+        return;
+    }
+
+    string& filename = disk_found->second;
+
+    //dbg("Loading (%d, %d, %d) from %s", megachunk_coords.x, megachunk_coords.y, megachunk_coords.z, filename.c_str());
+
+    double timer = glfwGetTime();
+
+    // Opened .data file
+    struct zip_t *zip = zip_open(filename.c_str(), 0, 'r');
+    zip_entry_open(zip, "chunk");
+
+    // Deserialize megachunk
+    int length = zip_entry_size(zip);
+    byte* buf = megachunk_serialization_buffer;
+    zip_entry_noallocread(zip, buf, length);
+    zip_entry_close(zip);
+
+    // Closes .data file
+    zip_close(zip);
+    
+    // Takes 6-60ms
+    //dbg("Decompress Time: %f", (glfwGetTime() - timer)*1000);
+    timer = glfwGetTime();
+
+    // Creates megachunk, and then deserializes buffer
+    megachunks[megachunk_coords].deserialize(buf, length);
+    disk_megachunks.erase(disk_found);
+    
+    // Takes 3-10ms
+    //dbg("Deserialize Time: %f", (glfwGetTime() - timer)*1000);
+}
+
+void World::save_megachunk(ivec3 megachunk_coords) {
+    auto& found = megachunks.find(megachunk_coords); 
+    
+    // Check for errors
+    if (found == megachunks.end()) {
+        dbg("Saving nonexistent megachunk!");
+        return;
+    }
+    if (disk_megachunks.count(megachunk_coords)) {
+        dbg("Saving to disk, but megachunk already in disk_megachunks!");
+        return;
+    }
+
+    auto [buffer, buffer_len] = found->second.serialize();
+
+    ivec3 loc = found->second.location;
+
+    char megachunk_filename[2048];
+    snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data/%d_%d_%d.data", save_filepath.c_str(), loc.x, loc.y, loc.z);
+
+    struct zip_t *zip = zip_open(megachunk_filename, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
+    zip_entry_open(zip, "chunk");
+    zip_entry_write(zip, buffer, buffer_len);
+    zip_entry_close(zip);
+    zip_close(zip);
+
+    megachunks.erase(found);
+    disk_megachunks[loc] = megachunk_filename;
+}
+
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
     ivec3 megachunk_coords(floor_div(chunk_coords.x, MEGACHUNK_SIZE), floor_div(chunk_coords.y, MEGACHUNK_SIZE), floor_div(chunk_coords.z, MEGACHUNK_SIZE));
     
@@ -93,7 +167,14 @@ ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
             return NULL;
         }
     } else {
-        return NULL;
+        auto& disk_found = disk_megachunks.find(megachunk_coords);
+        if (disk_found != disk_megachunks.end()) {
+            load_disk_megachunk(megachunk_coords);
+            // Now that the megachunk has been loaded, run get_chunk_data again
+            return get_chunk_data(chunk_coords);
+        } else {
+            return NULL;
+        }
     }
 }
 
@@ -284,17 +365,8 @@ void World::save(const char* filepath) {
     std::filesystem::create_directory(megachunk_filename);
     
 #if ZIP_COMPRESSION
-    for(auto& p : megachunks) {
-        auto [buffer, buffer_len] = p.second.serialize();
-
-        ivec3 loc = p.second.location;
-        snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data/%d_%d_%d.data", filepath, loc.x, loc.y, loc.z);
-
-        struct zip_t *zip = zip_open(megachunk_filename, ZIP_DEFAULT_COMPRESSION_LEVEL, 'w');
-        zip_entry_open(zip, "chunk");
-        zip_entry_write(zip, buffer, buffer_len);
-        zip_entry_close(zip);
-        zip_close(zip);
+    while(megachunks.size() > 0) {
+        save_megachunk(megachunks.begin()->second.location);
     }
 #else
     std::ofstream save_file;
@@ -312,26 +384,20 @@ bool World::load(const char* filepath) {
         return false;
     }
 
+    save_filepath = filepath;
+
 #if ZIP_COMPRESSION
     char megachunk_filename[2048];
     snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data", filepath);
     
+    // Save filenames for all of the .data files
     for (const auto& entry : std::filesystem::directory_iterator(megachunk_filename)) {
-        //dbg("Path: %s", entry.path().string().c_str());
-        struct zip_t *zip = zip_open(entry.path().string().c_str(), 0, 'r');
-        zip_entry_open(zip, "chunk");
+        string filename = entry.path().filename().generic_string();
 
-        // Deserialize megachunk
-        int length = zip_entry_size(zip);
-        byte* buf = megachunk_serialization_buffer;
-        zip_entry_noallocread(zip, buf, length);
-        zip_entry_close(zip);
+        int x, y, z;
+        sscanf(filename.c_str(), "%d_%d_%d.data", &x, &y, &z);
 
-        MegaChunk megachunk;
-        megachunk.deserialize(buf, length);
-        megachunks[megachunk.location] = megachunk;
-
-        zip_close(zip);
+        disk_megachunks[ivec3(x, y, z)] = entry.path().generic_string();
     }
 #else
     save_file.seekg(0, save_file.end);
