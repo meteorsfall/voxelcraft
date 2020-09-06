@@ -56,8 +56,7 @@ pair<byte*, int> MegaChunk::serialize() {
 
     int index = 10;
     
-    int i = 0;
-    for(int i = 0; i < MEGACHUNK_SIZE; i++) {
+    for(uint i = 0; i < MEGACHUNK_SIZE; i++) {
         for(int j = 0; j < MEGACHUNK_SIZE; j++) {
             for(int k = 0; k < MEGACHUNK_SIZE; k++) {
                 if (!chunks[i][j][k]) {

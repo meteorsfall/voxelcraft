@@ -19,6 +19,7 @@ GLArrayBuffer::GLArrayBuffer(const GLArrayBuffer& other) // copy constructor
     if (other.valid) {
         dbg("ERROR: Tried to copy construct an allocated GLArrayBuffer");
     }
+    UNUSED(other);
     this->valid = false;
 }
 

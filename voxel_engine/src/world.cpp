@@ -29,7 +29,7 @@ void free_chunkdata(int chunkdata_id) {
 
 void clear_chunkdata() {
     unused_chunk_allocations.reserve(chunk_allocations.size());
-    for(int i = 0; i < chunk_allocations.size(); i++) {
+    for(uint i = 0; i < chunk_allocations.size(); i++) {
         unused_chunk_allocations.push_back(i);
     }
 }
@@ -63,7 +63,7 @@ Chunk* World::make_chunk(int x, int y, int z) {
     // Inserts into hashmap
     ivec3 megachunk_coords(floor_div(chunk_coords.x, MEGACHUNK_SIZE), floor_div(chunk_coords.y, MEGACHUNK_SIZE), floor_div(chunk_coords.z, MEGACHUNK_SIZE));
     
-    auto& found = megachunks.find(megachunk_coords);
+    const auto& found = megachunks.find(megachunk_coords);
 
     MegaChunk* megachunk;
     if (found == megachunks.end()) {
@@ -82,7 +82,7 @@ Chunk* World::make_chunk(int x, int y, int z) {
 }
 
 void World::load_disk_megachunk(ivec3 megachunk_coords) {
-    auto& disk_found = disk_megachunks.find(megachunk_coords);
+    const auto& disk_found = disk_megachunks.find(megachunk_coords);
     
     // Check for errors
     if (disk_found == disk_megachunks.end()) {
@@ -126,7 +126,7 @@ void World::load_disk_megachunk(ivec3 megachunk_coords) {
 }
 
 void World::save_megachunk(ivec3 megachunk_coords) {
-    auto& found = megachunks.find(megachunk_coords); 
+    const auto& found = megachunks.find(megachunk_coords); 
     
     // Check for errors
     if (found == megachunks.end()) {
@@ -158,7 +158,7 @@ void World::save_megachunk(ivec3 megachunk_coords) {
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
     ivec3 megachunk_coords(floor_div(chunk_coords.x, MEGACHUNK_SIZE), floor_div(chunk_coords.y, MEGACHUNK_SIZE), floor_div(chunk_coords.z, MEGACHUNK_SIZE));
     
-    auto& found = megachunks.find(megachunk_coords);
+    const auto& found = megachunks.find(megachunk_coords);
     if (found != megachunks.end()) {
         auto& chunkdata_index = found->second.chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)];
         if (chunkdata_index) {
@@ -167,7 +167,7 @@ ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
             return NULL;
         }
     } else {
-        auto& disk_found = disk_megachunks.find(megachunk_coords);
+        const auto& disk_found = disk_megachunks.find(megachunk_coords);
         if (disk_found != disk_megachunks.end()) {
             load_disk_megachunk(megachunk_coords);
             // Now that the megachunk has been loaded, run get_chunk_data again
