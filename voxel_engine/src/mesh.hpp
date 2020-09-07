@@ -10,7 +10,7 @@ public:
     static Mesh cube_mesh();
 
     // Render the mesh with PV and model location
-    void render(mat4& PV, mat4& M);
+    void render(const mat4& PV, mat4& M);
 private:
     Mesh();
     GLuint opengl_vertex_buffer;

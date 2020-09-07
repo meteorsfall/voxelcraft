@@ -18,7 +18,7 @@ Mesh Mesh::cube_mesh() {
     return m;
 }
 
-void Mesh::render(mat4& PV, mat4& M) {
+void Mesh::render(const mat4& PV, mat4& M) {
     glUseProgram(opengl_shader);
     
     GLuint shader_texture_id = glGetUniformLocation(opengl_shader, "my_texture");

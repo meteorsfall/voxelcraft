@@ -27,6 +27,10 @@ int skybox_texture;
 
 int mesh_id;
 
+#include "../entity.hpp"
+
+Entity entity;
+
 void Game::save_world(const char* filepath) {
     // Open save file
     std::error_code ec;
@@ -69,6 +73,9 @@ Game::Game() {
 
     Mesh m = Mesh::cube_mesh();
     mesh_id = get_universe()->register_mesh(m);
+
+    entity.mesh_id = mesh_id;
+    entity.texture_id = get_universe()->register_texture("assets/images/dirt.bmp");
 }
 
 Game::~Game() {
@@ -90,7 +97,7 @@ void Game::iterate(InputState& input) {
         paused = true;
     }
 
-    ivec3 current_chunk = floor(floor(player.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
+    ivec3 current_chunk = floor(floor(player.body.position) / (float)CHUNK_SIZE + vec3(0.1) / (float)CHUNK_SIZE);
 
     double time_started = glfwGetTime();
 
@@ -183,18 +190,13 @@ void Game::render() {
     mat4 P = player.camera.get_camera_projection_matrix(aspect_ratio);
     mat4 V = player.camera.get_camera_view_matrix();
     mat4 PV_origin = player.camera.get_origin_camera_matrix(aspect_ratio);
+    mat4 PV = P*V;
 
     // Render World
     world.render(P, V, *get_universe()->get_atlasser());
 
     // Render entities
-    mat4 model = mat4(1.0);
-    model = translate(model, vec3(-2.0, 12.4 + 0.05 * sin(radians(glfwGetTime() * 360 / 3)), 0.0));
-    model = scale(model, vec3(0.2f));
-    model = translate(model, vec3(0.5));
-    model = rotate(model, (float)radians(glfwGetTime() * 360 / 3), vec3(0.0, 1.0, 0.0));
-    model = translate(model, -vec3(0.5));
-    get_universe()->get_mesh(mesh_id)->render(P*V, model);
+    entity.render(PV);
 
     // Render Skybox
     TextureRenderer::render_skybox(PV_origin, *get_universe()->get_cubemap_texture(skybox_texture));
@@ -202,9 +204,9 @@ void Game::render() {
 
 const float MOVEMENT_SPEED = 5.0;
 const float FLYING_ACCEL_SPEED = 6.0;
-const float FLYING_MAX_SPEED = 50.0;
+const float FLYING_MAX_SPEED = 54.0;
 const float MOUSE_SPEED = 0.1;
-const float JUMP_INITIAL_VELOCITY = 4.0;
+const float JUMP_VELOCITY = 6.0;
 
 void Game::do_something() {
     double current_time = input.current_time;
@@ -236,6 +238,20 @@ void Game::do_something() {
             }
         }
     }
+
+    mat4 model = mat4(1.0);
+    // Scale
+    model = scale(model, vec3(0.2f));
+    // Rotate
+    model = translate(model, vec3(0.5));
+    model = rotate(model, (float)radians(glfwGetTime() * 360 / 3), vec3(0.0, 1.0, 0.0));
+    model = translate(model, -vec3(0.5));
+    entity.model_matrix = model;
+
+    entity.body.push(vec3(0.0, -3.0, 0.0), deltaTime);
+    entity.body.iterate(deltaTime);
+
+    world.collide(entity.get_aabb(), entity.get_on_collide());
 }
 
 void Game::place_block(int block) {
@@ -258,13 +274,13 @@ void Game::handle_player_movement(double current_time, float deltaTime) {
     
     vec2 mouse_rotation = get_mouse_rotation() * deltaTime;
 
-    vec3 original_position = player.position;
+    vec3 original_position = player.body.position;
 
     vec3 keyboard_movement = get_keyboard_movement();
 
     if (player.is_flying) {
         if (keyboard_movement.x == 0.0 && keyboard_movement.z == 0.0 && keyboard_movement.y == 0.0) {
-            player.velocity = vec3(0.0);
+            player.body.velocity = vec3(0.0);
             flying_speed = MOVEMENT_SPEED;
         } else {
             flying_speed += FLYING_ACCEL_SPEED * deltaTime;
@@ -279,24 +295,23 @@ void Game::handle_player_movement(double current_time, float deltaTime) {
     }
 
     player.move_toward(keyboard_movement, deltaTime);
-    vec3 dir = player.position - original_position;
-    vec3 jump_velocity = vec3(0.0);
+    vec3 dir = player.body.position - original_position;
+    float jump_velocity = 0.0;
 
     if (input.keys[GLFW_KEY_C] == GLFW_PRESS) {
         player.set_fly(!player.is_flying);
         this->flying_speed = MOVEMENT_SPEED;
         // Reset velocity when changing modes
-        player.velocity = vec3(0.0);
+        player.body.velocity = vec3(0.0);
     }
 
     if (input.keys[GLFW_KEY_SPACE] == GLFW_PRESS) {
         if (!player.is_flying && player.is_on_floor) {
-            jump_velocity = vec3(dir.x, 9.8, dir.z);
-            jump_velocity = normalize(jump_velocity) * JUMP_INITIAL_VELOCITY;
+            jump_velocity = JUMP_VELOCITY;
         }
     }
 
-    player.velocity += jump_velocity;
+    player.body.velocity.y += jump_velocity;
     player.move(player.is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
     player.rotate(mouse_rotation);
 

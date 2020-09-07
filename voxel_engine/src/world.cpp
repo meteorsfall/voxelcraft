@@ -345,6 +345,7 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
                         vec3 movement = movement_o.value();
                         total_movement += movement;
                         collision_box.translate(movement);
+                        on_collide(movement);
                     }
                 }
             }
@@ -352,7 +353,7 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
     }
     if (length(total_movement) > 0.0) {
         // Call the listener if a collision occured
-        on_collide(total_movement);
+        //on_collide(total_movement);
     }
 }
 

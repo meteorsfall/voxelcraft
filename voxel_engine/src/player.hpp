@@ -4,6 +4,7 @@
 #include "utils.hpp"
 #include "camera.hpp"
 #include "world.hpp"
+#include "rigid_body.hpp"
 
 class Player {
 public:
@@ -11,8 +12,7 @@ public:
     int hotbar[9] = {0};
     Camera camera;
 
-    vec3 position;
-    vec3 velocity;
+    RigidBody body;
 
     bool is_on_floor;
 
