@@ -2,24 +2,23 @@
 
 void RigidBody::push(vec3 acceleration, float delta) {
     this->velocity += acceleration * delta;
+}
 
+void RigidBody::iterate(float delta) {
     // Clamp to terminal velocity
     float len = length(this->velocity);
     if (terminal_velocity > 0.0 && len > terminal_velocity) {
         this->velocity = (this->velocity / len) * terminal_velocity;
     }
-}
-
-void RigidBody::iterate(float delta) {
     this->position += this->velocity * delta;
 }
 
-void RigidBody::collide(vec3 collision_normal) {
+void RigidBody::collide(vec3 collision_direction) {
     // Move the rigid body to outside the collision
-    this->position += collision_normal;
+    this->position += collision_direction;
 
     // Adjust the velocity based on the impulse
-    vec3 unit_normal = normalize(collision_normal);
+    vec3 unit_normal = normalize(collision_direction);
     vec3 impulse = -dot(this->velocity, unit_normal) * unit_normal;
     
     //dbg("");

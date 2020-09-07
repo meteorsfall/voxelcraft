@@ -3,6 +3,12 @@
 
 #include "includes.hpp"
 
+/**
+ * @mainpage
+ *
+ * Documenation for @ref VoxelEngine.
+ */
+
 using std::function;
 using std::vector;
 using std::optional;
@@ -20,6 +26,10 @@ using std::sort;
 // Mod, but works on negatives
 #define pos_mod(a, b) ( (((a) % (b)) + (b)) % (b) )
 
+#define HIDE_DOXYEN /// \cond HIDDEN_SYMBOLS
+
+#define UNHIDE_DOXYEN /// \endcond
+
 #ifdef _WIN32
 #define __FILENAME__ (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
@@ -31,11 +41,16 @@ using std::sort;
 
 typedef unsigned char byte;
 
+/// This function will hash an ivec3
 size_t hash_ivec3(ivec3 const& key);
+/// This function will hash an ivec3,
+/// with a unique nonce so that this hash doesn't overlap with other hashes of the same cube
 size_t hash_ivec3(ivec3 const& key, int nonce);
+/// This function will hash an ivec4
 size_t hash_ivec4(ivec4 const& key);
 
-void write_integer(byte* buffer, unsigned i, int magnitude);
+/// This function will write the absolute value of an integer to the buffer at index i
+void write_integer(byte* buffer, unsigned index, int integer);
 
 int bit_to_sign(int a);
 

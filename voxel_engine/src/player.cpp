@@ -7,6 +7,7 @@ const float TERMINAL_VELOCITY = 53.0;
 
 Player::Player() {
     body.position = vec3(CHUNK_SIZE / 2.0, CHUNK_SIZE + 1.0, CHUNK_SIZE / 2.0);
+    body.terminal_velocity = TERMINAL_VELOCITY;
 
     this->camera.set_position(body.position + camera_relative_to_player);
     this->is_flying = false;

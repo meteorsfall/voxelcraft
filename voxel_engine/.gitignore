@@ -2,6 +2,7 @@ bin
 lib
 include
 
+doxygen
 saves
 extras
 assets/images

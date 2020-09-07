@@ -104,6 +104,8 @@ if (WIN32)
       $<TARGET_FILE_DIR:vc>)
 else ()
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES})
+  add_custom_command(TARGET vc POST_BUILD
+      COMMAND doxygen &>/dev/null)
 endif ()
 
 # Define pixel_helper executable

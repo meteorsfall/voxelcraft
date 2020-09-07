@@ -10,6 +10,8 @@
 
 using fn_on_collide = std::function<void(vec3)>;
 
+/// \cond HIDDEN_SYMBOLS
+
 class IVec3Hasher
 {
 public:
@@ -26,6 +28,8 @@ public:
     return t1 == t2;
   }
 };
+
+/// \endcond
 
 class World {
 public:

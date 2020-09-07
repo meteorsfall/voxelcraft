@@ -14,11 +14,11 @@ size_t hash_ivec4(ivec4 const& key) {
     return ((((((456818903 + key.x) * 832251403) + key.y) * 1349392157) + key.z) * 1866190769 + key.w)*74709703;
 }
 
-void write_integer(byte* buffer, unsigned i, int magnitude) {
-    magnitude = abs(magnitude);
-    buffer[i + 2] = magnitude % 256;
-    buffer[i + 1] = (magnitude >> 8) % 256;
-    buffer[i + 0] = (magnitude >> 16) % 256; 
+void write_integer(byte* buffer, unsigned index, int integer) {
+    integer = abs(integer);
+    buffer[index + 2] = integer % 256;
+    buffer[index + 1] = (integer >> 8) % 256;
+    buffer[index + 0] = (integer >> 16) % 256; 
 }
 
 int bit_to_sign(int a) {
