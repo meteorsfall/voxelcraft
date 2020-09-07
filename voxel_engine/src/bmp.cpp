@@ -215,7 +215,7 @@ void BMP::set_pixel(int x, int y, ivec4 color) {
 	data[(y*width + x)*4 + 3] = color.w; // A
 }
 
-GLuint BMP::generate_texture(bool mipmapped) {
+GLuint BMP::generate_texture(bool mipmapped) const {
 	// Create one OpenGL texture
 	GLuint textureID;
 	glGenTextures(1, &textureID);
@@ -288,7 +288,7 @@ void BMP::blit(int x, int y, BMP& bmp) {
 }
 
 // Crops the bmp and returns the crop
-BMP BMP::crop(int x, int y, int width, int height) {
+BMP BMP::crop(int x, int y, int width, int height) const {
 	BMP ret(width, height);
 	for(int yy = 0; yy < height; yy++) {
 		int nyy = height - 1 - yy;

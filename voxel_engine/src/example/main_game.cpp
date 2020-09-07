@@ -25,6 +25,8 @@ int up_texture;
 
 int skybox_texture;
 
+int mesh_id;
+
 void Game::save_world(const char* filepath) {
     // Open save file
     std::error_code ec;
@@ -64,6 +66,9 @@ Game::Game() {
 	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
 
     restart_world();
+
+    Mesh m = Mesh::cube_mesh();
+    mesh_id = get_universe()->register_mesh(m);
 }
 
 Game::~Game() {
@@ -181,6 +186,15 @@ void Game::render() {
 
     // Render World
     world.render(P, V, *get_universe()->get_atlasser());
+
+    // Render entities
+    mat4 model = mat4(1.0);
+    model = translate(model, vec3(-2.0, 12.4 + 0.05 * sin(radians(glfwGetTime() * 360 / 3)), 0.0));
+    model = scale(model, vec3(0.2f));
+    model = translate(model, vec3(0.5));
+    model = rotate(model, (float)radians(glfwGetTime() * 360 / 3), vec3(0.0, 1.0, 0.0));
+    model = translate(model, -vec3(0.5));
+    get_universe()->get_mesh(mesh_id)->render(P*V, model);
 
     // Render Skybox
     TextureRenderer::render_skybox(PV_origin, *get_universe()->get_cubemap_texture(skybox_texture));

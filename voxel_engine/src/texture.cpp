@@ -5,15 +5,14 @@
 Texture::Texture() {
 }
 
-Texture::Texture(BMP image) {
-    this->bmp = image;
+Texture::Texture(const BMP& image) {
     this->opengl_texture_id = image.generate_texture();
 }
 
 CubeMapTexture::CubeMapTexture() {
 }
 
-CubeMapTexture::CubeMapTexture(BMP image) {
+CubeMapTexture::CubeMapTexture(const BMP& image) {
     int size = image.width / 4;
 
     byte* buf[6];

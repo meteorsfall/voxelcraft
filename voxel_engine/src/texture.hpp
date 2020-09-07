@@ -8,10 +8,9 @@ class Texture {
 public:
     int texture_id;
     GLuint opengl_texture_id;
-    BMP bmp;
 
     Texture();
-    Texture(BMP image);
+    Texture(const BMP& image);
 };
 
 class CubeMapTexture {
@@ -20,7 +19,7 @@ public:
     GLuint opengl_texture_id;
     
     CubeMapTexture();
-    CubeMapTexture(BMP image);
+    CubeMapTexture(const BMP& image);
 };
 
 #endif

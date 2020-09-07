@@ -23,11 +23,11 @@ public:
 	// Set a pixel to a color with alpha
     void set_pixel(int x, int y, ivec4 color);
 	// Generate an OpenGL texture from the BMP
-	GLuint generate_texture(bool mipmapped = false);
+	GLuint generate_texture(bool mipmapped = false) const;
 	// At this bmp's (x, y), paste another bmp
     void blit(int x, int y, BMP& other);
 	// Crops the bmp and returns the crop
-	BMP crop(int x, int y, int width, int height);
+	BMP crop(int x, int y, int width, int height) const;
 	// Save BMP object to a .bmp file
 	void save(const char* filename);
 	
