@@ -3,12 +3,14 @@
 
 #include "main_game.hpp"
 
+/**
+ *\addtogroup example_game
+ * @{
+ */
+
+/// Generate a chunk at the world, with coordinates given the chunk-coords
 void generate_chunk(World& world, ivec3 chunk_coords);
 
-void generate_random_tree(World& world, ivec3 loc);
-void generate_tree_pyramid(World& world, ivec3 loc);
-void generate_tree_pyramid_truncated(World& world, ivec3 loc);
-void generate_tree_cute(World& world, ivec3 loc);
-void generate_tree_overhang(World& world, ivec3 loc);
+/**@}*/
 
 #endif

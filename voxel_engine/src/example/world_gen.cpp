@@ -9,6 +9,12 @@ extern int log_block;
 extern int leaf_block;
 extern int grass_block;
 
+void generate_random_tree(World& world, ivec3 loc);
+void generate_tree_pyramid(World& world, ivec3 loc);
+void generate_tree_pyramid_truncated(World& world, ivec3 loc);
+void generate_tree_cute(World& world, ivec3 loc);
+void generate_tree_overhang(World& world, ivec3 loc);
+
 void generate_random_tree(World& world, ivec3 loc) {
     // Random number for a nonce
     int r = hash_ivec4(ivec4(loc.x, loc.y, loc.z, 137421)) % 4;

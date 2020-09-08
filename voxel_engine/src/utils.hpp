@@ -12,7 +12,7 @@
 /**
  * @defgroup VoxelEngine VoxelEngine
  * 
- * @ref VoxelEngine is the Game Engine that aimes to provide a fast and extensible
+ * @brief @ref VoxelEngine is the Game Engine that aimes to provide a fast and extensible
  * interface for creating Voxel Worlds
  */
 

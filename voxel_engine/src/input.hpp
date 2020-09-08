@@ -3,7 +3,6 @@
 
 #include "utils.hpp"
 #include "world.hpp"
-#include "player.hpp"
 
 /**
  *\addtogroup VoxelEngine

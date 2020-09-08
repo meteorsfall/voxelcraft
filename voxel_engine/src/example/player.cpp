@@ -1,5 +1,4 @@
 #include "player.hpp"
-#include "world.hpp"
 
 static vec3 camera_relative_to_player = vec3(0.0, 1.67, 0.0);
 

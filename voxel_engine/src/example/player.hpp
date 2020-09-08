@@ -1,17 +1,17 @@
 #ifndef _PLAYER_HPP_
 #define _PLAYER_HPP_
 
-#include "utils.hpp"
-#include "camera.hpp"
-#include "world.hpp"
-#include "rigid_body.hpp"
+#include "../utils.hpp"
+#include "../camera.hpp"
+#include "../world.hpp"
+#include "../rigid_body.hpp"
 
 /**
- *\addtogroup VoxelEngine
+ *\addtogroup example_game
  * @{
  */
 
-/// The Player class represents a Player in the VoxelEngine game
+/// The Player class represents a Player in the @ref example_game game
 
 class Player {
 public:
