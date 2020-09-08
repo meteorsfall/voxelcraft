@@ -356,10 +356,9 @@ bool Game::mining_block(float mining_time) {
     optional<ivec3> target_block = world.raycast(player.camera.position, player.camera.get_direction(), 4.0);
     if (target_block) {
         ivec3 loc = target_block.value();
-        mining_time += world.get_block(loc.x, loc.y, loc.z)->break_amount;
+        mining_time += world.read_block(loc.x, loc.y, loc.z)->break_amount;
         if (mining_time < 1.0) {
-            world.get_block(loc.x, loc.y, loc.z)->break_amount = mining_time;
-            world.refresh_block(loc.x, loc.y, loc.z);
+            world.write_block(loc.x, loc.y, loc.z)->break_amount = mining_time;
             return false;
         } else {
             world.set_block(loc.x, loc.y, loc.z, 0);

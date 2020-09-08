@@ -16,14 +16,14 @@
 
 class Universe {
 public:
-    /// Add a texture to the global texture atlas
+    /// Add a texture to the global texture atlas, with an optional color_key to detect transparency
     int register_atlas_texture(const char* texture_path, ivec3 color_key = ivec3(-1));
-    /// Add a texture resource
+    /// Add a texture resource, with an optional color_key to detect transparency
     int register_texture(const char* texture_path, ivec3 color_key = ivec3(-1));
-    /// Add a cubemap texture resource
+    /// Add a cubemap texture resource, with an optional color_key to detect transparency
     int register_cubemap_texture(const char* texture_path, ivec3 color_key = ivec3(-1));
     /// Register a new blocktype with the given textures
-    int register_blocktype(int nx, int px, int ny, int py, int nz, int pz, bool is_transparent = false);
+    int register_blocktype(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque = true);
     /// Register a new mesh
     int register_mesh(Mesh m);
 
