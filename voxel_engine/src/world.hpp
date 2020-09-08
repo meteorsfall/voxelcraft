@@ -130,7 +130,7 @@ private:
     unordered_map<ivec3, string, IVec3Hasher, IVec3EqualFn> disk_megachunks;
 
     Chunk* get_chunk(int x, int y, int z);
-    void World::refresh_block(int x, int y, int z);
+    void refresh_block(int x, int y, int z);
 
     vector<pair<int, ivec3>> marked_chunks;
     ChunkData* get_chunk_data(ivec3 chunk_coords);

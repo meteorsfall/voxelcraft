@@ -2,6 +2,9 @@
 #include "world_gen.hpp"
 #include "../texture_renderer.hpp"
 
+// Events
+int on_break_event;
+
 int air_block = 0;
 int dirt_block;
 int stone_block;
@@ -30,6 +33,7 @@ int mesh_id;
 #include "../entity.hpp"
 
 Entity entity;
+vector<Entity> entities;
 
 void Game::save_world(const char* filepath) {
     // Open save file
@@ -68,11 +72,16 @@ Game::Game() {
     up_block = get_universe()->register_blocktype(up_texture, up_texture, up_texture, up_texture, up_texture, up_texture);
 
 	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
-
-    restart_world();
-
+    
     Mesh m = Mesh::cube_mesh();
     mesh_id = get_universe()->register_mesh(m);
+
+    on_break_event = get_universe()->register_event();
+    get_universe()->get_event(on_break_event)->subscribe([](void* data) {
+        Drop d = new Drop();
+    }]);
+
+    restart_world();
 
     entity.mesh_id = mesh_id;
     entity.texture_id = get_universe()->register_texture("assets/images/dirt.bmp");
@@ -362,6 +371,7 @@ bool Game::mining_block(float mining_time) {
             return false;
         } else {
             world.set_block(loc.x, loc.y, loc.z, 0);
+            get_universe()->get_event(on_break_event)->trigger_event(NULL);
             return true;
         }
     } else {

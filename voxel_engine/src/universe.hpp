@@ -6,6 +6,7 @@
 #include "block.hpp"
 #include "texture_atlasser.hpp"
 #include "mesh.hpp"
+#include "event.hpp"
 
 /**
  *\addtogroup VoxelEngine
@@ -26,6 +27,8 @@ public:
     int register_blocktype(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque = true);
     /// Register a new mesh
     int register_mesh(Mesh m);
+    /// Register a new event
+    int register_event();
 
     /// The @ref TextureAtlasser will represent all textures thusfar added to the texture atlas
     TextureAtlasser* get_atlasser();
@@ -37,6 +40,8 @@ public:
     BlockType* get_block_type(int block_type_id);
     /// Gets a @ref Mesh from the given mesh_id
     Mesh* get_mesh(int mesh_id);
+    /// Gets a @ref Event from the given event_id
+    Event* get_event(int event_id);
 private:
     vector<BlockType> block_types;
     vector<Texture> textures;
