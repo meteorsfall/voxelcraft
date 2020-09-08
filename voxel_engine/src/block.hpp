@@ -27,6 +27,12 @@ public:
      * represent the atlas texture for a particular face with a normal pointing in a particular direction.
      * For example, the first parameter represents the atlas texture ID for the face whose unit normal
      * is (-1, 0, 0)
+     * @param nx The atlas texture ID to be facing towards the negative-x direction
+     * @param px The atlas texture ID to be facing towards the positive-x direction
+     * @param ny The atlas texture ID to be facing towards the negative-y direction
+     * @param py The atlas texture ID to be facing towards the positive-y direction
+     * @param nz The atlas texture ID to be facing towards the negative-z direction
+     * @param pz The atlas texture ID to be facing towards the positive-z direction
      * @param is_transparent True if the block is not opaque
      */
     BlockType(int nx, int px, int ny, int py, int nz, int pz, bool is_transparent);

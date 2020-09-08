@@ -52,7 +52,7 @@ void GLArrayBuffer::init(const GLfloat* data, int len) {
     valid = true;
 }
 
-GLuint load_shaders(const char * vertex_file_path, const char * fragment_file_path){
+GLuint GL::load_shaders(const char * vertex_file_path, const char * fragment_file_path){
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
@@ -136,7 +136,7 @@ GLuint load_shaders(const char * vertex_file_path, const char * fragment_file_pa
 	return ProgramID;
 }
 
-GLuint load_cubemap(byte* sides[6], int size)
+GLuint GL::load_cubemap(byte* sides[6], int size)
 {
     GLuint textureID;
     glGenTextures(1, &textureID);
@@ -167,7 +167,7 @@ GLuint load_cubemap(byte* sides[6], int size)
     return textureID;
 }  
 
-GLuint create_array_buffer(const GLfloat* data, int len) {
+GLuint GL::create_array_buffer(const GLfloat* data, int len) {
     // The array buffer id
     GLuint id;
     // Generate 1 buffer, put the resulting identifier in id
@@ -181,7 +181,7 @@ GLuint create_array_buffer(const GLfloat* data, int len) {
     return id;
 }
 
-void reuse_array_buffer(GLuint array_buffer_id, const GLfloat* data, int len) {
+void GL::reuse_array_buffer(GLuint array_buffer_id, const GLfloat* data, int len) {
     // Make GL_ARRAY_BUFFER point to vertexbuffer
     glBindBuffer(GL_ARRAY_BUFFER, array_buffer_id);
     // Give our vertices to GL_ARRAY_BUFFER (ie, vertexbuffer)
@@ -191,7 +191,7 @@ void reuse_array_buffer(GLuint array_buffer_id, const GLfloat* data, int len) {
     glBufferData(GL_ARRAY_BUFFER, len, data, GL_STATIC_DRAW);
 }
 
-void bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id) {
+void GL::bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id) {
     if (texture_num < 0 || texture_num >= GL_MAX_TEXTURE_UNITS) {
         printf("BAD TEXTURE NUM: %d / %d", texture_num, GL_MAX_TEXTURE_UNITS);
     }
@@ -204,7 +204,7 @@ void bind_texture(int texture_num, GLuint shader_texture_pointer, GLuint opengl_
     // *shader_texture_pointer = GL_TEXTURE_2D[texture_num]
 }
 
-void bind_texture_cubemap(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id) {
+void GL::bind_texture_cubemap(int texture_num, GLuint shader_texture_pointer, GLuint opengl_texture_id) {
     if (texture_num < 0 || texture_num >= GL_MAX_TEXTURE_UNITS) {
         printf("BAD TEXTURE NUM: %d / %d", texture_num, GL_MAX_TEXTURE_UNITS);
     }
@@ -217,7 +217,7 @@ void bind_texture_cubemap(int texture_num, GLuint shader_texture_pointer, GLuint
     // *shader_texture_pointer = GL_TEXTURE_2D[texture_num]
 }
 
-void bind_array(int array_num, GLuint array_buffer, GLint size) {
+void GL::bind_array(int array_num, GLuint array_buffer, GLint size) {
     glEnableVertexAttribArray(array_num); // Must match attribute
     glBindBuffer(GL_ARRAY_BUFFER, array_buffer);
     glVertexAttribPointer(
@@ -329,7 +329,7 @@ static GLfloat g_plane_uv_buffer_data[] = {
     1.0f, 1.0f,
 };
 
-pair<GLfloat*, int> get_specific_cube_vertex_coordinates(int bitmask) {
+pair<GLfloat*, int> GL::get_specific_cube_vertex_coordinates(int bitmask) {
  
     // 0 => Yellow (-x)
     // 1 => Magenta (+x)
@@ -365,7 +365,7 @@ pair<GLfloat*, int> get_specific_cube_vertex_coordinates(int bitmask) {
     return {cube_buf, len};
 }
 
-pair<GLfloat*, int> get_specific_cube_uv_coordinates(int bitmask) {
+pair<GLfloat*, int> GL::get_specific_cube_uv_coordinates(int bitmask) {
 
     static map<int, pair<GLfloat*, int>> memo;
 
@@ -394,17 +394,17 @@ pair<GLfloat*, int> get_specific_cube_uv_coordinates(int bitmask) {
     return {cube_buf, len};
 }
 
-pair<const GLfloat*, int> get_cube_vertex_coordinates() {
+pair<const GLfloat*, int> GL::get_cube_vertex_coordinates() {
     return {g_cube_vertex_buffer_data, sizeof(g_cube_vertex_buffer_data)};
 }
 
-pair<const GLfloat*, int> get_cube_uv_coordinates() {
+pair<const GLfloat*, int> GL::get_cube_uv_coordinates() {
     return {g_cube_uv_buffer_data, sizeof(g_cube_uv_buffer_data)};
 }
-pair<const GLfloat*, int> get_plane_vertex_coordinates() {
+pair<const GLfloat*, int> GL::get_plane_vertex_coordinates() {
     return {g_plane_vertex_buffer_data, sizeof(g_plane_vertex_buffer_data)};
 }
-pair<const GLfloat*, int> get_plane_uv_coordinates() {
+pair<const GLfloat*, int> GL::get_plane_uv_coordinates() {
     return {g_plane_uv_buffer_data, sizeof(g_plane_uv_buffer_data)};
 }
 
@@ -453,6 +453,6 @@ float g_skybox_vertex_data[] = {
      1.0f, -1.0f,  1.0f
 };
 
-pair<const GLfloat*, int> get_skybox_vertex_coordinates() {
+pair<const GLfloat*, int> GL::get_skybox_vertex_coordinates() {
     return {g_skybox_vertex_data, sizeof(g_skybox_vertex_data)};
 }

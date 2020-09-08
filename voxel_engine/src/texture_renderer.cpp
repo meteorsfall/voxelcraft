@@ -1,5 +1,6 @@
 #include "texture_renderer.hpp"
 #include "gl_utils.hpp"
+#include "universe.hpp"
 
 extern TextureRenderer* g_texture_renderer;
 
@@ -24,7 +25,7 @@ void TextureRenderer::set_window_dimensions(int width, int height) {
 }
 
 // Width and height should range between 0.0 and 1.0
-void TextureRenderer::internal_render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size) {
+void TextureRenderer::internal_render(const Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size) {
     int width = size.x;
     int height = size.y;
 
@@ -67,11 +68,11 @@ void TextureRenderer::internal_render(Texture& texture, GLuint shader_id, ivec2 
     glDisableVertexAttribArray(1);
 }
 
-void TextureRenderer::render(Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size) {
-    get_texture_renderer()->internal_render(texture, shader_id, top_left, size);
+void TextureRenderer::render(const Texture& texture, ivec2 top_left, ivec2 size) {
+    get_texture_renderer()->internal_render(texture, get_universe()->get_ui_shader(), top_left, size);
 }
 
-void TextureRenderer::render_skybox(const mat4& P, mat4 V, CubeMapTexture& texture) {
+void TextureRenderer::render_skybox(const mat4& P, mat4 V, const CubeMapTexture& texture) {
     // Clear out the position of the view matrix, as the skybox will be viewed as-if from the origin
     V[3][0] = V[3][1] = V[3][2] = 0;
     // Calculate projection-view matrix
@@ -91,7 +92,7 @@ void TextureRenderer::render_skybox(const mat4& P, mat4 V, CubeMapTexture& textu
     glDrawArrays(GL_TRIANGLES, 0, 36);
 }
 
-void TextureRenderer::render_text(Font& font, ivec2 location, float scale, const char* text, ivec3 color) {
+void TextureRenderer::render_text(const Font& font, ivec2 location, float scale, const char* text, ivec3 color) {
     location.y = get_texture_renderer()->height - 1 - location.y;
     font.render(ivec2(get_texture_renderer()->width, get_texture_renderer()->height), location, scale, text, color);
 }

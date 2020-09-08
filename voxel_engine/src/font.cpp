@@ -66,20 +66,24 @@ Font::Font(const char* font_path) {
     this->shader_id = load_shaders("assets/shaders/font.vert", "assets/shaders/font.frag");
 }
 
-int Font::get_width(const char* text) {
+int Font::get_width(const char* text) const {
     int width = 0;
 
     int len = strlen(text);
     for(int i = 0; i < len; i++) {
         char c = text[i];
-        Character ch = this->characters[c];
+        if (!this->characters.count(c)) {
+            dbg("Character 0x%x not found!", c);
+            continue;
+        }
+        Character ch = this->characters.at(c);
         width += (ch.Advance >> 6);
     }
 
     return width;
 }
 
-void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* text, ivec3 color) {
+void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* text, ivec3 color) const {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 	
     glUseProgram(this->shader_id);
@@ -109,7 +113,11 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
     for (int i = 0; i < len; i++)
     {
         char c = text[i];
-        Character ch = this->characters[c];
+        if (!this->characters.count(c)) {
+            dbg("Character 0x%x not found!", c);
+            continue;
+        }
+        Character ch = this->characters.at(c);
 
         float xpos = location.x + ch.Bearing.x * scale;
         float ypos = location.y - (ch.Size.y - ch.Bearing.y) * scale;

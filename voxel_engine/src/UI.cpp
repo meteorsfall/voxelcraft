@@ -14,7 +14,7 @@ UIElement::UIElement(int texture) {
 }
 
 void UIElement::render() {
-    TextureRenderer::render(*get_universe()->get_texture(texture), get_universe()->get_ui_shader(), this->location, this->size);
+    TextureRenderer::render(*get_universe()->get_texture(texture), this->location, this->size);
 }
 
 bool UIElement::intersect(ivec2 position) {

@@ -126,9 +126,10 @@ int main( void )
 
 		double input_time = glfwGetTime();
         
-        InputState input_state = input_handler.handle_input(!game.paused);
+		// Relative mouse will be activated iff the game is not paused
+        InputState input_state = input_handler.capture_input(!game.paused);
 
-		if (input_handler.exiting || glfwWindowShouldClose(window)) {
+		if (input_handler.is_exiting() || glfwWindowShouldClose(window)) {
 			break;
 		}
 		

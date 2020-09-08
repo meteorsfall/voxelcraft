@@ -25,7 +25,7 @@ InputHandler::InputHandler(GLFWwindow* window) {
     glfwSetKeyCallback(window, lambda_to_fn_pointer(key_callback));
 }
 
-InputState InputHandler::handle_input(bool relative_mouse) {
+InputState InputHandler::capture_input(bool relative_mouse) {
     glfwPollEvents();
 
     if (next_input.keys[GLFW_KEY_Q] == GLFW_PRESS) {
@@ -109,4 +109,8 @@ InputState InputHandler::handle_input(bool relative_mouse) {
 
     last_relative_mouse = relative_mouse;
     return input;
+}
+
+bool InputHandler::is_exiting() {
+    return exiting;
 }
