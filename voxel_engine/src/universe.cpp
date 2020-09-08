@@ -15,13 +15,6 @@ TextureAtlasser* Universe::get_atlasser() {
     return &this->atlasser;
 }
 
-GLuint Universe::get_ui_shader() {
-    if (!ui_shader) {
-        ui_shader = {load_shaders("assets/shaders/ui.vert", "assets/shaders/ui.frag")};
-    }
-    return ui_shader.value();
-}
-
 int Universe::register_atlas_texture(const char* texture_path, ivec3 color_key) {
     return atlasser.add_bmp(BMP(texture_path, color_key));
 }

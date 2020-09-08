@@ -12,7 +12,7 @@
  * @{
  */
 
-/// The Univerise class keeps a global registry of all resources allocated
+/// The @ref Universe class keeps a global registry of all resources allocated
 
 class Universe {
 public:
@@ -27,21 +27,17 @@ public:
     /// Register a new mesh
     int register_mesh(Mesh m);
 
-    /// The TextureAtlasser will represent all textures thusfar added to the texture atlas
+    /// The @ref TextureAtlasser will represent all textures thusfar added to the texture atlas
     TextureAtlasser* get_atlasser();
-    /// Gets a Texture from the given texture_id
+    /// Gets a @ref Texture from the given texture_id
     Texture* get_texture(int texture_id);
-    /// Gets a CubeMapTexture from the given texture_id
+    /// Gets a @ref CubeMapTexture from the given texture_id
     CubeMapTexture* get_cubemap_texture(int texture_id);
-    /// Gets a blocktype from the given block_type_id
+    /// Gets a @ref BlockType from the given block_type_id
     BlockType* get_block_type(int block_type_id);
-    /// Gets a mesh from the given mesh_id
+    /// Gets a @ref Mesh from the given mesh_id
     Mesh* get_mesh(int mesh_id);
-
-    /// Gets the default OpenGL shader that UIs should be using
-    GLuint get_ui_shader();
 private:
-    optional<GLuint> ui_shader;
     vector<BlockType> block_types;
     vector<Texture> textures;
     vector<CubeMapTexture> cubemap_textures;

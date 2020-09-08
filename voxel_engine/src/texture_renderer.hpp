@@ -33,11 +33,12 @@ public:
     /// Set the window dimensions of the TextureRenderer
     void set_window_dimensions(int width, int height);
 private:
-    void internal_render(const Texture& texture, GLuint shader_id, ivec2 top_left, ivec2 size);
+    void internal_render(const Texture& texture, ivec2 top_left, ivec2 size);
     GLuint vertex_buffer;
     GLuint uv_buffer;
     GLuint skybox_buffer;
     GLuint skybox_shader;
+    GLuint ui_shader;
     int width;
     int height;
 };
