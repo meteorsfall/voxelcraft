@@ -17,6 +17,8 @@ public:
     /// The top-right point of the AABB
     vec3 max_point;
 
+    /// Creates a unit cube AABB
+    AABB();
     /// Creates an AABB with the given bottom-left point and top-right point
     AABB(vec3 min_point, vec3 max_point);
 

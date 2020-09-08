@@ -2,6 +2,7 @@
 #define _TEXTURE_HPP_
 
 #include "utils.hpp"
+#include "gl_utils.hpp"
 #include "bmp.hpp"
 
 /**
@@ -16,7 +17,7 @@ public:
     /// The registered ID for this texture
     int texture_id;
     /// The OpenGL reference to the texture
-    GLuint opengl_texture_id;
+    GLReference opengl_texture_id;
 
     /// Creates a blank texture
     Texture();

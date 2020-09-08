@@ -1,5 +1,9 @@
 #include "aabb.hpp"
 
+AABB::AABB() {
+    *this = AABB(vec3(0), vec3(0));   
+}
+
 AABB::AABB(vec3 min_point, vec3 max_point) {
     this->min_point = min_point;
     this->max_point = max_point;

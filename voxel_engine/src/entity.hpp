@@ -31,6 +31,8 @@ public:
 
     /// The RigidBody that controls the physics for this entity
     RigidBody body;
+    /// The bounding box for this entity (Presuming that the entity is to be centered at the origin, get_aabb() will translate the AABB)
+    AABB aabb;
 
     /// The model matrix that controls this entities transformations from the origin
     mat4 model_matrix;

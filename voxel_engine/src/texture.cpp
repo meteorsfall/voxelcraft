@@ -6,7 +6,7 @@ Texture::Texture() {
 }
 
 Texture::Texture(const BMP& image) {
-    this->opengl_texture_id = image.generate_texture();
+    this->opengl_texture_id.opengl_id = image.generate_texture();
 }
 
 CubeMapTexture::CubeMapTexture() {

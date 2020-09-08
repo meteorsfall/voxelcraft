@@ -29,13 +29,13 @@ public:
     /// Apply a force to a rigid body, presuming mass = 1
     /** 
      * @param acceleration The acceleration to apply to the rigid body
-     * @param delta The length of the time-step that will be simulated
+     * @param delta (In Seconds) The length of the time-step that will be simulated
      */
     void push(vec3 acceleration, float delta);
 
     /// Increment the rigid body's motion by the given time-step
     /**
-     * @param delta The length of the time-step that will be simulated
+     * @param delta (In Seconds) The length of the time-step that will be simulated
      */
     void iterate(float delta);
 

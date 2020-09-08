@@ -3,13 +3,15 @@
 
 Entity::Entity() {
     body.position = vec3(-2.0, 16.4 + 0.05 * sin(radians(glfwGetTime() * 360 / 3)), 0.0);
+    float width = 0.5f;
+    float height = 1.0f;
+    aabb = AABB(-vec3(width, 0, width), vec3(width, height, width));
 }
 
 AABB Entity::get_aabb() {
-    vec3 pos = body.position;
-    float width = 0.5f;
-    float height = 1.0f;
-    return AABB(pos - vec3(width, 0, width), pos + vec3(width, height, width));
+    AABB ret = this->aabb;
+    ret.translate(body.position);
+    return ret;
 }
 
 fn_on_collide Entity::get_on_collide() {

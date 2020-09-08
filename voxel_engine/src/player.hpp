@@ -23,7 +23,7 @@ public:
     /// The Camera that the player holds at his head for viewing the world
     Camera camera;
 
-    /// The RigidBody that represents the player's position and velocity
+    /// The RigidBody that represents the player's position and velocity. The player's position is taken from the center of his feet.
     RigidBody body;
 
     /// True if the player is in flying-mode

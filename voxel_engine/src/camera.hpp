@@ -43,7 +43,7 @@ public:
     /// Rotate the camera's viewing plane
     /**
      * 
-     * @param delta delta.x will represent how much to rotate left or right (the yaw),
+     * @param delta (In Radians) delta.x will represent how much to rotate left or right (the yaw),
      * and delta.y will represent how much to tilt up or down (the pitch). delta.x if positive,
      * will rotate to the right. The pitch will be clamped to between -pi/2 + 0.01, and pi/2 - 0.01.
      * This is to prevent bending the neck too far up or down, and to prevent gimbal lock at multiples of pi/2

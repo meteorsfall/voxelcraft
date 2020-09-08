@@ -24,7 +24,7 @@ void Mesh::render(const mat4& PV, mat4& M) {
     GLuint shader_texture_id = glGetUniformLocation(opengl_shader, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    bind_texture(0, shader_texture_id, texture.opengl_texture_id);
+    bind_texture(0, shader_texture_id, texture.opengl_texture_id.opengl_id.value());
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation

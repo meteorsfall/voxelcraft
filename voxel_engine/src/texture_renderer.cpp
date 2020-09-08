@@ -48,7 +48,7 @@ void TextureRenderer::internal_render(const Texture& texture, ivec2 top_left, iv
 
     // Set shader texture
     GLuint shader_texture_id = glGetUniformLocation(ui_shader, "my_texture");
-    bind_texture(0, shader_texture_id, texture.opengl_texture_id);
+    bind_texture(0, shader_texture_id, texture.opengl_texture_id.opengl_id.value());
     
     // Pass in the model matrix
     GLuint matrix_shader_pointer = glGetUniformLocation(ui_shader, "MVP");
