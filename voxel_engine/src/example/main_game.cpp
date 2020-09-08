@@ -189,7 +189,6 @@ void Game::render() {
     // Get Projection-View matrix
     mat4 P = player.camera.get_camera_projection_matrix(aspect_ratio);
     mat4 V = player.camera.get_camera_view_matrix();
-    mat4 PV_origin = player.camera.get_origin_camera_matrix(aspect_ratio);
     mat4 PV = P*V;
 
     // Render World
@@ -199,7 +198,7 @@ void Game::render() {
     entity.render(PV);
 
     // Render Skybox
-    TextureRenderer::render_skybox(PV_origin, *get_universe()->get_cubemap_texture(skybox_texture));
+    TextureRenderer::render_skybox(P, V, *get_universe()->get_cubemap_texture(skybox_texture));
 }
 
 const float MOVEMENT_SPEED = 5.0;

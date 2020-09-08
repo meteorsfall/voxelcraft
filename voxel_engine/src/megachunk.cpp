@@ -14,7 +14,7 @@ ChunkData* MegaChunk::create_chunk(ivec3 chunk_coords) {
     // Create chunk
     optional_chunkdata = alloc_chunkdata();
     ChunkData* cd = get_allocated_chunkdata(optional_chunkdata.value());
-    cd->chunk = Chunk(chunk_coords, [](int block_type) -> BlockType* {
+    cd->chunk = Chunk([](int block_type) -> BlockType* {
         return get_universe()->get_block_type(block_type);
     });
 
@@ -95,7 +95,7 @@ pair<byte*, int> MegaChunk::serialize() {
 
 void MegaChunk::deserialize(byte* buffer, int size) {
     if ((size - MEGACHUNK_METADATA_SIZE) % TOTAL_SERIALIZED_CHUNK_SIZE != 0) {
-        printf("Size is not a multiple of TOTAL_SERIALIZED_CHUNK_SIZE! %d", size);
+        dbg("Size is not a multiple of TOTAL_SERIALIZED_CHUNK_SIZE! %d", size);
         return;
     }
 

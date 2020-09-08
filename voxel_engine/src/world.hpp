@@ -44,7 +44,7 @@ public:
     void refresh_block(int x, int y, int z);
     void set_block(int x, int y, int z, int block_type);
 
-    Block* get_block(int x, int y, int z);
+    BlockData* get_block(int x, int y, int z);
 
     Chunk* get_chunk(int x, int y, int z);
     Chunk* make_chunk(int x, int y, int z);
@@ -63,7 +63,7 @@ public:
     void collide(AABB collision_box, fn_on_collide on_collide);
 
     void load_disk_megachunk(ivec3 megachunk_coords);
-    void save_megachunk(ivec3 megachunk_coords);
+    void save_megachunk(ivec3 megachunk_coords, bool keep_in_memory = false);
 
     void save(const char* filepath);
     bool load(const char* filepath);

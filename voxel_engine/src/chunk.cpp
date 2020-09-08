@@ -6,32 +6,25 @@
 static bool loaded_chunk_shader = false;
 static GLuint chunk_shader_id;
 
-Chunk::Chunk(ivec3 location, fn_get_blocktype get_block_type) {
+Chunk::Chunk(fn_get_blocktype get_block_type) {
     // Statically load chunk shaders
     if (!loaded_chunk_shader) {
         chunk_shader_id = load_shaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
         loaded_chunk_shader = true;
     }
 
-    this->location = location;
     this->get_block_type = get_block_type;
 }
 
 void Chunk::set_block(int x, int y, int z, int b) {
-    x -= location.x * CHUNK_SIZE;
-    y -= location.y * CHUNK_SIZE;
-    z -= location.z * CHUNK_SIZE;
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         printf("Bad coordinates! %d %d %d\n", x, y, z);
         return;
     }
-    blocks[x][y][z] = Block(b);
+    blocks[x][y][z] = BlockData(b);
 }
 
-Block* Chunk::get_block(int x, int y, int z) {
-    x -= location.x * CHUNK_SIZE;
-    y -= location.y * CHUNK_SIZE;
-    z -= location.z * CHUNK_SIZE;
+BlockData* Chunk::get_block(int x, int y, int z) {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         return nullptr;
     }
@@ -39,7 +32,7 @@ Block* Chunk::get_block(int x, int y, int z) {
     return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
-void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
+void Chunk::render(mat4& P, mat4& V, ivec3 location, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
     ivec3 bottom_left = location*CHUNK_SIZE;
     
     // Check aabb of chunk against the view frustum
@@ -74,7 +67,7 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
     static int textures[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*6];
     int textures_len = 0;
 
-    auto is_opaque = [this](Block* b) {
+    auto is_opaque = [this](BlockData* b) {
         // If it exists, and it's not transparent
         return b && b->block_type > 0 && !this->get_block_type(b->block_type)->is_transparent;
     };
@@ -167,18 +160,18 @@ void Chunk::render(mat4& P, mat4& V, TextureAtlasser& texture_atlas, fn_get_bloc
         //dbg("Chunk Construction Time: %f", time);
     }
 
-    int atlas_width = texture_atlas.get_atlas()->width;
-    int atlas_height = texture_atlas.get_atlas()->height;
+    int atlas_width = texture_atlas.get_atlas()->get_width();
+    int atlas_height = texture_atlas.get_atlas()->get_height();
     int index = 0;
     for(int texture : textures) {
         for(int i = index; i < index + 2*3*2; i += 2) {
             ivec2 offset = texture_atlas.get_top_left(texture);
             // Reorient offset to bottom-left, with (0, 0) in the bottom-left
-            offset.y += texture_atlas.get_bmp(texture)->height;
+            offset.y += texture_atlas.get_bmp(texture)->get_height();
             offset.y = atlas_height - offset.y;
             
-            chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->width / (float)atlas_width;
-            chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->height / (float)atlas_height;
+            chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->get_width() / (float)atlas_width;
+            chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->get_height() / (float)atlas_height;
         }
         index += 2*3*2;
     }

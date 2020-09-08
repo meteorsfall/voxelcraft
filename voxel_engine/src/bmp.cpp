@@ -1,5 +1,13 @@
 #include "bmp.hpp"
 
+int BMP::get_width() const {
+	return width;
+}
+
+int BMP::get_height() const {
+	return height;
+}
+
 BMP::BMP() {
     BMP(0, 0);
 }
@@ -11,8 +19,8 @@ BMP::BMP(int width, int height) {
 }
 
 BMP::BMP(const char* imagepath, ivec3 color_key) {
-	this->color_key = color_key;
-
+	data.resize(0);
+	
 	// Data read from the header of the BMP file
 	unsigned char header[54];
 	int dataPos;
@@ -70,8 +78,6 @@ BMP::BMP(const char* imagepath, ivec3 color_key) {
 	if (imageSize < width*height*3) {
 		printf("Not enough space! %d for %dx%d\n", imageSize, width, height);
 		fclose(file);
-        data.resize(0);
-        data.shrink_to_fit();
 		this->valid = false;
 		return;
 	}
@@ -173,7 +179,7 @@ void BMP::save(const char* filename) {
 	delete[] file_data;
 }
 
-ivec4 BMP::get_pixel(int x, int y) {
+ivec4 BMP::get_pixel(int x, int y) const {
 	if (x < 0 || x >= (int)width || y < 0 || y >= (int)height) {
 		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
 		return ivec4(-1);
@@ -184,23 +190,6 @@ ivec4 BMP::get_pixel(int x, int y) {
 	int b = data[(y*width + x)*4 + 2]; // B
 	int a = data[(y*width + x)*4 + 3]; // A
 	return ivec4(r, g, b, a);
-}
-
-void BMP::set_pixel(int x, int y, ivec3 color) {
-	if (x < 0 || x >= (int)width || y < 0 || y >= (int)height) {
-		printf("Invalid pixel get! (%d, %d) when dimensions are (%d, %d)\n", x, y, width, height);
-		return;
-	}
-	y = height - 1 - y;
-	data[(y*width + x)*4 + 0] = color.x; // R
-	data[(y*width + x)*4 + 1] = color.y; // G
-	data[(y*width + x)*4 + 2] = color.z; // B
-	// A
-	if (color == color_key) {
-		data[(y*width + x)*4 + 3] = 0;
-	} else {
-		data[(y*width + x)*4 + 3] = 255;
-	}
 }
 
 void BMP::set_pixel(int x, int y, ivec4 color) {
@@ -282,7 +271,7 @@ void BMP::blit(int x, int y, BMP& bmp) {
     for(int xx = 0; xx < bmp.width; xx++) {
         for(int yy = 0; yy < bmp.height; yy++) {
             ivec4 pixel = bmp.get_pixel(xx, yy);
-            set_pixel(x + xx, y + yy, ivec3(pixel.x, pixel.y, pixel.z));
+            set_pixel(x + xx, y + yy, pixel);
         }
     }
 }
@@ -296,4 +285,8 @@ BMP BMP::crop(int x, int y, int width, int height) const {
 		memcpy(&ret.data[(nyy*width)*4], &this->data[((ny)*this->width + x)*4], width*4);
 	}
 	return ret;
+}
+
+byte* BMP::get_raw_data() {
+	return &data[0];
 }

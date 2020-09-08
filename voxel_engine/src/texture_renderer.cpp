@@ -71,7 +71,12 @@ void TextureRenderer::render(Texture& texture, GLuint shader_id, ivec2 top_left,
     get_texture_renderer()->internal_render(texture, shader_id, top_left, size);
 }
 
-void TextureRenderer::render_skybox(mat4& PV, CubeMapTexture& texture) {
+void TextureRenderer::render_skybox(const mat4& P, mat4 V, CubeMapTexture& texture) {
+    // Clear out the position of the view matrix, as the skybox will be viewed as-if from the origin
+    V[3][0] = V[3][1] = V[3][2] = 0;
+    // Calculate projection-view matrix
+    mat4 PV = P*V;
+
     int shader_id = get_texture_renderer()->skybox_shader;
 
     glUseProgram(shader_id);

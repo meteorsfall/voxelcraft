@@ -13,7 +13,7 @@ CubeMapTexture::CubeMapTexture() {
 }
 
 CubeMapTexture::CubeMapTexture(const BMP& image) {
-    int size = image.width / 4;
+    int size = image.get_width() / 4;
 
     byte* buf[6];
     BMP sides[6];
@@ -27,7 +27,7 @@ CubeMapTexture::CubeMapTexture(const BMP& image) {
     };
     for(int i = 0; i < 6; i++) {
         sides[i] = image.crop(locs[2*i]*size, locs[2*i+1]*size, size, size);
-        buf[i] = &sides[i].data[0];
+        buf[i] = sides[i].get_raw_data();
     }
 
     this->opengl_texture_id = load_cubemap(buf, size);

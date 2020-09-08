@@ -9,7 +9,7 @@ Player::Player() {
     body.position = vec3(CHUNK_SIZE / 2.0, CHUNK_SIZE + 1.0, CHUNK_SIZE / 2.0);
     body.terminal_velocity = TERMINAL_VELOCITY;
 
-    this->camera.set_position(body.position + camera_relative_to_player);
+    this->camera.position = body.position + camera_relative_to_player;
     this->is_flying = false;
 }
 
@@ -30,7 +30,7 @@ void Player::move_toward(vec3 velocity, GLfloat delta) {
         if (length(diff) > 0.0) {
             diff = normalize(diff) * length(velocity);
         }
-        this->camera.set_position(original_camera + diff);
+        this->camera.position = original_camera + diff;
     }
     body.position = this->camera.position - camera_relative_to_player;
 }
@@ -38,7 +38,7 @@ void Player::move_toward(vec3 velocity, GLfloat delta) {
 void Player::move(vec3 accel, GLfloat delta) {
     body.push(accel, delta);
     body.iterate(delta);
-    this->camera.set_position(body.position + camera_relative_to_player);
+    this->camera.position = body.position + camera_relative_to_player;
 
     // Gravity moving means that we're not on the floor, for now
     this->is_on_floor = false;
@@ -46,7 +46,7 @@ void Player::move(vec3 accel, GLfloat delta) {
 
 void Player::set_position(vec3 position) {
     body.position = position;
-    this->camera.set_position(body.position + camera_relative_to_player);
+    this->camera.position = body.position + camera_relative_to_player;
 }
 
 void Player::rotate(vec2 change) {
@@ -66,6 +66,6 @@ fn_on_collide Player::get_on_collide() {
             this->is_on_floor = true;
         }
         body.collide(forced_movement);
-        this->camera.set_position(body.position + camera_relative_to_player);
+        this->camera.position = body.position + camera_relative_to_player;
     };
 }

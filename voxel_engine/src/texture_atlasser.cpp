@@ -6,7 +6,7 @@ BMP* TextureAtlasser::get_atlas() {
         
         int pow_of_two_demand = 8;
         int padding = pow_of_two_demand/2;
-        int tile_size = bmps[0].width + 2*padding;
+        int tile_size = bmps[0].get_width() + 2*padding;
 
         // Round to next-heighest power-of-two
         int atlas_size = (int)(pow(2, ceil(log2((float)bmps_per_row*tile_size))) + 0.5);
@@ -16,7 +16,7 @@ BMP* TextureAtlasser::get_atlas() {
         // Set entire atlas image to red, for easily identifying the gaps
         for(int i = 0; i < atlas_size; i++) {
             for(int j = 0; j < atlas_size; j++) {
-                atlas.set_pixel(i, j, ivec3(255, 0, 0));
+                atlas.set_pixel(i, j, ivec4(255, 0, 0, 255));
             }
         }
 
@@ -29,8 +29,8 @@ BMP* TextureAtlasser::get_atlas() {
                 for(int ii = i*tile_size; ii < (i+1)*tile_size; ii++) {
                     for(int jj = j*tile_size; jj < (j+1)*tile_size; jj++) {
                         // Clamp padding if it's outside the range of the texture
-                        int index_i = clamp(ii, i*tile_size+padding, i*tile_size+padding+bmp.width-1);
-                        int index_j = clamp(jj, j*tile_size+padding, j*tile_size+padding+bmp.height-1);
+                        int index_i = clamp(ii, i*tile_size+padding, i*tile_size+padding+bmp.get_width()-1);
+                        int index_j = clamp(jj, j*tile_size+padding, j*tile_size+padding+bmp.get_width()-1);
 
                         // Set atlas pixel based on clamped origin bitmap
                         atlas.set_pixel(ii, jj, bmp.get_pixel(index_i-(i*tile_size+padding), index_j-(j*tile_size+padding)));

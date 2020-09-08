@@ -34,7 +34,7 @@ void clear_chunkdata() {
     }
 }
 
-ChunkData::ChunkData() : chunk(Chunk(ivec3(-1), [](int) -> BlockType* {return NULL;})) {  
+ChunkData::ChunkData() : chunk(Chunk([](int) -> BlockType* {return NULL;})) {  
 }
 
 World::World() {
@@ -125,7 +125,7 @@ void World::load_disk_megachunk(ivec3 megachunk_coords) {
     //dbg("Deserialize Time: %f", (glfwGetTime() - timer)*1000);
 }
 
-void World::save_megachunk(ivec3 megachunk_coords) {
+void World::save_megachunk(ivec3 megachunk_coords, bool keep_in_memory) {
     const auto& found = megachunks.find(megachunk_coords); 
     
     // Check for errors
@@ -151,8 +151,10 @@ void World::save_megachunk(ivec3 megachunk_coords) {
     zip_entry_close(zip);
     zip_close(zip);
 
-    megachunks.erase(found);
-    disk_megachunks[loc] = megachunk_filename;
+    if (!keep_in_memory) {
+        megachunks.erase(found);
+        disk_megachunks[loc] = megachunk_filename;
+    }
 }
 
 ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
@@ -212,7 +214,7 @@ void World::set_block(int x, int y, int z, int block_type) {
     if (!my_chunk) {
         my_chunk = make_chunk(x, y, z);
     }
-    my_chunk->set_block(x, y, z, block_type);
+    my_chunk->set_block(pos_mod(x, CHUNK_SIZE), pos_mod(y, CHUNK_SIZE), pos_mod(z, CHUNK_SIZE), block_type);
 
     // Refresh Cache
     refresh_block(x, y, z);
@@ -240,7 +242,7 @@ void World::refresh_block(int x, int y, int z) {
         Chunk* c = main_chunk ? main_chunk : get_chunk(loc.x, loc.y, loc.z);
         if (c) {
             c->invalidate_cache();
-            Block* b = &c->blocks[pos_mod(loc.x, CHUNK_SIZE)][pos_mod(loc.y, CHUNK_SIZE)][pos_mod(loc.z, CHUNK_SIZE)];
+            BlockData* b = &c->blocks[pos_mod(loc.x, CHUNK_SIZE)][pos_mod(loc.y, CHUNK_SIZE)][pos_mod(loc.z, CHUNK_SIZE)];
             if (b) {
                 b->neighbor_cache = 0;
             }
@@ -248,10 +250,10 @@ void World::refresh_block(int x, int y, int z) {
     }
 }
 
-Block* World::get_block(int x, int y, int z) {
+BlockData* World::get_block(int x, int y, int z) {
     Chunk* my_chunk = get_chunk(x,y,z);
     if (my_chunk) {
-        return my_chunk->get_block(x, y, z);
+        return my_chunk->get_block(pos_mod(x, CHUNK_SIZE), pos_mod(y, CHUNK_SIZE), pos_mod(z, CHUNK_SIZE));
     } else {
         return NULL;
     }
@@ -292,12 +294,12 @@ void World::render(mat4& P, mat4& V, TextureAtlasser& atlasser) {
                 double start = glfwGetTime();
                 UNUSED(start);
                 
-                cd.chunk.render(P, V, atlasser, my_get_block, false);
+                cd.chunk.render(P, V, p.second, atlasser, my_get_block, false);
                 if (con) {
                     //dbg("Constructed: %f", (glfwGetTime() - start)*1000);
                 }
             } else {
-                cd.chunk.render(P, V, atlasser, my_get_block, true);
+                cd.chunk.render(P, V, p.second, atlasser, my_get_block, true);
             }
         }
     }
@@ -364,10 +366,12 @@ void World::save(const char* filepath) {
     snprintf(megachunk_filename, sizeof(megachunk_filename), "%s/data", filepath);
     std::error_code ec;
     std::filesystem::create_directory(megachunk_filename);
+
+    save_filepath = filepath;
     
 #if ZIP_COMPRESSION
-    while(megachunks.size() > 0) {
-        save_megachunk(megachunks.begin()->second.location);
+    for(auto& p : megachunks) {
+        save_megachunk(p.second.location, true);
     }
 #else
     std::ofstream save_file;

@@ -5,7 +5,7 @@
 #include "bmp.hpp"
 
 /**
- * This class represents an OpenGL Texture object
+ * The Texture class represents an OpenGL Texture object
  */
 
 class Texture {
@@ -15,13 +15,9 @@ public:
     /// The OpenGL reference to the texture
     GLuint opengl_texture_id;
 
-    /**
-     * Creates a blank texture
-     */
+    /// Creates a blank texture
     Texture();
-    /**
-     * Generates a Texture from a BMP
-     */
+    /// Generates a Texture from a BMP
     Texture(const BMP& image);
 };
 
@@ -38,13 +34,9 @@ public:
     /// The OpenGL reference to the texture
     GLuint opengl_texture_id;
     
-    /**
-     * Creates a blank CubeMapTexture
-     */
+    /// Creates a blank CubeMapTexture
     CubeMapTexture();
-    /**
-     * Generates a CubeMapTexture from a BMP
-     */
+    /// Generates a CubeMapTexture from a BMP
     CubeMapTexture(const BMP& image);
 };
 
