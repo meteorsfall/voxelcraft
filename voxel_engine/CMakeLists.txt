@@ -1,11 +1,18 @@
 cmake_minimum_required(VERSION 3.3)
 project(VoxelCraft)
 
+# Will compile to release by default
 set(default_build_type "Release")
 
+# Create custom_cache directory for precompiled.h.gch
 set(CUSTOM_CACHE ${CMAKE_CURRENT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/custom_cache)
+# Make the directory if it doesn't exist yet
 file(MAKE_DIRECTORY ${CUSTOM_CACHE})
 
+# Keep track of the precompile gch cache
+# If src/includes.hpp changes, the precompiled header must be recreated
+# This is done be restarting the build from the beginning.
+# precompile.h.gch is just a dummy file with nothing in it
 ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
   COMMAND ${CMAKE_COMMAND} -E echo "Compiled GCH!" > "${CUSTOM_CACHE}/precompiled.h.gch"
   DEPENDS "src/includes.hpp"
@@ -13,15 +20,15 @@ ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
   COMMENT "Checking GCH Compilation"
 )
 
-message(STATUS "Test ${CUSTOM_CACHE}")
-
+# Add release build
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
-  DEPENDS "precompiled.h.gch"
+  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
   COMMENT "Creating the executable in release mode."
 )
 
+# Add debug build
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all
@@ -29,16 +36,19 @@ ADD_CUSTOM_TARGET(debug
   COMMENT "Creating the executable in debug mode."
 )
 
+# Print build type
 if (CMAKE_BUILD_TYPE MATCHES Release)
   message(STATUS "Release Mode")
 elseif (CMAKE_BUILD_TYPE MATCHES Debug)
   message(STATUS "Debug Mode")
 endif ()
 
-set(CMAKE_CXX_STANDARD 17) # no explicit compiler flags if possible
+# Set requirement for C++17
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (WIN32)
+  # Add cl.exe commandline options
   add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2 /GS-")
@@ -46,6 +56,7 @@ if (WIN32)
     add_link_options(/LTCG)
   endif ()
 else ()
+  # Add gcc commandline options
   add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Wno-unused-variable -Wno-unused-but-set-variable -Werror -Wfatal-errors)
   add_link_options(-rdynamic)
   set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
@@ -61,31 +72,34 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/build/release")
 # You establish the BINARY_DIR with the initial cmake command
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-# OpenGL
+# Find OpenGL
 set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
 message(STATUS "Found OpenGL at ${OPENGL_LIBRARY}")
 
 if (WIN32)
+  # Include from /include and link from /lib on windows
   include_directories(SYSTEM include)
   link_directories(lib)
 else ()
+  # Import packages on linux
   set(CMAKE_MODULE_PATH /usr/local/lib/cmake /usr/local/lib/x86_64-linux-gnu/cmake)
   set(CMAKE_PREFIX_PATH /usr/local/lib/cmake/glfw)
 
-  # GLM
+  # Find GLM
   find_package(glm REQUIRED)
   message(STATUS "Found GLM in ${GLM_INCLUDE_DIRS}")
 
-  # GLFW
+  # Find GLFW
   find_package(glfw3 REQUIRED)
   message(STATUS "Found GLFW3 in ${GLFW3_LIBRARY}")
 
-  # FreeType
+  # Find FreeType
   find_package(Freetype REQUIRED)
   message(STATUS "Found FreeType at ${FREETYPE_LIBRARIES}")
 endif ()
 
+# Add include directories.
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 include_directories(SYSTEM extras)
@@ -93,9 +107,11 @@ include_directories(SYSTEM extras)
 # Define VoxelCraft executable
 add_executable(vc src/main.cpp src/mesh.cpp src/entity.cpp src/rigid_body.cpp src/utils.cpp src/universe.cpp src/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/megachunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
 
+# Precompile includes.hpp header file
 target_precompile_headers(vc PRIVATE src/includes.hpp)
 
 if (WIN32)
+  # Link windows libraries to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 noise freetype)
   # Copy .dll's into build directory
   add_custom_command(TARGET vc POST_BUILD
@@ -103,9 +119,12 @@ if (WIN32)
       "${PROJECT_SOURCE_DIR}/bin"
       $<TARGET_FILE_DIR:vc>)
 else ()
+  # Link linux libraries to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES})
+  # Run doxygen after compiling
   add_custom_command(TARGET vc POST_BUILD
-      COMMAND doxygen &>/dev/null)
+      COMMAND doxygen
+    )
 endif ()
 
 # Define pixel_helper executable

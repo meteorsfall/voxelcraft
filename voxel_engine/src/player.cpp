@@ -35,7 +35,7 @@ void Player::move_toward(vec3 velocity, GLfloat delta) {
     body.position = this->camera.position - camera_relative_to_player;
 }
 
-void Player::move(vec3 accel, GLfloat delta) {
+void Player::push(vec3 accel, GLfloat delta) {
     body.push(accel, delta);
     body.iterate(delta);
     this->camera.position = body.position + camera_relative_to_player;

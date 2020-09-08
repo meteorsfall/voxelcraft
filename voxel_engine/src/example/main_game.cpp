@@ -311,7 +311,7 @@ void Game::handle_player_movement(double current_time, float deltaTime) {
     }
 
     player.body.velocity.y += jump_velocity;
-    player.move(player.is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
+    player.push(player.is_flying ? vec3(0.0) : vec3(0.0, -9.8, 0.0), deltaTime);
     player.rotate(mouse_rotation);
 
     if (!player.is_flying) {
