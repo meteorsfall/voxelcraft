@@ -4,12 +4,19 @@
 #include "utils.hpp"
 #include "texture.hpp"
 
+/**
+ *\addtogroup VoxelEngine
+ * @{
+ */
+
+/// The Mesh class represents a specific mesh with vertex coordinates, uv coordinates, textures, and shaders applied
+
 class Mesh {
 public:
-    // Create a cube_mesh
+    /// Create a cube_mesh
     static Mesh cube_mesh();
 
-    // Render the mesh with PV and model location
+    /// Render the mesh with the given PV and model location
     void render(const mat4& PV, mat4& M);
 private:
     Mesh();
@@ -18,5 +25,7 @@ private:
     Texture texture;
     GLuint opengl_shader;
 };
+
+/**@}*/
 
 #endif

@@ -2,38 +2,6 @@
 #include <zip.hpp>
 #include <fstream>
 
-vector<ChunkData*> chunk_allocations;
-vector<int> unused_chunk_allocations;
-
-int alloc_chunkdata() {
-    int index;
-    if (unused_chunk_allocations.size() > 0) {
-        index = unused_chunk_allocations.back();
-        unused_chunk_allocations.pop_back();
-        // Regenerate chunk data
-        *chunk_allocations[index] = ChunkData();
-    } else {
-        chunk_allocations.push_back(new ChunkData());
-        index = chunk_allocations.size() - 1;
-    }
-    return index;
-}
-
-ChunkData* get_allocated_chunkdata(int chunkdata_id) {
-    return chunk_allocations.at(chunkdata_id);
-}
-
-void free_chunkdata(int chunkdata_id) {
-    unused_chunk_allocations.push_back(chunkdata_id);
-}
-
-void clear_chunkdata() {
-    unused_chunk_allocations.reserve(chunk_allocations.size());
-    for(uint i = 0; i < chunk_allocations.size(); i++) {
-        unused_chunk_allocations.push_back(i);
-    }
-}
-
 ChunkData::ChunkData() : chunk(Chunk([](int) -> BlockType* {return NULL;})) {  
 }
 
@@ -162,12 +130,9 @@ ChunkData* World::get_chunk_data(ivec3 chunk_coords) {
     
     const auto& found = megachunks.find(megachunk_coords);
     if (found != megachunks.end()) {
-        auto& chunkdata_index = found->second.chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)];
-        if (chunkdata_index) {
-            return get_allocated_chunkdata(chunkdata_index.value());
-        } else {
-            return NULL;
-        }
+        ivec3 modded_chunk_coords = ivec3(pos_mod(chunk_coords.x, MEGACHUNK_SIZE), pos_mod(chunk_coords.y, MEGACHUNK_SIZE), pos_mod(chunk_coords.z, MEGACHUNK_SIZE));
+        // Will correctly return NULL if no such chunk is there
+        return found->second.get_chunk(modded_chunk_coords);
     } else {
         const auto& disk_found = disk_megachunks.find(megachunk_coords);
         if (disk_found != disk_megachunks.end()) {
@@ -317,16 +282,17 @@ bool World::is_in_block(vec3 position) {
     return get_block(x, y, z);
 }
 
-optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance, bool nextblock) {
+optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance, bool previous_block) {
     float ray = 0.01;
     direction = normalize(direction);
     for(int i = 0; i < max_distance/ray; i++) {
         if(is_in_block(position + direction*(ray*i))) {
-            if(nextblock){
+            if(previous_block) {
                 ivec3 loc = floor(position + direction*(ray*(i-1)));
-                return {loc};
+                return { loc };
+            } else {
+                return { ivec3(floor(position + direction*(ray*i))) };
             }
-            return { ivec3(floor(position + direction*(ray*i))) };
         }
     }
     return nullopt;
@@ -383,7 +349,6 @@ void World::save(const char* filepath) {
 
 bool World::load(const char* filepath) {
     megachunks.clear();
-    clear_chunkdata();
 
     if (!std::filesystem::is_directory(filepath)) {
         return false;

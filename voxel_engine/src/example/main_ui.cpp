@@ -23,10 +23,10 @@ MainUI::MainUI(Game* game) {
     int plank_texture = get_universe()->register_texture("assets/images/planks.bmp");
     
     this->game = game;
-    this->crosshair = UI_Element(crosshair_texture);
+    this->crosshair = UIElement(crosshair_texture);
     crosshair.size = ivec2(25);
-    hotbar_selected = UI_Element(hotbar_selected_texture);
-    hotbar_menu.background = UI_Element(hotbar_texture);
+    hotbar_selected = UIElement(hotbar_selected_texture);
+    hotbar_menu.background = UIElement(hotbar_texture);
     hotbar_menu.background.value().size = ivec2(163, 21) * 5;
 
     vector<int> hotbar_textures = {dirt_texture, cobblestone_texture, plank_texture};
@@ -34,7 +34,7 @@ MainUI::MainUI(Game* game) {
         hotbar_textures.push_back(hotbar_button_texture);
     }
     for(int i = 1; i <= 9; i++) {
-        hotbar_menu.buttons.push_back(Button(UI_Element(hotbar_textures[i - 1]), "", [](){}));
+        hotbar_menu.buttons.push_back(Button(UIElement(hotbar_textures[i - 1]), "", [](){}));
     }
 
     main_menu.font = &font;
@@ -43,41 +43,41 @@ MainUI::MainUI(Game* game) {
     hotbar_menu.font = &font;
 
     main_menu.buttons = {
-        Button(UI_Element(main_button_texture), "Play", [this]() {
+        Button(UIElement(main_button_texture), "Play", [this]() {
             this->game->paused = false;
         }),
-        Button(UI_Element(button_texture), "Save Game", [this]() {
+        Button(UIElement(button_texture), "Save Game", [this]() {
             this->menu = MenuState::SaveMenu;
             this->save_selected = this->save_loaded;
         }),
-        Button(UI_Element(button_texture), "Load Game", [this]() {
+        Button(UIElement(button_texture), "Load Game", [this]() {
             this->menu = MenuState::LoadMenu;
             this->save_selected = this->save_loaded;
         }),
-        Button(UI_Element(button_texture), "New Game", [this]() {
+        Button(UIElement(button_texture), "New Game", [this]() {
             this->game->restart_world();
             this->game->paused = false;
             this->save_loaded = -1;
         }),
-        Button(UI_Element(button_texture), "Exit", [this]() {
+        Button(UIElement(button_texture), "Exit", [this]() {
             this->exiting = true;
         })
     };
 
     save_menu.buttons = {
-        Button(UI_Element(main_button_texture), "Back", [this]() {
+        Button(UIElement(main_button_texture), "Back", [this]() {
             this->menu = MenuState::MainMenu;
         }),
-        Button(UI_Element(button_texture), "Game 1", [this]() {
+        Button(UIElement(button_texture), "Game 1", [this]() {
             this->save_selected = 1;
         }),
-        Button(UI_Element(button_texture), "Game 2", [this]() {
+        Button(UIElement(button_texture), "Game 2", [this]() {
             this->save_selected = 2;
         }),
-        Button(UI_Element(button_texture), "Game 3", [this]() {
+        Button(UIElement(button_texture), "Game 3", [this]() {
             this->save_selected = 3;
         }),
-        Button(UI_Element(button_texture), "Save", [this]() {
+        Button(UIElement(button_texture), "Save", [this]() {
             if (this->save_selected > 0) {
                 char filename[128];
                 snprintf(filename, sizeof(filename), "saves/save_%d", this->save_selected);
@@ -90,19 +90,19 @@ MainUI::MainUI(Game* game) {
     };
 
     load_menu.buttons = {
-        Button(UI_Element(main_button_texture), "Back", [this]() {
+        Button(UIElement(main_button_texture), "Back", [this]() {
             this->menu = MenuState::MainMenu;
         }),
-        Button(UI_Element(button_texture), "Game 1", [this]() {
+        Button(UIElement(button_texture), "Game 1", [this]() {
             this->save_selected = 1;
         }),
-        Button(UI_Element(button_texture), "Game 2", [this]() {
+        Button(UIElement(button_texture), "Game 2", [this]() {
             this->save_selected = 2;
         }),
-        Button(UI_Element(button_texture), "Game 3", [this]() {
+        Button(UIElement(button_texture), "Game 3", [this]() {
             this->save_selected = 3;
         }),
-        Button(UI_Element(button_texture), "Load", [this]() {
+        Button(UIElement(button_texture), "Load", [this]() {
             if (this->save_selected > 0) {
                 char filename[128];
                 snprintf(filename, sizeof(filename), "saves/save_%d", this->save_selected);
@@ -121,12 +121,12 @@ void MainUI::iterate(InputState& input, int width, int height) {
     // Set crosshair position to center of screen
     crosshair.location = ivec2(width/2, height/2) - crosshair.size / 2;
     int hotbar_size_multiple = (int)(width/(float)163/2 + 0.5);
-    UI_Element& hotbar = hotbar_menu.background.value();
+    UIElement& hotbar = hotbar_menu.background.value();
     hotbar.size = ivec2(163, 21) * hotbar_size_multiple;
     hotbar.location = ivec2(width/2 - hotbar.size.x/2, height - 15 - hotbar.size.y);
 
     for(int i = 0; i <= 8; i++){
-        UI_Element& elem = hotbar_menu.buttons[i].elem;
+        UIElement& elem = hotbar_menu.buttons[i].elem;
         elem.size = ivec2(8, 8)*hotbar_size_multiple;
         elem.location = hotbar.location + ivec2(6 + 18*i, 6)*hotbar_size_multiple;
     }
@@ -139,7 +139,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
         ivec2 button_size = ivec2(500, 65);
         ivec2 top_button = ivec2(width/2, height/4) - button_size/2;
         for(int i = 0; i < (int)page.buttons.size(); i++) {
-            UI_Element& elem = page.buttons.at(i).elem;
+            UIElement& elem = page.buttons.at(i).elem;
             elem.location = top_button + i*ivec2(0, button_size.y + 35);
             elem.size = button_size;
         }

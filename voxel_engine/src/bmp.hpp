@@ -8,8 +8,8 @@
  * @{
  */
 
-/**
- * The BMP Class represents a bitmap image. It contains a width, height, and pixel data.
+/// The BMP Class represents a bitmap image.
+/** It contains a width, height, and pixel data.
  * Each pixel consists of 4 bytes, Red Green Blue and Alpha, where Alpha is transparency.
  */
 

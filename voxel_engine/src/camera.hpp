@@ -8,9 +8,7 @@
  * @{
  */
 
-/**
- * The Camera class represents the camera that views the world around it
- */
+/// The Camera class represents how the user will view the world. It represents how the 3D world to be projected onto the 2D viewport.
 
 class Camera {
 public:

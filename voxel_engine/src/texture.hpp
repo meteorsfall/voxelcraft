@@ -5,8 +5,11 @@
 #include "bmp.hpp"
 
 /**
- * The Texture class represents an OpenGL Texture object
+ *\addtogroup VoxelEngine
+ * @{
  */
+
+/// The Texture class represents an OpenGL Texture object
 
 class Texture {
 public:
@@ -21,10 +24,10 @@ public:
     Texture(const BMP& image);
 };
 
+/// The CubeMapTexture class represents an OpenGL Texture of a cubemap.
 /**
- * This class represents an OpenGL Texture of a cubemap.
- * A cubemap is a bitmap of six sides all in one bitmap,
- * cubemaps are used for displaying skyboxes
+ * A cubemap is a bitmap of six sides all in one bitmap.
+ * cubemaps are used for displaying skyboxes.
  */
 
 class CubeMapTexture {
@@ -39,5 +42,7 @@ public:
     /// Generates a CubeMapTexture from a BMP
     CubeMapTexture(const BMP& image);
 };
+
+/**@}*/
 
 #endif

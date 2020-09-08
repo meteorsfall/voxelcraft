@@ -11,7 +11,7 @@ enum MenuState {
     LoadMenu,
 };
 
-class MainUI : UI {
+class MainUI {
 public:
     Game* game;
     MainUI(Game* game);
@@ -20,9 +20,9 @@ public:
 
     bool exiting = false;
 private:
-    UI_Element crosshair;
-    UI_Element play_button;
-    UI_Element hotbar_selected;
+    UIElement crosshair;
+    UIElement play_button;
+    UIElement hotbar_selected;
     PageUI hotbar_menu;
 
     MenuState menu;
@@ -32,7 +32,7 @@ private:
     int save_selected;
     int save_loaded = -1;
 
-    vector<UI_Element> buttons;
+    vector<UIElement> buttons;
     ivec2 screen;
     Font font = Font("assets/fonts/pixel.ttf");
 };

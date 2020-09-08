@@ -8,10 +8,7 @@
  * @{
  */
 
-/**
- * AABB represents an axis-aligned bounding box
- * AABB's can check against collisions
- */
+/// AABB represents an axis-aligned bounding box, AABB's can check against collisions and simulate collision events.
 
 class AABB {
 public:

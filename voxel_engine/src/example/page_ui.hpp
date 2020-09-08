@@ -8,9 +8,9 @@ using fn_on_click = function<void()>;
 
 class Button {
 public:
-    UI_Element elem;
+    UIElement elem;
     string text;
-    Button(UI_Element elem, string text, fn_on_click on_click_function);
+    Button(UIElement elem, string text, fn_on_click on_click_function);
     void on_click(fn_on_click on_click_function);
 private:
     fn_on_click on_click_function;
@@ -20,7 +20,7 @@ private:
 class PageUI {
 public:
     vector<Button> buttons;
-    optional<UI_Element> background;
+    optional<UIElement> background;
     Font* font;
 
     PageUI();

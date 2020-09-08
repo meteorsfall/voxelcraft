@@ -6,10 +6,6 @@
 #include "texture_atlasser.hpp"
 #include "gl_utils.hpp"
 
-using fn_get_block = function<BlockData*(int, int, int)>;
-using fn_get_blocktype = function<BlockType*(int)>;
-
-#define CHUNK_SIZE 16
 #define SERIALIZED_CHUNK_SIZE (CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*3)
 
 /**
@@ -17,12 +13,22 @@ using fn_get_blocktype = function<BlockType*(int)>;
  * @{
  */
 
+/// The amount of blocks wide a @ref Chunk is in any direction
+#define CHUNK_SIZE 16
+
+/// A function that maps block-coordinate into BlockData*
+using fn_get_block = function<BlockData*(int, int, int)>;
+/// A function that maps a blocktype-id into an actual BlockType*
+using fn_get_blocktype = function<BlockType*(int)>;
+
+/// A collection of @ref CHUNK_SIZE x @ref CHUNK_SIZE x @ref CHUNK_SIZE blocks
+
 class Chunk {
 public:
     /// All of the blockdata for this chunk
     BlockData blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
-    /// Initialize a chunk of all airblocks. get_block_type is a function that will get the blocktype of neighboring blocks using global world coordinates.
+    /// Initialize a chunk of all airblocks. get_block_type is a function that will map a block_type integer ID into an actual BlockType*
     Chunk(fn_get_blocktype get_block_type);
 
     /// Set a block to a particular blocktype. Each coordinate must range between 0 and BLOCK_SIZE-1
@@ -40,16 +46,20 @@ public:
      * @param get_block The function used to get blockdata from neighboring blocks in block-coordinates
      * @param dont_rerender If true, do not rerender this chunk, even if the cache is out of date.
      * Simply render the out-of-date version of this chunk, and if there is no cache at all, then do not render the chunk.
-     * This is ensure that the render() function returns quickly, if needed.
+     * This is to ensure that the render() function returns quickly, if needed, as rerendering a chunk takes a lengthy 5-12ms.
      */
-    void render(mat4& P, mat4& V, ivec3 location, TextureAtlasser& texture_atlas, fn_get_block get_block, bool dont_rerender);
+    void render(const mat4& P, const mat4& V, ivec3 location, const TextureAtlasser& texture_atlas, fn_get_block get_block, bool dont_rerender);
 
+    /// Serialize the chunk into a byte array
     pair<byte*, int> serialize();
 
+    /// Deserialize a chunk from a byte array
     void deserialize(byte* buffer, int size);
 
+    /// True if the rendering data is cached (Ie, render() will not trigger a rerender)
     bool is_cached();
 
+    /// Invalidate the cache, so that the next call to render() will trigger a rerender. This function must be called if any blockdata changes.
     void invalidate_cache();
 private:
     fn_get_blocktype get_block_type;
@@ -58,7 +68,8 @@ private:
     GLArrayBuffer opengl_uv_buffer;
     GLArrayBuffer opengl_break_amount_buffer;
     
-    void cached_render(mat4& P, mat4& V);
+    // Render a chunk efficiently using the cache. Requires is_cached() to be equal to true
+    void cached_render(const mat4& P, const mat4& V);
     // Cache
     GLuint opengl_texture_atlas_cache;
     int num_triangles_cache = 0;

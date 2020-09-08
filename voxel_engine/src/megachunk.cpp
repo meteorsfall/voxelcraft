@@ -1,6 +1,23 @@
 #include "megachunk.hpp"
 
+int alloc_chunkdata();
+ChunkData* get_allocated_chunkdata(int chunkdata_id);
+void free_chunkdata(int chunkdata_id);
+void clear_chunkdata();
+
 byte megachunk_serialization_buffer[MAX_MEGACHUNK_SIZE];
+
+MegaChunk::~MegaChunk() {
+    for(int i = 0; i < MEGACHUNK_SIZE; i++) {
+        for(int j = 0; j < MEGACHUNK_SIZE; j++) {
+            for(int k = 0; k < MEGACHUNK_SIZE; k++) {
+                if (chunks[i][j][k]) {
+                    free_chunkdata(chunks[i][j][k].value());
+                }
+            }
+        }
+    }
+}
 
 ChunkData* MegaChunk::create_chunk(ivec3 chunk_coords) {
     auto& optional_chunkdata = chunks[pos_mod(chunk_coords.x, MEGACHUNK_SIZE)][pos_mod(chunk_coords.y, MEGACHUNK_SIZE)][pos_mod(chunk_coords.z, MEGACHUNK_SIZE)];
@@ -19,6 +36,15 @@ ChunkData* MegaChunk::create_chunk(ivec3 chunk_coords) {
     });
 
     return cd;
+}
+
+ChunkData* MegaChunk::get_chunk(ivec3 chunk_coords) {
+    auto opt_chunk = chunks[chunk_coords.x][chunk_coords.y][chunk_coords.z];
+    if (opt_chunk) {
+        return get_allocated_chunkdata(opt_chunk.value());
+    } else {
+        return NULL;
+    }
 }
 
 // Note: The return buffer must be freed by the caller!
@@ -136,5 +162,39 @@ void MegaChunk::deserialize(byte* buffer, int size) {
     if (index != size) {
         dbg("ERROR: Did not read all data!");
         return;
+    }
+}
+
+// Manual Chunk Allocation
+
+vector<ChunkData*> chunk_allocations;
+vector<int> unused_chunk_allocations;
+
+int alloc_chunkdata() {
+    int index;
+    if (unused_chunk_allocations.size() > 0) {
+        index = unused_chunk_allocations.back();
+        unused_chunk_allocations.pop_back();
+        // Regenerate chunk data
+        *chunk_allocations[index] = ChunkData();
+    } else {
+        chunk_allocations.push_back(new ChunkData());
+        index = chunk_allocations.size() - 1;
+    }
+    return index;
+}
+
+ChunkData* get_allocated_chunkdata(int chunkdata_id) {
+    return chunk_allocations.at(chunkdata_id);
+}
+
+void free_chunkdata(int chunkdata_id) {
+    unused_chunk_allocations.push_back(chunkdata_id);
+}
+
+void clear_chunkdata() {
+    unused_chunk_allocations.reserve(chunk_allocations.size());
+    for(uint i = 0; i < chunk_allocations.size(); i++) {
+        unused_chunk_allocations.push_back(i);
     }
 }

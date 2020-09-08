@@ -7,21 +7,32 @@
 #include "font.hpp"
 #include "texture_renderer.hpp"
 
-class UI_Element {
+/**
+ *\addtogroup VoxelEngine
+ * @{
+ */
+
+/// The UIElement class represents a UI Element that is to be rendered on the window
+
+class UIElement {
 public:
+    /// The top-left location of the UI Element
     ivec2 location;
+    /// The width of height of the UI Element
     ivec2 size;
+    /// The texture id of this UI Element
     int texture;
-    UI_Element();
-    UI_Element(int texture);
+    /// Creates a 0x0 UI Element
+    UIElement();
+    /// Creates a UI Element from the given texture id
+    UIElement(int texture);
+    /// Renders the UI Element at its location with its size
     void render();
-    bool intersect(ivec2 mouse_position);
+    /// Returns true if the given pixel is within the UI Element
+    bool intersect(ivec2 pixel_location);
+private:
 };
 
-class UI {
-public:
-    virtual void iterate(InputState& input, int width, int height) = 0;
-    virtual void render() = 0;
-};
+/**@}*/
 
 #endif

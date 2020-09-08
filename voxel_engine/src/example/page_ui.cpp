@@ -15,7 +15,7 @@ void PageUI::render() {
     float font_scale = 0.3f;
     
     for(int i = 0; i < (int)buttons.size(); i++) {
-        UI_Element& elem = buttons.at(i).elem;
+        UIElement& elem = buttons.at(i).elem;
         elem.render();
 
         if (buttons.at(i).text.size() > 0) {
@@ -27,7 +27,7 @@ void PageUI::render() {
   
 }
 
-Button::Button(UI_Element elem, string text, fn_on_click on_click_function) {
+Button::Button(UIElement elem, string text, fn_on_click on_click_function) {
     this->elem = elem;
     this->text = text;
     this->on_click_function = on_click_function;

@@ -10,9 +10,7 @@
  * @{
  */
 
-/**
- * The BlockType Class represents a particular type of block with unique textures and properties.
- */
+/// The BlockType Class represents a particular type of block with unique textures and properties.
 
 class BlockType {
 public:
@@ -34,9 +32,7 @@ public:
     BlockType(int nx, int px, int ny, int py, int nz, int pz, bool is_transparent);
 };
 
-/**
- * The BlockData class represents a particular block instance at a particular location
- */
+/// The BlockData class represents a particular block instance at a particular location
 
 class BlockData {
 public:

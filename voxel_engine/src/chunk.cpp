@@ -32,7 +32,7 @@ BlockData* Chunk::get_block(int x, int y, int z) {
     return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
 }
 
-void Chunk::render(mat4& P, mat4& V, ivec3 location, TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
+void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
     ivec3 bottom_left = location*CHUNK_SIZE;
     
     // Check aabb of chunk against the view frustum
@@ -193,7 +193,7 @@ void Chunk::render(mat4& P, mat4& V, ivec3 location, TextureAtlasser& texture_at
 }
 
 // Render the chunk presuming all of its rendering data has been cached
-void Chunk::cached_render(mat4& P, mat4& V) {
+void Chunk::cached_render(const mat4& P, const mat4& V) {
     if (num_triangles_cache == 0) {
         // No need to render if there are no triangles
         return;
