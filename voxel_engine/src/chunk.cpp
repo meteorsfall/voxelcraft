@@ -68,8 +68,8 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
     int textures_len = 0;
 
     auto is_opaque = [this](BlockData* b) {
-        // If it exists, and it's not transparent
-        return b && b->block_type > 0 && !this->get_block_type(b->block_type)->is_transparent;
+        // If it exists, and opaque
+        return b && b->block_type > 0 && this->get_block_type(b->block_type)->is_opaque;
     };
     
 	double t1 = glfwGetTime();

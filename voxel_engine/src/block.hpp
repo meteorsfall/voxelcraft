@@ -19,8 +19,8 @@ public:
     
     /// Textures that will be rendered in each direction of the BlockType
     int textures[6];
-    /// True if this blocktype is not opaque
-    bool is_transparent;
+    /// True if this blocktype is opaque
+    bool is_opaque;
 
     /// Creates a blocktype with atlas texture IDs in the negative-x direction, positive-x, negative-y, etc.
     /** A block has 6 faces, each with a normal facing in each cardinal direction. The six parameters given
@@ -33,9 +33,9 @@ public:
      * @param py The atlas texture ID to be facing towards the positive-y direction
      * @param nz The atlas texture ID to be facing towards the negative-z direction
      * @param pz The atlas texture ID to be facing towards the positive-z direction
-     * @param is_transparent True if the block is not opaque
+     * @param is_opaque True if the block is opaque
      */
-    BlockType(int nx, int px, int ny, int py, int nz, int pz, bool is_transparent);
+    BlockType(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque);
 };
 
 /// The BlockData class represents a particular block instance at a particular location

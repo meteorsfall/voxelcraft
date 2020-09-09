@@ -214,13 +214,18 @@ void World::refresh_block(int x, int y, int z) {
     }
 }
 
-const BlockData* World::read_block(int x, int y, int z) {
+// Note: Unsafe for public use, as it won't refresh the block if you change data manually
+BlockData* World::get_block(int x, int y, int z) {
     Chunk* my_chunk = get_chunk(x, y, z);
     if (my_chunk) {
         return my_chunk->get_block(pos_mod(x, CHUNK_SIZE), pos_mod(y, CHUNK_SIZE), pos_mod(z, CHUNK_SIZE));
     } else {
         return NULL;
     }
+}
+
+const BlockData* World::read_block(int x, int y, int z) {
+    return get_block(x, y, z);
 }
 
 const BlockData* World::read_block(ivec3 location) {
@@ -245,7 +250,7 @@ void World::render(mat4& P, mat4& V, TextureAtlasser& atlasser) {
     atlasser.get_atlas_texture();
     
     fn_get_block my_get_block = [this](int x, int y, int z) {
-        return (BlockData*)this->read_block(x, y, z);
+        return this->get_block(x, y, z);
     };
 
     sort(marked_chunks.begin(), marked_chunks.end(), [](pair<int, ivec3>& a, pair<int, ivec3>& b) -> bool {
