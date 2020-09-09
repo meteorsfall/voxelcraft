@@ -224,7 +224,8 @@ void Game::render() {
     TextureRenderer::render_skybox(P, V, *get_universe()->get_cubemap_texture(skybox_texture));
 }
 
-const float MOVEMENT_SPEED = 5.0;
+const float MOVEMENT_SPEED = 4.5;
+const float MOVEMENT_FALLING_SPEED = 3.5;
 const float FLYING_ACCEL_SPEED = 6.0;
 const float FLYING_MAX_SPEED = 54.0;
 const float MOUSE_SPEED = 0.1;
@@ -300,7 +301,7 @@ void Game::handle_player_movement(double current_time, float deltaTime) {
     } else {
         keyboard_movement.y = 0.0;
         if (length(keyboard_movement) > 0.0) {
-            keyboard_movement = normalize(keyboard_movement) * MOVEMENT_SPEED;
+            keyboard_movement = normalize(keyboard_movement) * (player.is_on_floor ? MOVEMENT_SPEED : MOVEMENT_FALLING_SPEED);
         }
     }
 
