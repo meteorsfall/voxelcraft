@@ -13,18 +13,18 @@ void RigidBody::iterate(float delta) {
     this->position += this->velocity * delta;
 }
 
-void RigidBody::collide(vec3 collision_direction) {
+void RigidBody::collide(vec3 collision_direction, float coefficient_of_friction) {
     // Move the rigid body to outside the collision
     this->position += collision_direction;
 
     // Adjust the velocity based on the impulse
     vec3 unit_normal = normalize(collision_direction);
-    vec3 impulse = -dot(this->velocity, unit_normal) * unit_normal;
+    float alignment = dot(this->velocity, unit_normal);
+    vec3 impulse = -alignment * unit_normal;
     
-    //dbg("");
-    //dbg("Velocity: (%f, %f, %f)", this->velocity.x, this->velocity.y, this->velocity.z);
-    //dbg("Normal: (%f, %f, %f)", collision_normal.x, collision_normal.y, collision_normal.z);
-    //dbg("Impulse: (%f, %f, %f)", impulse.x, impulse.y, impulse.z);
+    float original_len = length(this->velocity);
     this->velocity += impulse;
-    //dbg("Post Velocity: (%f, %f, %f)", this->velocity.x, this->velocity.y, this->velocity.z);
+    if (original_len > 0.01) {
+        this->velocity *= (1.0f - abs(alignment)/original_len) * coefficient_of_friction;
+    }
 }

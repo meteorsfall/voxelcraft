@@ -45,9 +45,10 @@ public:
      * 
      * @param collision_direction A vector that represents how to be pushed in order to no longer be colliding.
      * Its direction will be normal to the plane,
-     * Its length will be how deep into the object the rigid body is
+     * Its length will be how deep into the object the rigid body is.
+     * @param coefficient_of_friction How much friction to apply why sliding against the surface
      */
-    void collide(vec3 collision_direction);
+    void collide(vec3 collision_direction, float coefficient_of_friction);
 };
 
 /**@}*/

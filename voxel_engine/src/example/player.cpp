@@ -59,12 +59,12 @@ AABB Player::get_collision_box() {
 }
 
 fn_on_collide Player::get_on_collide() {
-    return [this](vec3 forced_movement) {
+    return [this](vec3 forced_movement, float coefficient_of_friction) {
         if (forced_movement.y > 0.0) {
             // If we're being forced upwards, then we're probably on the floor right now
             this->is_on_floor = true;
         }
-        body.collide(forced_movement);
+        body.collide(forced_movement, coefficient_of_friction);
         this->camera.position = body.position + camera_relative_to_player;
     };
 }

@@ -15,8 +15,8 @@ AABB Entity::get_aabb() {
 }
 
 fn_on_collide Entity::get_on_collide() {
-    return [this](vec3 collision_normal) {
-        body.collide(collision_normal);
+    return [this](vec3 collision_normal, float coefficient_of_friction) {
+        body.collide(collision_normal, coefficient_of_friction);
     };
 }
 

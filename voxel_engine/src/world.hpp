@@ -34,8 +34,8 @@ public:
  * @{
  */
 
-/// Callback type for a collision event. When called, it will give a translation vector for how to no longer be colliding
-using fn_on_collide = std::function<void(vec3)>;
+/// Callback type for a collision event. When called, it will give a translation vector for how to no longer be colliding, and the coefficient of friction.
+using fn_on_collide = std::function<void(vec3, float)>;
 
 /// The World class refers to a single VoxelEngine world
 

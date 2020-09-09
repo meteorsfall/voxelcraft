@@ -232,6 +232,7 @@ const BlockData* World::read_block(ivec3 location) {
     return read_block(location.x, location.y, location.z);
 }
 
+// Will refresh the block 
 BlockData* World::write_block(int x, int y, int z) {
     Chunk* my_chunk = get_chunk(x,y,z);
     if (my_chunk) {
@@ -327,7 +328,7 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
                         vec3 movement = movement_o.value();
                         total_movement += movement;
                         collision_box.translate(movement);
-                        on_collide(movement);
+                        on_collide(movement, 1.0f);
                     }
                 }
             }

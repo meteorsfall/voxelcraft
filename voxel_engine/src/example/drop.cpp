@@ -54,8 +54,9 @@ DropMod::DropMod() {
             model = translate(model, -vec3(0.5));
             drop.item.model_matrix = model;
             
-            drop.item.body.push(vec3(0.0, -3.0, 0.0), delta_time);
+            drop.item.body.push(vec3(0.0, -9.8, 0.0), delta_time);
             drop.item.body.iterate(delta_time);
+            drop.item.aabb.min_point.y = -0.25 + 0.1*sin(radians(glfwGetTime() * 360 / 3));
 
             g_world->collide(drop.item.get_aabb(), drop.item.get_on_collide());
         }
@@ -76,6 +77,8 @@ DropMod::DropMod() {
         Drop drop(vec3(location) + vec3(0.5, 0.5, 0.5));
         drop.item.mesh_id = mesh_id;
         drop.item.texture_id = texture_id;
+        int hash = hash_ivec3(location, 99);
+        drop.item.body.velocity = vec3(hash % 8, 10, (hash / 8) % 8) / 5.0f;
         drops.push_back(drop);
     });
 }
