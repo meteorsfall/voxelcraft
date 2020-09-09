@@ -27,6 +27,7 @@ using namespace glm;
 #include <algorithm>
 #include <fstream>
 #include <filesystem>
+#include <fstream>
 
 // Include fn_pointer
 #include "fn_pointer.hpp"

@@ -4,6 +4,15 @@
 Mesh::Mesh() {
 }
 
+Mesh::Mesh(const char* filepath) {
+    ifstream obj_file;
+    obj_file.open(filepath);
+
+    // We have to set this->vertices and this->uv_coordinates correctly
+
+    obj_file.close();
+}
+
 Mesh Mesh::cube_mesh() {
     Mesh m = Mesh();
     

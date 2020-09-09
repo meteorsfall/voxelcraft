@@ -1,6 +1,5 @@
 #include "world.hpp"
 #include <zip.hpp>
-#include <fstream>
 
 ChunkData::ChunkData() : chunk(Chunk([](int) -> BlockType* {return NULL;})) {  
 }

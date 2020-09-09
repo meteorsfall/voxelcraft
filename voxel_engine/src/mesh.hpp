@@ -15,6 +15,13 @@ class Mesh {
 public:
     /// Create a cube_mesh
     static Mesh cube_mesh();
+    /// Create a Mesh from a .obj file
+    Mesh(const char* filepath);
+
+    /// Each group of three makes a triangle. Must be given in clock-wise order when viewed from the exterior of the model.
+    vector<vec3> vertices;
+    /// Each group of three makes a triangle. Each UV will attach to each vertex with the same index.
+    vector<vec2> uvs;
 
     /// Render the mesh with the given PV and model location
     void render(const mat4& PV, mat4& M);
@@ -25,7 +32,7 @@ private:
     Texture texture;
     GLuint opengl_shader;
 };
-
+ 
 /**@}*/
 
 #endif
