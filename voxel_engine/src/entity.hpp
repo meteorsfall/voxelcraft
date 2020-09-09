@@ -41,7 +41,7 @@ public:
     AABB get_aabb();
 
     /// Renders the Entity
-    void render(mat4& PV);
+    void render(const mat4& PV);
 
     /// Gets the on_collision callback for this entity
     fn_on_collide get_on_collide();

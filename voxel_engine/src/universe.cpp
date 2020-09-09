@@ -29,13 +29,21 @@ int Universe::register_mesh(Mesh m) {
     return meshes.size();
 }
 
+int Universe::register_event() {
+    events.push_back(Event());
+    return events.size();
+}
+
+Event* Universe::get_event(int event_id) {
+    return &events.at(event_id-1);
+}
+
 Mesh* Universe::get_mesh(int mesh_id) {
     return &meshes.at(mesh_id-1);
 }
 
 int Universe::register_cubemap_texture(const char* texture_path, ivec3 color_key) {
     BMP cubemap = BMP(texture_path, color_key);
-    BMP sides;
     cubemap_textures.push_back(CubeMapTexture(cubemap));
     return cubemap_textures.size();
 }

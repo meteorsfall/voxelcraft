@@ -7,5 +7,5 @@ void Event::trigger_event(void* data) {
 }
 
 void Event::subscribe(fn_on_trigger subscribing_function) {
-    subscribers.push_back(subscribing_function)
+    subscribers.push_back(subscribing_function);
 }

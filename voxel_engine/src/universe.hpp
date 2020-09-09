@@ -47,6 +47,7 @@ private:
     vector<Texture> textures;
     vector<CubeMapTexture> cubemap_textures;
     vector<Mesh> meshes;
+    vector<Event> events;
     GLuint opengl_atlas_texture;
     TextureAtlasser atlasser;
 };

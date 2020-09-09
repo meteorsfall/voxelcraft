@@ -1,9 +1,23 @@
 #include "main_game.hpp"
 #include "world_gen.hpp"
 #include "../texture_renderer.hpp"
+#include "drop.hpp"
+
+// Mods
+DropMod* drop_mod;
+World* g_world;
+Player* g_player;
 
 // Events
+
+// Data: vec3
 int on_break_event;
+// Data: NULL
+int on_pickup_event;
+// Data: float delta_time
+int on_tick_event;
+// Data: mat4 PV
+int on_render_event;
 
 int air_block = 0;
 int dirt_block;
@@ -51,6 +65,9 @@ void Game::load_world(const char* filepath) {
 }
 
 Game::Game() {
+    g_player = &this->player;
+    g_world = &this->world;
+
     stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
     dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
     log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
@@ -73,18 +90,13 @@ Game::Game() {
 
 	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
     
-    Mesh m = Mesh::cube_mesh();
-    mesh_id = get_universe()->register_mesh(m);
-
     on_break_event = get_universe()->register_event();
-    get_universe()->get_event(on_break_event)->subscribe([](void* data) {
-        Drop d = new Drop();
-    }]);
+    on_tick_event = get_universe()->register_event();
+    on_render_event = get_universe()->register_event();
 
     restart_world();
 
-    entity.mesh_id = mesh_id;
-    entity.texture_id = get_universe()->register_texture("assets/images/dirt.bmp");
+    drop_mod = new DropMod();
 }
 
 Game::~Game() {
@@ -199,12 +211,14 @@ void Game::render() {
     mat4 P = player.camera.get_camera_projection_matrix(aspect_ratio);
     mat4 V = player.camera.get_camera_view_matrix();
     mat4 PV = P*V;
+    
+    get_universe()->get_event(on_render_event)->trigger_event(&PV);
 
     // Render World
     world.render(P, V, *get_universe()->get_atlasser());
 
     // Render entities
-    entity.render(PV);
+    //entity.render(PV);
 
     // Render Skybox
     TextureRenderer::render_skybox(P, V, *get_universe()->get_cubemap_texture(skybox_texture));
@@ -219,23 +233,23 @@ const float JUMP_VELOCITY = 6.0;
 void Game::do_something() {
     double current_time = input.current_time;
     // If there hasn't been a frame yet, we skip this one and save this->last_time
-    float deltaTime = current_time - this->last_time;
+    float delta_time = current_time - this->last_time;
     this->last_time = current_time;
 
     if (last_save < 0.0) {
         last_save = current_time;
     }
 
-    if (deltaTime > 0.1) {
-        deltaTime = 0.1;
+    if (delta_time > 0.1) {
+        delta_time = 0.1;
     }
     
     if (!paused) {
-        handle_player_movement(current_time, deltaTime);
+        handle_player_movement(current_time, delta_time);
 
         // If left click has been held for 1 second, then mine the block in-front of you
         if (input.left_mouse != GLFW_RELEASE) {
-            mining_block(deltaTime);
+            mining_block(delta_time);
         }
         
         static double last_right_click_press = 0.0;
@@ -247,19 +261,7 @@ void Game::do_something() {
         }
     }
 
-    mat4 model = mat4(1.0);
-    // Scale
-    model = scale(model, vec3(0.2f));
-    // Rotate
-    model = translate(model, vec3(0.5));
-    model = rotate(model, (float)radians(glfwGetTime() * 360 / 3), vec3(0.0, 1.0, 0.0));
-    model = translate(model, -vec3(0.5));
-    entity.model_matrix = model;
-
-    entity.body.push(vec3(0.0, -3.0, 0.0), deltaTime);
-    entity.body.iterate(deltaTime);
-
-    world.collide(entity.get_aabb(), entity.get_on_collide());
+    get_universe()->get_event(on_tick_event)->trigger_event(&delta_time);
 }
 
 void Game::place_block(int block) {
@@ -371,7 +373,7 @@ bool Game::mining_block(float mining_time) {
             return false;
         } else {
             world.set_block(loc.x, loc.y, loc.z, 0);
-            get_universe()->get_event(on_break_event)->trigger_event(NULL);
+            get_universe()->get_event(on_break_event)->trigger_event(&loc);
             return true;
         }
     } else {

@@ -5,6 +5,7 @@
 #include "../camera.hpp"
 #include "../world.hpp"
 #include "../rigid_body.hpp"
+#include "../block.hpp"
 
 /**
  *\addtogroup example_game
@@ -25,6 +26,9 @@ public:
 
     /// The RigidBody that represents the player's position and velocity. The player's position is taken from the center of his feet.
     RigidBody body;
+
+    /// The inventory
+    vector<BlockType> inventory;
 
     /// True if the player is in flying-mode
     bool is_flying;

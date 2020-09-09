@@ -20,7 +20,7 @@ fn_on_collide Entity::get_on_collide() {
     };
 }
 
-void Entity::render(mat4& PV) {
+void Entity::render(const mat4& PV) {
     mat4 model = model_matrix;
     model[3][0] += body.position.x;
     model[3][1] += body.position.y;
