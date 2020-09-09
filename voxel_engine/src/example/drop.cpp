@@ -15,6 +15,7 @@ DropMod::DropMod() {
     on_pickup_event = get_universe()->register_event();
     
     Mesh m = Mesh::cube_mesh();
+    //Mesh m = Mesh("assets/models/monkey.obj");
     int mesh_id = get_universe()->register_mesh(m);
     int texture_id = get_universe()->register_texture("assets/images/dirt.bmp");
     
