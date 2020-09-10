@@ -19,6 +19,8 @@ public:
     Drop(vec3 position);
     /// The Entity for the item that was dropped
     Entity item;
+    /// The time that the drop spawned
+    double spawn_time;
 };
 
 /// The dropmod class is called on startup and handles item dropping

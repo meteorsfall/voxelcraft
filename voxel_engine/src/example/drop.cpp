@@ -22,8 +22,17 @@ DropMod::DropMod() {
         for(uint i = 0; i < drops.size(); i++) {
             Drop& drop = drops[i];
 
+            vec3 diff = g_player->body.position + vec3(0.0, 0.75, 0.0) - drop.item.body.position;
+            if (diff.y > 0.0) {
+                diff.y *= 2.0f; // Stricter standards when comparing vertically
+            }
+            if ( length(diff) < 2.0f) {
+                if (length(diff) > 0.1f) {
+                    drop.item.body.push(normalize(diff)*20.0f, delta_time);
+                }
+            }
             // Check for intersection with plyer
-            if( length(g_player->body.position - drop.item.body.position) < 1.0f ) {
+            if( length(diff) < 1.0f && glfwGetTime() - drop.spawn_time > 0.5f) {
                 // Trigger the on-pickup-event
                 get_universe()->get_event(on_pickup_event)->trigger_event(NULL);
                 // Erase the ith drop from the list
@@ -63,6 +72,7 @@ DropMod::DropMod() {
         drop.item.model_id = g_world->read_block(location)->block_model;
         int hash = hash_ivec3(location, 99);
         drop.item.body.velocity = vec3(hash % 8, 10, (hash / 8) % 8) / 5.0f;
+        drop.spawn_time = glfwGetTime();
         drops.push_back(drop);
     });
 }

@@ -25,6 +25,6 @@ void RigidBody::collide(vec3 collision_direction, float coefficient_of_friction)
     float original_len = length(this->velocity);
     this->velocity += impulse;
     if (original_len > 0.01) {
-        this->velocity *= (1.0f - abs(alignment)/original_len) * coefficient_of_friction;
+        this->velocity *= 1.0f - abs(alignment)/original_len * coefficient_of_friction;
     }
 }

@@ -327,7 +327,7 @@ void World::collide(AABB collision_box, fn_on_collide on_collide) {
                         vec3 movement = movement_o.value();
                         total_movement += movement;
                         collision_box.translate(movement);
-                        on_collide(movement, 1.0f);
+                        on_collide(movement, 0.5f);
                     }
                 }
             }
