@@ -44,7 +44,13 @@ int skybox_texture;
 
 int mesh_id;
 
+int grass_block_component;
+
+int grass_block_model;
+
 #include "../entity.hpp"
+#include "../model.hpp"
+#include "../mesh.hpp"
 
 Entity entity;
 vector<Entity> entities;
@@ -68,6 +74,7 @@ Game::Game() {
     g_player = &this->player;
     g_world = &this->world;
 
+    // Register All Atlas Textures
     stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
     dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
     log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
@@ -78,7 +85,20 @@ Game::Game() {
     cobblestone_texture = get_universe()->register_atlas_texture("assets/images/cobblestone.bmp");
     plank_texture = get_universe()->register_atlas_texture("assets/images/planks.bmp");
     up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
+
+    // Register All Cubemap Textures
+	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
+
+    // Register All Meshes
+    mesh_id = get_universe()->register_mesh("assets/meshes/cube.mesh");
+
+    // Register All Components
+    grass_block_component = get_universe()->register_component("assets/components/grass.json");
+
+    // Register All Models
+    grass_block_model = get_universe()->register_model("assets/models/grass_block.json");
  
+    // Register BlockTypes
     stone_block = get_universe()->register_blocktype(stone_texture, stone_texture, stone_texture, stone_texture, stone_texture, stone_texture);
     dirt_block = get_universe()->register_blocktype(dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture);
     log_block = get_universe()->register_blocktype(log_side_texture, log_side_texture, log_top_texture, log_top_texture, log_side_texture, log_side_texture);
@@ -87,16 +107,16 @@ Game::Game() {
     cobblestone_block = get_universe()->register_blocktype(cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture);
     plank_block = get_universe()->register_blocktype(plank_texture, plank_texture, plank_texture, plank_texture, plank_texture, plank_texture);
     up_block = get_universe()->register_blocktype(up_texture, up_texture, up_texture, up_texture, up_texture, up_texture);
-
-	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
     
+    // Register All Events
     on_break_event = get_universe()->register_event();
     on_tick_event = get_universe()->register_event();
     on_render_event = get_universe()->register_event();
 
+    // Restart the world
     restart_world();
 
-    drop_mod = new DropMod();
+    //drop_mod = new DropMod();
 }
 
 Game::~Game() {

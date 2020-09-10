@@ -7,6 +7,7 @@
 #include "texture_atlasser.hpp"
 #include "mesh.hpp"
 #include "event.hpp"
+#include "model.hpp"
 
 /**
  *\addtogroup VoxelEngine
@@ -26,7 +27,11 @@ public:
     /// Register a new blocktype with the given textures
     int register_blocktype(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque = true);
     /// Register a new mesh
-    int register_mesh(Mesh m);
+    int register_mesh(const char* mesh_path);
+    /// Register a component
+    int register_component(const char* component_path);
+    /// Register a model
+    int register_model(const char* model_path);
     /// Register a new event
     int register_event();
 
@@ -40,16 +45,22 @@ public:
     BlockType* get_block_type(int block_type_id);
     /// Gets a @ref Mesh from the given mesh_id
     Mesh* get_mesh(int mesh_id);
+    /// Gets a @ref Component from the given component_id
+    Component* get_component(int component_id);
+    /// Gets a @ref Model from the given model_id
+    Model* get_model(int model_id);
     /// Gets a @ref Event from the given event_id
     Event* get_event(int event_id);
 private:
-    vector<BlockType> block_types;
+    TextureAtlasser atlasser;
     vector<Texture> textures;
     vector<CubeMapTexture> cubemap_textures;
+    vector<BlockType> block_types;
     vector<Mesh> meshes;
+    vector<Component> components;
+    vector<Model> models;
     vector<Event> events;
     GLuint opengl_atlas_texture;
-    TextureAtlasser atlasser;
 };
 
 /// This will get the global universe that the game will use to handle resource allocation

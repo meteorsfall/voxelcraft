@@ -28,6 +28,7 @@ using namespace glm;
 #include <fstream>
 #include <filesystem>
 #include <fstream>
+#include <variant>
 
 // Include fn_pointer
 #include "fn_pointer.hpp"

@@ -9,14 +9,94 @@ Mesh::Mesh(const char* filepath) {
     ifstream obj_file;
     obj_file.open(filepath);
 
-    // We have to set this->vertices and this->uv_coordinates correctly
-    string line;
+    auto read_face_vertex = [](std::istringstream& ss, int& a, int& b, int&c) -> bool {
+        char read_slash;
+        // Try reading vertex coordinate
+        if (!(ss >> a)) return false;
+        // Check for UV
+        if (ss.peek() == '/') {
+            // Read UV
+            ss >> read_slash >> b;
+            // Check for normal
+            if (ss.peek() == '/') {
+                // Read normal
+                ss >> read_slash >> c;
+            } else {
+                c = -1;
+            }
+        } else {
+            // Have UVs assume vertex coordinates
+            b = a;
+            c = -1;
+        }
+        return true;
+    };
+
+    map<string,int> cull_mapping = {
+        {"-x",0},
+        {"+x",1},
+        {"-y",2},
+        {"+y",3},
+        {"-z",4},
+        {"+z",5},
+        {"none",-1}
+    };
+
+    map<string,int> texture_map;
+    int current_texture = -1;
+    int current_cull = cull_mapping["none"];
+
     vector<vec3> vertex_coords;
     vector<vec2> uv_coords;
+
+    string line;
     while (!obj_file.eof())
     {
         getline(obj_file, line);
         float x,y,z;
+
+        if(line[0] == 'u') {
+            std::istringstream in(line);
+            std::string s;
+            in >> s;
+            if (s.compare("usetexture") != 0) {
+                dbg("Bad line! %s", line.c_str());
+                continue;
+            }
+
+            // Read texture string
+            std::string texture;
+            in >> texture;
+
+            if (!texture_map.count(texture)) {
+                texture_map[texture] = textures.size();
+                this->textures.push_back(texture);
+            }
+
+            // Set current texture
+            current_texture = texture_map[texture];
+        }
+
+        if (line[0] == 'c') {
+            std::istringstream in(line);
+            string s;
+            in >> s;
+            if (s.compare("cull") != 0) {
+                dbg("Bad line! %s", line.c_str());
+                continue;
+            }
+
+            // Get cull string
+            string cull_str;
+            in >> cull_str;
+            if (!cull_mapping.count(cull_str)) {
+                dbg("Bad line! %s", line.c_str());
+                continue;
+            }
+
+            // Set current cull status
+            current_cull = cull_mapping[cull_str];
+        }
 
         if(line[0] == 'v' && line[1] == ' ') {
             std::istringstream in(line.substr(2));
@@ -35,53 +115,75 @@ Mesh::Mesh(const char* filepath) {
         if(line[0] == 'f' && line[1] == ' ') {
             std::istringstream in(line.substr(2));
 
-            in >> a_v >> c >> a_vt >> c >> a_vn >>
-                  b_v >> c >> b_vt >> c >> b_vn >>
-                  c_v >> c >> c_vt >> c >> c_vn;
+            read_face_vertex(in, a_v, a_vt, a_vn);
+            read_face_vertex(in, b_v, b_vt, b_vn);
+            read_face_vertex(in, c_v, c_vt, c_vn);
 
-            bool quad = false;
-            if (in >> d_v >> c >> d_vt >> c >> d_vn) {
-                quad = true;
+            if (current_texture < 0) {
+                dbg("ERROR: usetexture has not been used yet!");
             }
 
-            int vertex_array[6] = {a_v, b_v, c_v, a_v, c_v, d_v};
-            int uv_array[6] = {a_vt, b_vt, c_vt, a_vt, c_vt, d_vt};
-            for(int i = 0; i < (quad ? 6 : 3); i++) {
-                this->vertices.push_back(vertex_coords.at(vertex_array[i] - 1));
-                this->uvs.push_back(uv_coords.at(uv_array[i] - 1));
-            }
-            this->num_triangles++;
-            if (quad) {
-                // Quad consists of two triangles
-                this->num_triangles++;
+            // Add triangle
+            triangle_data.push_back(triangle{
+                {vertex_coords.at(a_v-1), vertex_coords.at(b_v-1), vertex_coords.at(c_v-1)},
+                {uv_coords.at(a_vt-1), uv_coords.at(b_vt-1), uv_coords.at(c_vt-1)},
+                current_cull,
+                current_texture,
+            });
+
+            // If there's a fourth coordinate for a QUAD, add another triangle
+            if (read_face_vertex(in, d_v, d_vt, d_vn)) {
+                triangle_data.push_back({
+                    {vertex_coords.at(a_v-1), vertex_coords.at(c_v-1), vertex_coords.at(d_v-1)},
+                    {uv_coords.at(a_vt-1), uv_coords.at(c_vt-1), uv_coords.at(d_vt-1)},
+                    current_cull,
+                    current_texture,
+                });
             }
         }
     }
+
+    // 3 vertices per triangle
+    vertex_buffer.resize(triangle_data.size() * 3);
+    uv_buffer.resize(triangle_data.size() * 3);    
     
     obj_file.close();
-
-    // Texture and Shader
-    this->texture = Texture(BMP("assets/images/dirt.bmp"));
-    this->opengl_shader = load_shaders("assets/shaders/mesh.vert", "assets/shaders/mesh.frag");
 }
 
-Mesh Mesh::cube_mesh() {
-    Mesh m = Mesh();
-    
-    auto [vertex_buffer_data, vertex_buffer_len] = get_cube_vertex_coordinates();
-    auto [uv_buffer_data, uv_buffer_len] = get_cube_uv_coordinates();
+// Offset, Scale
+tuple<byte*, byte*, int> Mesh::get_mesh_data(bool visible_neighbors[6], const vector<pair<vec2, vec2>>& texture_transformations) {
+    int vertex_buffer_index = 0;
+    int uv_buffer_index = 0;
+    int num_triangles = triangle_data.size();
+    int num_used_triangles = 0;
+    for(int i = 0; i < num_triangles; i++) {
+        triangle& tri = triangle_data[i];
+        // If this triangle should be culled, then we cull it
+        if (tri.cull_condition != -1 && !visible_neighbors[tri.cull_condition]) {
+            continue;
+        }
 
-    m.opengl_vertex_buffer.opengl_id = create_array_buffer(vertex_buffer_data, vertex_buffer_len);
-    m.opengl_uv_buffer.opengl_id = create_array_buffer(uv_buffer_data, uv_buffer_len);
-    m.texture = Texture(BMP("assets/images/dirt.bmp"));
-    m.opengl_shader = load_shaders("assets/shaders/mesh.vert", "assets/shaders/mesh.frag");
+        int texture = tri.texture;
+        const pair<vec2, vec2>& transformation = texture_transformations.at(texture);
 
-    // 12 triangles in a cube
-    m.num_triangles = 12;
-
-    return m;
+        for(int j = 0; j < 3; j++) {
+            // Copy vertex position over
+            vertex_buffer[vertex_buffer_index+j] = tri.vertices[j];
+            // Copy uv over, making sure to transform the UV to the correct location
+            uv_buffer[uv_buffer_index+j] = transformation.first + tri.uvs[j] * transformation.second;
+        }
+        vertex_buffer_index += 3;
+        uv_buffer_index += 3;
+        num_used_triangles++;
+    }
+    return {(byte*)&vertex_buffer[0], (byte*)&uv_buffer[0], num_used_triangles};
 }
 
+const vector<string>& Mesh::get_texture_names() {
+    return this->textures;
+}
+
+/*
 void Mesh::render(const mat4& PV, mat4& M) {
     glUseProgram(opengl_shader);
     
@@ -126,3 +228,4 @@ GLuint Mesh::get_uv_buffer() {
     }
     return opengl_uv_buffer.opengl_id.value();
 }
+*/

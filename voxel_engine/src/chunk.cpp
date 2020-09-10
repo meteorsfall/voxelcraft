@@ -2,6 +2,7 @@
 #include "gl_utils.hpp"
 #include <cstring>
 #include "texture_atlasser.hpp"
+#include "universe.hpp"
 
 static bool loaded_chunk_shader = false;
 static GLuint chunk_shader_id;
@@ -16,12 +17,19 @@ Chunk::Chunk(fn_get_blocktype get_block_type) {
     this->get_block_type = get_block_type;
 }
 
+extern int grass_block;
+extern int grass_block_model;
+
 void Chunk::set_block(int x, int y, int z, int b) {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         printf("Bad coordinates! %d %d %d\n", x, y, z);
         return;
     }
-    blocks[x][y][z] = BlockData(b);
+    if (b == grass_block) {
+        blocks[x][y][z] = BlockData(b, grass_block_model);
+    } else {
+        blocks[x][y][z] = BlockData(b);
+    }
 }
 
 BlockData* Chunk::get_block(int x, int y, int z) {
@@ -64,7 +72,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
     int num_triangles = 0;
 
     // 6 sides per cube
-    static int textures[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*6];
+    static int textures[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12];
     int textures_len = 0;
 
     auto is_opaque = [this](BlockData* b) {
@@ -121,33 +129,74 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
                     // This will represent which faces to include and which to cull
                     vec3 fpos(position);
 
-                    // Get vertex buffer and uv buffer data with any undesired faced culled
-                    auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(visible_neighbors);
-                    auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(visible_neighbors);
-                    
-                    // Translate vertices and save vertex-specific metadata
-                    for(int m = 0; m < vertex_buffer_len/(int)sizeof(GLfloat); m += 3) {
-                        vertex_buffer_data[m+0] += fpos.x;
-                        vertex_buffer_data[m+1] += fpos.y;
-                        vertex_buffer_data[m+2] += fpos.z;
-                        chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
-                        chunk_break_amount_buffer_len += sizeof(GLfloat);
-                    }
-                    
-                    // Memcpy vertex and uv buffers
-                    memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
-                    memcpy(&chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)], uv_buffer_data, uv_buffer_len);
+                    if (blocks[i][j][k].as_model) {
+                        int block_model = blocks[i][j][k].block_model;
 
-                    // Keep track vertex and uv buffer sizes
-                    chunk_vertex_buffer_len += vertex_buffer_len;
-                    chunk_uv_buffer_len += uv_buffer_len;
-                    num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
+                        const vector<ComponentPossibilities>& sm = get_universe()->get_model(block_model)->generate_model_instance(map<string,string>{});
+                        for(const ComponentPossibilities& cp : sm) {
+                            int component_id = cp[0];
 
-                    // Save textures
-                    for(int m = 0; m < 6; m++) {
-                        if ((visible_neighbors >> m) & 1) {
-                            int texture = get_block_type(blocks[i][j][k].block_type)->textures[m];
-                            textures[textures_len++] = texture;
+                            bool visible_neighbors_array[6];
+                            for(int ar = 0; ar < 6; ar++) {
+                                visible_neighbors_array[ar] = (visible_neighbors >> ar) & 1;
+                            }
+                            auto p = get_universe()->get_component(component_id)->get_mesh_data(visible_neighbors_array);
+                            vec3* vertex_buf = (vec3*)get<0>(p);
+                            vec2* uv_buf = (vec2*)get<1>(p);
+                            int num_model_triangles = get<2>(p);
+
+                            // Loop over every triangle in the model
+                            for(int tri = 0; tri < num_model_triangles; tri++) {
+                                // Loop over each vertex and add it to the chunk buffer
+                                for(int vert = 0; vert < 3; vert++) {
+                                    vec3 vertex = vertex_buf[tri*3 + vert] + fpos;
+                                    chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)] = vertex.x;
+                                    chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)+1] = vertex.y;
+                                    chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)+2] = vertex.z;
+                                    chunk_vertex_buffer_len += 3*sizeof(GLfloat);
+                                    vec2 uv = uv_buf[tri*3 + vert];
+                                    chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)] = uv.x;
+                                    chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)+1] = uv.y;
+                                    chunk_uv_buffer_len += 2*sizeof(GLfloat);
+                                    chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
+                                    chunk_break_amount_buffer_len += sizeof(GLfloat);
+                                }
+                                textures[textures_len++] = -1;
+                            }
+
+                            num_triangles += num_model_triangles;
+                        }
+                    } else {
+                        /// OLD WAY
+
+                        // Get vertex buffer and uv buffer data with any undesired faced culled
+                        auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(visible_neighbors);
+                        auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(visible_neighbors);
+                        
+                        // Translate vertices and save vertex-specific metadata
+                        for(int m = 0; m < vertex_buffer_len/(int)sizeof(GLfloat); m += 3) {
+                            vertex_buffer_data[m+0] += fpos.x;
+                            vertex_buffer_data[m+1] += fpos.y;
+                            vertex_buffer_data[m+2] += fpos.z;
+                            chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
+                            chunk_break_amount_buffer_len += sizeof(GLfloat);
+                        }
+                        
+                        // Memcpy vertex and uv buffers
+                        memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
+                        memcpy(&chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)], uv_buffer_data, uv_buffer_len);
+
+                        // Keep track vertex and uv buffer sizes
+                        chunk_vertex_buffer_len += vertex_buffer_len;
+                        chunk_uv_buffer_len += uv_buffer_len;
+                        num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
+
+                        // Save textures
+                        for(int m = 0; m < 12; m++) {
+                            if ((visible_neighbors >> (m/2)) & 1) {
+                                int texture = get_block_type(blocks[i][j][k].block_type)->textures[(m/2)];
+                                textures[textures_len++] = texture;
+                            }
                         }
                     }
                 }
@@ -163,8 +212,10 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
     int atlas_width = texture_atlas.get_atlas()->get_width();
     int atlas_height = texture_atlas.get_atlas()->get_height();
     int index = 0;
-    for(int texture : textures) {
-        for(int i = index; i < index + 2*3*2; i += 2) {
+    for(int texture_ind = 0; texture_ind < textures_len; texture_ind++) {
+        int texture = textures[texture_ind];
+        for(int i = index; i < index + 3*2; i += 2) {
+            if (texture < 0) continue;
             ivec2 offset = texture_atlas.get_top_left(texture);
             // Reorient offset to bottom-left, with (0, 0) in the bottom-left
             offset.y += texture_atlas.get_bmp(texture)->get_height();
@@ -173,7 +224,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
             chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->get_width() / (float)atlas_width;
             chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->get_height() / (float)atlas_height;
         }
-        index += 2*3*2;
+        index += 3*2;
     }
 
     opengl_vertex_buffer.reuse(chunk_vertex_buffer, chunk_vertex_buffer_len);

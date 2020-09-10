@@ -29,6 +29,8 @@ using std::tuple;
 using std::sort;
 using std::ifstream;
 using std::ofstream;
+using std::variant;
+using std::get;
 
 #define UNUSED(x) ((void)x)
 #define len(x) (sizeof(x) / sizeof((x)[0]))

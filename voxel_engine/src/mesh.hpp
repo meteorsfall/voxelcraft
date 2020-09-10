@@ -3,6 +3,7 @@
 
 #include "utils.hpp"
 #include "texture.hpp"
+#include "texture_atlasser.hpp"
 
 /**
  *\addtogroup VoxelEngine
@@ -18,24 +19,27 @@ public:
     /// Create a Mesh from a .obj file
     Mesh(const char* filepath);
 
-    /// Render the mesh with the given PV and model location
-    void render(const mat4& PV, mat4& M);
+    /// Returns (vertex data, uv data, num_triangles)
+    tuple<byte*, byte*, int> get_mesh_data(bool visible_neighbors[6], const vector<pair<vec2, vec2>>& texture_transformations);
 
-    GLuint get_vertex_buffer();
-    GLuint get_uv_buffer();
+    /// Gets the names of the textures for this mesh
+    const vector<string>& get_texture_names();
 private:
-    Mesh();
-    /// Each group of three makes a triangle. Must be in counterclock-wise order when viewed from the exterior of the model.
-    vector<vec3> vertices;
-    /// Each group of three makes a triangle. Each UV will attach to each vertex with the same index.
-    vector<vec2> uvs;
-    /// Number of triangles in mesh
-    int num_triangles = 0;
+    vector<vec3> vertex_buffer;
+    vector<vec2> uv_buffer;
 
-    GLReference opengl_vertex_buffer;
-    GLReference opengl_uv_buffer;
-    Texture texture;
-    GLuint opengl_shader;
+    struct triangle {
+        vec3 vertices[3];
+        vec2 uvs[3];
+        int cull_condition;
+        int texture;
+    };
+
+    vector<int> texture_atlas_ids;
+    vector<string> textures;
+    vector<triangle> triangle_data;
+
+    Mesh();
 };
  
 /**@}*/

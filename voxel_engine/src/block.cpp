@@ -3,8 +3,6 @@
 
 BlockData::BlockData() {
     this->block_type = 0;
-    this->break_amount = 0.0;
-    this->neighbor_cache = 0;
 }
 
 BlockData::BlockData(int b) {
@@ -13,8 +11,17 @@ BlockData::BlockData(int b) {
         dbg("Bad block-type!");
         throw "Bad block type!";
     }
-    this->break_amount = 0.0;
-    this->neighbor_cache = 0;
+    this->as_model = false;
+}
+
+BlockData::BlockData(int b, int block_model) {
+    this->block_type = b;
+    if (this->block_type < 0) {
+        dbg("Bad block-type!");
+        throw "Bad block type!";
+    }
+    this->as_model = true;
+    this->block_model = block_model;
 }
 
 BlockType::BlockType(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque) {
