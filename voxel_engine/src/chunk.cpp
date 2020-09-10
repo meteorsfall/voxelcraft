@@ -209,6 +209,16 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
         //dbg("Chunk Construction Time: %f", time);
     }
 
+    if (chunk_vertex_buffer_len > (int)sizeof(chunk_vertex_buffer)) {
+        dbg("BAD vertex buffer len! %d", chunk_vertex_buffer_len);
+    }
+    if (chunk_uv_buffer_len > (int)sizeof(chunk_uv_buffer)) {
+        dbg("BAD UV buffer len! %d", chunk_uv_buffer_len);
+    }
+    if (chunk_break_amount_buffer_len > (int)sizeof(chunk_break_amount_buffer)) {
+        dbg("BAD vertex buffer len! %d", chunk_break_amount_buffer_len);
+    }
+
     int atlas_width = texture_atlas.get_atlas()->get_width();
     int atlas_height = texture_atlas.get_atlas()->get_height();
     int index = 0;

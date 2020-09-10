@@ -158,6 +158,8 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
 
     ivec3 start = chunk_coords * CHUNK_SIZE;
 
+    bool print = (start == ivec3(0));
+
     double start_time = glfwGetTime();
 
     if (chunk_coords.y > 0) {

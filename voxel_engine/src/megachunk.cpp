@@ -24,7 +24,7 @@ ChunkData* MegaChunk::create_chunk(ivec3 chunk_coords) {
 
     // Verify that chunk has not yet been created
     if (optional_chunkdata) {
-        dbg("INTERNAL ERROR: Chunk not in megachunk_index but exists in optional chunk!");
+        dbg("ERROR: Chunk already exists!");
         return NULL;
     }
 
