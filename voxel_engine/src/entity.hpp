@@ -24,10 +24,8 @@ public:
     /// Creates a new Entity
     Entity();
 
-    /// The texture ID that this entity will render with
-    int texture_id;
-    /// The mesh ID that this entity will render with
-    int mesh_id;
+    /// The model ID that this entity will render with
+    int model_id;
 
     /// The RigidBody that controls the physics for this entity
     RigidBody body;

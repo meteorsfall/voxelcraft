@@ -1,13 +1,10 @@
 #version 330 core
 
-centroid in vec2 uv;
-in vec2 extrapolated_uv;
-in float frag_break_amount;
-in float dist_to_camera;
+uniform sampler2D my_texture;
+
+in vec2 uv;
 
 out vec4 color;
-
-uniform sampler2D my_texture;
 
 // Source: https://stackoverflow.com/questions/24388346/how-to-access-automatic-mipmap-level-in-glsl-fragment-shader-texture
 // Does not take into account GL_TEXTURE_MIN_LOD/GL_TEXTURE_MAX_LOD/GL_TEXTURE_LOD_BIAS,
@@ -48,32 +45,5 @@ vec4 get_texture_color() {
 }
 
 void main() {
-    vec4 texture_color = get_texture_color();
-
-    float close_fog = 120.0;
-    float far_fog = 200.0;
-    float fog = clamp((dist_to_camera - close_fog) / (far_fog-close_fog), 0.0, 1.0);
-
-    float close_alpha_fog = 185.0;
-    float far_alpha_fog = 210.0;
-    float alpha_fog = clamp((dist_to_camera - close_alpha_fog) / (far_alpha_fog-close_alpha_fog), 0.0, 1.0);
-
-    vec3 fog_color = vec3(0x77/255.0, 0x84/255.0, 0x95/255.0);
-    
-    texture_color.rgb = mix(texture_color.rgb, fog_color, fog);
-    texture_color *= 1.0 - alpha_fog;
-    //texture_color.a = 1.0 - fog;
-    //texture_color.r = 0.0;//texture_color.a;
-    //texture_color.g = 1.0 - fog;
-    //texture_color.b = 0.0;
-
-    // Unmultiply by alpha in this step
-    float scale = (1.0 - 0.8*frag_break_amount) / (0.01+texture_color.a);
-    texture_color.r *= scale;
-    texture_color.g *= scale;
-    texture_color.b *= scale;
-
-    // Alpha being used for MSAA transparency
-    // Source: https://medium.com/@bgolus/anti-aliased-alpha-test-the-esoteric-alpha-to-coverage-8b177335ae4f
-    color = texture_color;
+    color = get_texture_color();
 }

@@ -1,6 +1,7 @@
 #include "universe.hpp"
 #include "gl_utils.hpp"
 #include <rapidjson/document.h>
+#include <glm/gtx/euler_angles.hpp>
 using namespace rapidjson;
 
 Universe main_universe;
@@ -53,10 +54,66 @@ int Universe::register_component(const char* component_path) {
 
     free(buf);
 
+    // Grab perspectives
+    Value& persps = json["perspectives"];
+    map<string,mat4> perspectives;
+
+    for(auto& m : persps.GetObject()) {
+        // Get rotation/translation/scale
+        vec3 rotation = vec3(0);
+        vec3 scale_factor = vec3(1);
+        vec3 translation = vec3(0);
+        for(auto& transform : m.value.GetObject()) {
+            string k = transform.name.GetString();
+            if (k.compare("rotation") == 0) {
+                for(int i = 0; i < 3; i++) {
+                    rotation[i] = transform.value[i].GetFloat();
+                }
+            }
+            if (k.compare("translation") == 0) {
+                for(int i = 0; i < 3; i++) {
+                    translation[i] = transform.value[i].GetFloat();
+                }
+            }
+            if (k.compare("scale") == 0) {
+                for(int i = 0; i < 3; i++) {
+                    scale_factor[i] = transform.value[i].GetFloat();
+                }
+            }
+        }
+
+        // Apply matrix transformations
+
+        mat4 model = mat4(1.0f);
+        // Translation
+        model = translate(model, translation);
+        // Scale
+        model = scale(model, scale_factor);
+        // Rotate
+        model = translate(model, vec3(0.5));
+        mat4 euler_rotation = eulerAngleYXZ(rotation.y, rotation.x, rotation.z);
+        model = model * euler_rotation;
+        model = translate(model, -vec3(0.5));
+        
+        const char* key = m.name.GetString();
+        perspectives[key] = model;
+
+        //dbg("Rotate: (%f, %f, %f)", rotation.x, rotation.y, rotation.z);
+        //dbg("Translate: (%f, %f, %f)", translation.x, translation.y, translation.z);
+        //dbg("Scale: (%f, %f, %f)", scale_factor.x, scale_factor.y, scale_factor.z);
+    }
+
     // Grab mesh
     Value& s = json["mesh"];
     const char* mesh_name = json["mesh"].GetString();
     int mesh_id = mesh_names.at(mesh_name);
+
+    // Grab pivot
+    Value& pivot_pt = json["pivot"];
+    vec3 pivot;
+    for(int i = 0; i < 3; i++) {
+        pivot[i] = pivot_pt[i].GetFloat();
+    }
 
     // Grab textures
     map<string,int> textures;
@@ -74,10 +131,9 @@ int Universe::register_component(const char* component_path) {
     }
 
     Component c(
-        map<string,mat4>{
-            {"block",mat4()}
-        },
+        perspectives,
         mesh_id,
+        pivot,
         textures,
         opacities
     );

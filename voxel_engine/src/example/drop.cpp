@@ -13,17 +13,6 @@ extern World* g_world;
 DropMod::DropMod() {
     // Create the Event on_pickup_event
     on_pickup_event = get_universe()->register_event();
-    
-    //Mesh m = Mesh::cube_mesh();
-    Mesh m = Mesh("assets/meshes/cube.obj");
-    int mesh_id = 0;//get_universe()->register_mesh(m);
-    int texture_id = get_universe()->register_texture("assets/images/dirt.bmp");
-    
-    vec3 position = vec3(-2.0, 16.4, 0.0);
-    Drop d(position);
-    d.item.mesh_id = mesh_id;
-    d.item.texture_id = texture_id;
-    drops.push_back(d);
 
     // Subscribe to the on tick event
     get_universe()->get_event(on_tick_event)->subscribe([this](void* data) {
@@ -44,20 +33,15 @@ DropMod::DropMod() {
                 continue;
             }
             
-            // Rotate and scale the drop
-
+            // Spin the drop
             mat4 model = mat4(1.0);
-            // Scale
-            model = scale(model, vec3(0.2f));
-            // Rotate
-            model = translate(model, vec3(0.5));
-            model = rotate(model, (float)radians(glfwGetTime() * 360 / 3), vec3(0.0, 1.0, 0.0));
-            model = translate(model, -vec3(0.5));
+            model = rotate(model, (float)radians(glfwGetTime() * 360 / 2), vec3(0.0, 1.0, 0.0));
             drop.item.model_matrix = model;
             
             drop.item.body.push(vec3(0.0, -9.8, 0.0), delta_time);
             drop.item.body.iterate(delta_time);
-            drop.item.aabb.min_point.y = -0.25 + 0.1*sin(radians(glfwGetTime() * 360 / 3));
+            // Have the drop bob up and down
+            drop.item.aabb.min_point.y = -0.25/2 - 0.15 + 0.1*sin(radians(glfwGetTime() * 360 / 3));
 
             g_world->collide(drop.item.get_aabb(), drop.item.get_on_collide());
         }
@@ -73,11 +57,10 @@ DropMod::DropMod() {
     });
 
     // Subscribe to the on break event
-    get_universe()->get_event(on_break_event)->subscribe([this, mesh_id, texture_id](void* data) {
+    get_universe()->get_event(on_break_event)->subscribe([this](void* data) {
         ivec3 location = *(ivec3*)data;
         Drop drop(vec3(location) + vec3(0.5, 0.5, 0.5));
-        drop.item.mesh_id = mesh_id;
-        drop.item.texture_id = texture_id;
+        drop.item.model_id = g_world->read_block(location)->block_model;
         int hash = hash_ivec3(location, 99);
         drop.item.body.velocity = vec3(hash % 8, 10, (hash / 8) % 8) / 5.0f;
         drops.push_back(drop);
@@ -87,4 +70,6 @@ DropMod::DropMod() {
 Drop::Drop(vec3 position){
     item.body.position = position;
     item.body.velocity = vec3(0);
+    float radius = 0.25;
+    item.aabb = AABB(vec3(-radius), vec3(radius));
 }

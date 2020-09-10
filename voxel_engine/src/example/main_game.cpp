@@ -52,9 +52,6 @@ int plank_block_model;
 #include "../model.hpp"
 #include "../mesh.hpp"
 
-Entity entity;
-vector<Entity> entities;
-
 void Game::save_world(const char* filepath) {
     // Open save file
     std::error_code ec;
@@ -85,6 +82,7 @@ Game::Game() {
     cobblestone_texture = get_universe()->register_atlas_texture("assets/images/cobblestone.bmp");
     plank_texture = get_universe()->register_atlas_texture("assets/images/planks.bmp");
     up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
+    get_universe()->register_atlas_texture("assets/images/wireframe.bmp", ivec3(255, 0, 255));
 
     // Register All Cubemap Textures
 	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
@@ -100,6 +98,7 @@ Game::Game() {
     get_universe()->register_component("assets/components/grass.json");
     get_universe()->register_component("assets/components/cobblestone.json");
     get_universe()->register_component("assets/components/plank.json");
+    get_universe()->register_component("assets/components/wireframe.json");
 
     // Register All Models
     stone_block_model = get_universe()->register_model("assets/models/stone_block.json");
@@ -109,8 +108,6 @@ Game::Game() {
     grass_block_model = get_universe()->register_model("assets/models/grass_block.json");
     cobblestone_block_model = get_universe()->register_model("assets/models/cobblestone_block.json");
     plank_block_model = get_universe()->register_model("assets/models/plank_block.json");
- 
-    // Register BlockTypes
     
     // Register All Events
     on_break_event = get_universe()->register_event();
@@ -120,7 +117,7 @@ Game::Game() {
     // Restart the world
     restart_world();
 
-    //drop_mod = new DropMod();
+    drop_mod = new DropMod();
 }
 
 Game::~Game() {
@@ -397,8 +394,8 @@ bool Game::mining_block(float mining_time) {
             world.write_block(loc.x, loc.y, loc.z)->break_amount = mining_time;
             return false;
         } else {
-            world.set_block(loc.x, loc.y, loc.z, 0);
             get_universe()->get_event(on_break_event)->trigger_event(&loc);
+            world.set_block(loc.x, loc.y, loc.z, 0);
             return true;
         }
     } else {

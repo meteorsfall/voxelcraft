@@ -26,5 +26,6 @@ void Entity::render(const mat4& PV) {
     model[3][0] += body.position.x;
     model[3][1] += body.position.y;
     model[3][2] += body.position.z;
+    get_universe()->get_model(model_id)->render(PV, mat4(1.0f), model, "drop", map<string,string>{});
     //get_universe()->get_mesh(mesh_id)->render(PV, model);
 }
