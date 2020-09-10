@@ -10,6 +10,7 @@ class Component {
 public:
     Component(map<string, mat4> perspectives, int mesh_id, map<string,int> textures, bool opacities[6]);
     tuple<byte*, byte*, int> get_mesh_data(bool visible_neighbors[6]);
+    const bool* get_opacities();
 private:
     vector<pair<vec2, vec2>> texture_transformations;
     map<string, mat4> perspectives;

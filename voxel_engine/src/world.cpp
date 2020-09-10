@@ -1,7 +1,7 @@
 #include "world.hpp"
 #include <zip.hpp>
 
-ChunkData::ChunkData() : chunk(Chunk([](int) -> BlockType* {return NULL;})) {  
+ChunkData::ChunkData() : chunk(Chunk()) {  
 }
 
 World::World() {
@@ -173,12 +173,12 @@ bool World::is_generated(ivec3 chunk_coords) {
     }
 }
 
-void World::set_block(int x, int y, int z, int block_type) {
+void World::set_block(int x, int y, int z, int model) {
     Chunk* my_chunk = get_chunk(x, y, z);
     if (!my_chunk) {
         my_chunk = make_chunk(x, y, z);
     }
-    my_chunk->set_block(pos_mod(x, CHUNK_SIZE), pos_mod(y, CHUNK_SIZE), pos_mod(z, CHUNK_SIZE), block_type);
+    my_chunk->set_block(pos_mod(x, CHUNK_SIZE), pos_mod(y, CHUNK_SIZE), pos_mod(z, CHUNK_SIZE), model);
 
     refresh_block(x, y, z);
 }

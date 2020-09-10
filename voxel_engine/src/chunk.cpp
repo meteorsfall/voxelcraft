@@ -7,29 +7,20 @@
 static bool loaded_chunk_shader = false;
 static GLuint chunk_shader_id;
 
-Chunk::Chunk(fn_get_blocktype get_block_type) {
+Chunk::Chunk() {
     // Statically load chunk shaders
     if (!loaded_chunk_shader) {
         chunk_shader_id = load_shaders("assets/shaders/chunk.vert", "assets/shaders/chunk.frag");
         loaded_chunk_shader = true;
     }
-
-    this->get_block_type = get_block_type;
 }
 
-extern int grass_block;
-extern int grass_block_model;
-
-void Chunk::set_block(int x, int y, int z, int b) {
+void Chunk::set_block(int x, int y, int z, int model) {
     if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) {
         printf("Bad coordinates! %d %d %d\n", x, y, z);
         return;
     }
-    if (b == grass_block) {
-        blocks[x][y][z] = BlockData(b, grass_block_model);
-    } else {
-        blocks[x][y][z] = BlockData(b);
-    }
+    blocks[x][y][z] = BlockData(model);
 }
 
 BlockData* Chunk::get_block(int x, int y, int z) {
@@ -37,7 +28,7 @@ BlockData* Chunk::get_block(int x, int y, int z) {
         return nullptr;
     }
     // Return nullptr if it's an air block
-    return blocks[x][y][z].block_type ? &blocks[x][y][z] : nullptr;
+    return blocks[x][y][z].block_model ? &blocks[x][y][z] : nullptr;
 }
 
 void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAtlasser& texture_atlas, fn_get_block master_get_block, bool dont_rerender) {
@@ -71,13 +62,23 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
 
     int num_triangles = 0;
 
-    // 6 sides per cube
-    static int textures[CHUNK_SIZE*CHUNK_SIZE*CHUNK_SIZE*12];
-    int textures_len = 0;
-
-    auto is_opaque = [this](BlockData* b) {
+    auto is_opaque = [this](BlockData* b, int dir) {
         // If it exists, and opaque
-        return b && b->block_type > 0 && this->get_block_type(b->block_type)->is_opaque;
+        if (b) {
+            if (b->block_model == 0) {
+                return false;
+            }
+            // If any of the components are opaque in the given direction,
+            // then this block is opaque in that direction
+            const vector<vector<int>>& components = get_universe()->get_model(b->block_model)->generate_model_instance(map<string,string>{});
+            bool opaque = false;
+            for(uint i = 0; i < components.size(); i++) {
+                opaque |= get_universe()->get_component(components[i][0])->get_opacities()[dir];
+            }
+            return opaque;
+        } else {
+            return false;
+        }
     };
     
 	double t1 = glfwGetTime();
@@ -87,7 +88,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
         for(int j = 0; j < CHUNK_SIZE; j++) {
             for(int k = 0; k < CHUNK_SIZE; k++) {
                 // If the block has a block type of 0, just skip it (It's an air block)
-                if (!blocks[i][j][k].block_type) {
+                if (!blocks[i][j][k].block_model) {
                     continue;
                 }
 
@@ -103,22 +104,22 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
                     // Keep 1 << 7 so that visible_neighbors remains true even if all-zero data
                     visible_neighbors = 1 << 7;
                     // If master_get_block doesn't exist, then it must be air, so we must display that face
-                    if (!is_opaque(get_neighboring_block(-1, 0, 0, i == 0))) {
+                    if (!is_opaque(get_neighboring_block(-1, 0, 0, i == 0), 1)) {
                         visible_neighbors |= 1 << 0;
                     }
-                    if (!is_opaque(get_neighboring_block(1, 0, 0, i == CHUNK_SIZE-1))) {
+                    if (!is_opaque(get_neighboring_block(1, 0, 0, i == CHUNK_SIZE-1), 0)) {
                         visible_neighbors |= 1 << 1;
                     }
-                    if (!is_opaque(get_neighboring_block(0, -1, 0, j == 0))) {
+                    if (!is_opaque(get_neighboring_block(0, -1, 0, j == 0), 3)) {
                         visible_neighbors |= 1 << 2;
                     }
-                    if (!is_opaque(get_neighboring_block(0, 1, 0, j == CHUNK_SIZE-1))) {
+                    if (!is_opaque(get_neighboring_block(0, 1, 0, j == CHUNK_SIZE-1), 2)) {
                         visible_neighbors |= 1 << 3;
                     }
-                    if (!is_opaque(get_neighboring_block(0, 0, -1, k == 0))) {
+                    if (!is_opaque(get_neighboring_block(0, 0, -1, k == 0), 5)) {
                         visible_neighbors |= 1 << 4;
                     }
-                    if (!is_opaque(get_neighboring_block(0, 0, 1, k == CHUNK_SIZE-1))) {
+                    if (!is_opaque(get_neighboring_block(0, 0, 1, k == CHUNK_SIZE-1), 4)) {
                         visible_neighbors |= 1 << 5;
                     }
                     blocks[i][j][k].neighbor_cache = visible_neighbors;
@@ -129,75 +130,40 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
                     // This will represent which faces to include and which to cull
                     vec3 fpos(position);
 
-                    if (blocks[i][j][k].as_model) {
-                        int block_model = blocks[i][j][k].block_model;
+                    int block_model = blocks[i][j][k].block_model;
 
-                        const vector<ComponentPossibilities>& sm = get_universe()->get_model(block_model)->generate_model_instance(map<string,string>{});
-                        for(const ComponentPossibilities& cp : sm) {
-                            int component_id = cp[0];
+                    const vector<ComponentPossibilities>& sm = get_universe()->get_model(block_model)->generate_model_instance(map<string,string>{});
+                    for(const ComponentPossibilities& cp : sm) {
+                        int component_id = cp[0];
 
-                            bool visible_neighbors_array[6];
-                            for(int ar = 0; ar < 6; ar++) {
-                                visible_neighbors_array[ar] = (visible_neighbors >> ar) & 1;
-                            }
-                            auto p = get_universe()->get_component(component_id)->get_mesh_data(visible_neighbors_array);
-                            vec3* vertex_buf = (vec3*)get<0>(p);
-                            vec2* uv_buf = (vec2*)get<1>(p);
-                            int num_model_triangles = get<2>(p);
-
-                            // Loop over every triangle in the model
-                            for(int tri = 0; tri < num_model_triangles; tri++) {
-                                // Loop over each vertex and add it to the chunk buffer
-                                for(int vert = 0; vert < 3; vert++) {
-                                    vec3 vertex = vertex_buf[tri*3 + vert] + fpos;
-                                    chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)] = vertex.x;
-                                    chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)+1] = vertex.y;
-                                    chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)+2] = vertex.z;
-                                    chunk_vertex_buffer_len += 3*sizeof(GLfloat);
-                                    vec2 uv = uv_buf[tri*3 + vert];
-                                    chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)] = uv.x;
-                                    chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)+1] = uv.y;
-                                    chunk_uv_buffer_len += 2*sizeof(GLfloat);
-                                    chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
-                                    chunk_break_amount_buffer_len += sizeof(GLfloat);
-                                }
-                                textures[textures_len++] = -1;
-                            }
-
-                            num_triangles += num_model_triangles;
+                        bool visible_neighbors_array[6];
+                        for(int ar = 0; ar < 6; ar++) {
+                            visible_neighbors_array[ar] = (visible_neighbors >> ar) & 1;
                         }
-                    } else {
-                        /// OLD WAY
+                        auto p = get_universe()->get_component(component_id)->get_mesh_data(visible_neighbors_array);
+                        vec3* vertex_buf = (vec3*)get<0>(p);
+                        vec2* uv_buf = (vec2*)get<1>(p);
+                        int num_model_triangles = get<2>(p);
 
-                        // Get vertex buffer and uv buffer data with any undesired faced culled
-                        auto [vertex_buffer_data, vertex_buffer_len] = get_specific_cube_vertex_coordinates(visible_neighbors);
-                        auto [uv_buffer_data, uv_buffer_len] = get_specific_cube_uv_coordinates(visible_neighbors);
-                        
-                        // Translate vertices and save vertex-specific metadata
-                        for(int m = 0; m < vertex_buffer_len/(int)sizeof(GLfloat); m += 3) {
-                            vertex_buffer_data[m+0] += fpos.x;
-                            vertex_buffer_data[m+1] += fpos.y;
-                            vertex_buffer_data[m+2] += fpos.z;
-                            chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
-                            chunk_break_amount_buffer_len += sizeof(GLfloat);
-                        }
-                        
-                        // Memcpy vertex and uv buffers
-                        memcpy(&chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)], vertex_buffer_data, vertex_buffer_len);
-                        memcpy(&chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)], uv_buffer_data, uv_buffer_len);
-
-                        // Keep track vertex and uv buffer sizes
-                        chunk_vertex_buffer_len += vertex_buffer_len;
-                        chunk_uv_buffer_len += uv_buffer_len;
-                        num_triangles += vertex_buffer_len / sizeof(GLfloat) / 3 / 3;
-
-                        // Save textures
-                        for(int m = 0; m < 12; m++) {
-                            if ((visible_neighbors >> (m/2)) & 1) {
-                                int texture = get_block_type(blocks[i][j][k].block_type)->textures[(m/2)];
-                                textures[textures_len++] = texture;
+                        // Loop over every triangle in the model
+                        for(int tri = 0; tri < num_model_triangles; tri++) {
+                            // Loop over each vertex and add it to the chunk buffer
+                            for(int vert = 0; vert < 3; vert++) {
+                                vec3 vertex = vertex_buf[tri*3 + vert] + fpos;
+                                chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)] = vertex.x;
+                                chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)+1] = vertex.y;
+                                chunk_vertex_buffer[chunk_vertex_buffer_len/sizeof(GLfloat)+2] = vertex.z;
+                                chunk_vertex_buffer_len += 3*sizeof(GLfloat);
+                                vec2 uv = uv_buf[tri*3 + vert];
+                                chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)] = uv.x;
+                                chunk_uv_buffer[chunk_uv_buffer_len/sizeof(GLfloat)+1] = uv.y;
+                                chunk_uv_buffer_len += 2*sizeof(GLfloat);
+                                chunk_break_amount_buffer[chunk_break_amount_buffer_len/sizeof(GLfloat)] = blocks[i][j][k].break_amount;
+                                chunk_break_amount_buffer_len += sizeof(GLfloat);
                             }
                         }
+
+                        num_triangles += num_model_triangles;
                     }
                 }
             }
@@ -219,24 +185,6 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
         dbg("BAD vertex buffer len! %d", chunk_break_amount_buffer_len);
     }
 
-    int atlas_width = texture_atlas.get_atlas()->get_width();
-    int atlas_height = texture_atlas.get_atlas()->get_height();
-    int index = 0;
-    for(int texture_ind = 0; texture_ind < textures_len; texture_ind++) {
-        int texture = textures[texture_ind];
-        for(int i = index; i < index + 3*2; i += 2) {
-            if (texture < 0) continue;
-            ivec2 offset = texture_atlas.get_top_left(texture);
-            // Reorient offset to bottom-left, with (0, 0) in the bottom-left
-            offset.y += texture_atlas.get_bmp(texture)->get_height();
-            offset.y = atlas_height - offset.y;
-            
-            chunk_uv_buffer[i+0] = offset.x / (float)atlas_width + chunk_uv_buffer[i+0] * texture_atlas.get_bmp(texture)->get_width() / (float)atlas_width;
-            chunk_uv_buffer[i+1] = offset.y / (float)atlas_height + chunk_uv_buffer[i+1] * texture_atlas.get_bmp(texture)->get_height() / (float)atlas_height;
-        }
-        index += 3*2;
-    }
-
     opengl_vertex_buffer.reuse(chunk_vertex_buffer, chunk_vertex_buffer_len);
     opengl_uv_buffer.reuse(chunk_uv_buffer, chunk_uv_buffer_len);
     opengl_break_amount_buffer.reuse(chunk_break_amount_buffer, chunk_break_amount_buffer_len);
@@ -246,7 +194,6 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
     this->num_triangles_cache = num_triangles;
     
     this->opengl_texture_atlas_cache = texture_atlas.get_atlas_texture();
-
 
     if (aabb.test_frustum(P*V)) {
         cached_render(P, V);
@@ -302,7 +249,7 @@ pair<byte*, int> Chunk::serialize() {
     for(unsigned i = 0; i < CHUNK_SIZE; i++){
         for(unsigned j = 0; j < CHUNK_SIZE; j++){
             for(unsigned k = 0; k < CHUNK_SIZE; k++){
-                short the_block_id = blocks[i][j][k].block_type;
+                short the_block_id = blocks[i][j][k].block_model;
                 int index = (k*CHUNK_SIZE*CHUNK_SIZE + j*CHUNK_SIZE + i)*3;
                 buffer[index] = (the_block_id >> 8) % 256;
                 buffer[index + 1] = the_block_id % 256;
@@ -324,7 +271,7 @@ void Chunk::deserialize(byte* buffer, int size) {
             for(unsigned k = 0; k < CHUNK_SIZE; k++){
                 int index = (k*CHUNK_SIZE*CHUNK_SIZE + j*CHUNK_SIZE + i)*3;
                 blocks[i][j][k].break_amount = buffer[index + 2]/256.0;
-                blocks[i][j][k].block_type = buffer[index]*256 + buffer[index+1];
+                blocks[i][j][k].block_model = buffer[index]*256 + buffer[index+1];
             }
         }
     }

@@ -40,6 +40,10 @@ tuple<byte*, byte*, int> Component::get_mesh_data(bool visible_neighbors[6]) {
     return get_universe()->get_mesh(this->mesh_id)->get_mesh_data(visible_neighbors, this->texture_transformations);
 }
 
+const bool* Component::get_opacities() {
+    return this->opacities;
+}
+
 SpecifiedComponent::SpecifiedComponent(int component_id, float x_rotation, float y_rotation, bool uvlock) {
     this->component_id = component_id;
     this->x_rotation = x_rotation;

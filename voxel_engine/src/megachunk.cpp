@@ -31,9 +31,7 @@ ChunkData* MegaChunk::create_chunk(ivec3 chunk_coords) {
     // Create chunk
     optional_chunkdata = alloc_chunkdata();
     ChunkData* cd = get_allocated_chunkdata(optional_chunkdata.value());
-    cd->chunk = Chunk([](int block_type) -> BlockType* {
-        return get_universe()->get_block_type(block_type);
-    });
+    cd->chunk = Chunk();
 
     return cd;
 }

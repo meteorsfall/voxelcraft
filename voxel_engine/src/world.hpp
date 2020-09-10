@@ -48,7 +48,7 @@ public:
     World();
 
     /// Sets a block to the given blocktype
-    void set_block(int x, int y, int z, int block_type);
+    void set_block(int x, int y, int z, int model);
     
     /// Retrives the blockdata for viewing purposes.
     const BlockData* read_block(int x, int y, int z);

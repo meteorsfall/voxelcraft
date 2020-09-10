@@ -18,8 +18,6 @@
 
 /// A function that maps block-coordinate into BlockData*
 using fn_get_block = function<BlockData*(int, int, int)>;
-/// A function that maps a blocktype-id into an actual BlockType*
-using fn_get_blocktype = function<BlockType*(int)>;
 
 /// A collection of @ref CHUNK_SIZE x @ref CHUNK_SIZE x @ref CHUNK_SIZE blocks
 
@@ -28,11 +26,11 @@ public:
     /// All of the blockdata for this chunk
     BlockData blocks[CHUNK_SIZE][CHUNK_SIZE][CHUNK_SIZE];
 
-    /// Initialize a chunk of all airblocks. get_block_type is a function that will map a block_type integer ID into an actual BlockType*
-    Chunk(fn_get_blocktype get_block_type);
+    /// Initialize a chunk of all airblocks.
+    Chunk();
 
     /// Set a block to a particular blocktype. Each coordinate must range between 0 and BLOCK_SIZE-1
-    void set_block(int x, int y, int z, int b);
+    void set_block(int x, int y, int z, int model);
 
     /// Get the block at the given x, y, z. Each coordinate must range between 0 and BLOCK_SIZE-1
     BlockData* get_block(int x, int y, int z);
@@ -62,8 +60,6 @@ public:
     /// Invalidate the cache, so that the next call to render() will trigger a rerender. This function must be called if any blockdata changes.
     void invalidate_cache();
 private:
-    fn_get_blocktype get_block_type;
-
     GLArrayBuffer opengl_vertex_buffer;
     GLArrayBuffer opengl_uv_buffer;
     GLArrayBuffer opengl_break_amount_buffer;

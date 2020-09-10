@@ -24,8 +24,6 @@ public:
     int register_texture(const char* texture_path, ivec3 color_key = ivec3(-1));
     /// Add a cubemap texture resource, with an optional color_key to detect transparency
     int register_cubemap_texture(const char* texture_path, ivec3 color_key = ivec3(-1));
-    /// Register a new blocktype with the given textures
-    int register_blocktype(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque = true);
     /// Register a new mesh
     int register_mesh(const char* mesh_path);
     /// Register a component
@@ -41,8 +39,6 @@ public:
     Texture* get_texture(int texture_id);
     /// Gets a @ref CubeMapTexture from the given texture_id
     CubeMapTexture* get_cubemap_texture(int texture_id);
-    /// Gets a @ref BlockType from the given block_type_id
-    BlockType* get_block_type(int block_type_id);
     /// Gets a @ref Mesh from the given mesh_id
     Mesh* get_mesh(int mesh_id);
     /// Gets a @ref Component from the given component_id
@@ -55,7 +51,6 @@ private:
     TextureAtlasser atlasser;
     vector<Texture> textures;
     vector<CubeMapTexture> cubemap_textures;
-    vector<BlockType> block_types;
     vector<Mesh> meshes;
     vector<Component> components;
     vector<Model> models;

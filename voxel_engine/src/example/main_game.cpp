@@ -45,8 +45,15 @@ int skybox_texture;
 int mesh_id;
 
 int grass_block_component;
+int leaf_block_component;
+int dirt_block_component;
+int log_block_component;
 
 int grass_block_model;
+int leaf_block_model;
+int dirt_block_model;
+int log_block_model;
+int stone_block_model;
 
 #include "../entity.hpp"
 #include "../model.hpp"
@@ -94,20 +101,19 @@ Game::Game() {
 
     // Register All Components
     grass_block_component = get_universe()->register_component("assets/components/grass.json");
-    grass_block_component = get_universe()->register_component("assets/components/log.json");
+    log_block_component = get_universe()->register_component("assets/components/log.json");
+    leaf_block_component = get_universe()->register_component("assets/components/leaf.json");
+    dirt_block_component = get_universe()->register_component("assets/components/dirt.json");
+    get_universe()->register_component("assets/components/stone.json");
 
     // Register All Models
     grass_block_model = get_universe()->register_model("assets/models/grass_block.json");
+    log_block_model = get_universe()->register_model("assets/models/log_block.json");
+    leaf_block_model = get_universe()->register_model("assets/models/leaf_block.json");
+    dirt_block_model = get_universe()->register_model("assets/models/dirt_block.json");
+    stone_block_model = get_universe()->register_model("assets/models/stone_block.json");
  
     // Register BlockTypes
-    stone_block = get_universe()->register_blocktype(stone_texture, stone_texture, stone_texture, stone_texture, stone_texture, stone_texture);
-    dirt_block = get_universe()->register_blocktype(dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture, dirt_texture);
-    log_block = get_universe()->register_blocktype(log_side_texture, log_side_texture, log_top_texture, log_top_texture, log_side_texture, log_side_texture);
-    leaf_block = get_universe()->register_blocktype(leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, leaves_texture, false);
-    grass_block = get_universe()->register_blocktype(grass_side_texture, grass_side_texture, dirt_texture, grass_top_texture, grass_side_texture, grass_side_texture);
-    cobblestone_block = get_universe()->register_blocktype(cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture, cobblestone_texture);
-    plank_block = get_universe()->register_blocktype(plank_texture, plank_texture, plank_texture, plank_texture, plank_texture, plank_texture);
-    up_block = get_universe()->register_blocktype(up_texture, up_texture, up_texture, up_texture, up_texture, up_texture);
     
     // Register All Events
     on_break_event = get_universe()->register_event();
@@ -126,9 +132,9 @@ Game::~Game() {
 void Game::restart_world() {
     this->world = World();
     this->player = Player();
-    player.hotbar[0] = dirt_block;
-    player.hotbar[1] = cobblestone_block;
-    player.hotbar[2] = plank_block;
+    player.hotbar[0] = dirt_block_model;
+    player.hotbar[1] = stone_block_model;
+    player.hotbar[2] = log_block_model;
 	player.hand = 0;
 }
 

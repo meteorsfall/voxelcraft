@@ -9,10 +9,6 @@ Universe* get_universe() {
     return &main_universe;
 }
 
-BlockType* Universe::get_block_type(int block_type_id) {
-    return &this->block_types.at(block_type_id-1);
-}
-
 TextureAtlasser* Universe::get_atlasser() {
     return &this->atlasser;
 }
@@ -168,11 +164,4 @@ Component* Universe::get_component(int component_id) {
 
 Model* Universe::get_model(int model_id) {
     return &models.at(model_id - 1);
-}
-
-int Universe::register_blocktype(int nx, int px, int ny, int py, int nz, int pz, bool is_opaque) {
-    // Block_ID starts at 1 and increments afterwards
-    block_types.push_back(BlockType(nx, px, ny, py, nz, pz, is_opaque));
-    block_types.back().block_id = block_types.size();
-    return block_types.back().block_id;
 }

@@ -28,7 +28,7 @@ public:
     RigidBody body;
 
     /// The inventory
-    vector<BlockType> inventory;
+    vector<int> inventory;
 
     /// True if the player is in flying-mode
     bool is_flying;

@@ -9,6 +9,12 @@ extern int log_block;
 extern int leaf_block;
 extern int grass_block;
 
+extern int grass_block_model;
+extern int leaf_block_model;
+extern int dirt_block_model;
+extern int log_block_model;
+extern int stone_block_model;
+
 void generate_random_tree(World& world, ivec3 loc);
 void generate_tree_pyramid(World& world, ivec3 loc);
 void generate_tree_pyramid_truncated(World& world, ivec3 loc);
@@ -36,27 +42,27 @@ void generate_random_tree(World& world, ivec3 loc) {
 
 void generate_tree_pyramid(World& world, ivec3 loc) {
     // Make stalk of tree
-    world.set_block(loc.x, loc.y, loc.z, log_block);
-    world.set_block(loc.x, loc.y+1, loc.z, log_block);
+    world.set_block(loc.x, loc.y, loc.z, log_block_model);
+    world.set_block(loc.x, loc.y+1, loc.z, log_block_model);
 
     // Make pyramid
     for(int dy = 2; dy <= 4; dy++) {
         int radius = dy == 2 ? 2 : (dy == 3 ? 1 : 0);
         for(int dx = -radius; dx <= radius; dx++) {
             for(int dz = -radius; dz <= radius; dz++) {
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block);
+                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
             }
         }
     }
     
-    world.set_block(loc.x, loc.y+2, loc.z, log_block);
-    world.set_block(loc.x, loc.y+3, loc.z, log_block);
+    world.set_block(loc.x, loc.y+2, loc.z, log_block_model);
+    world.set_block(loc.x, loc.y+3, loc.z, log_block_model);
 }
 
 void generate_tree_pyramid_truncated(World& world, ivec3 loc) {
     // Make stalk of tree
-    world.set_block(loc.x, loc.y, loc.z, log_block);
-    world.set_block(loc.x, loc.y+1, loc.z, log_block);
+    world.set_block(loc.x, loc.y, loc.z, log_block_model);
+    world.set_block(loc.x, loc.y+1, loc.z, log_block_model);
 
     // Make pyramid
     for(int dy = 2; dy <= 4; dy++) {
@@ -66,39 +72,39 @@ void generate_tree_pyramid_truncated(World& world, ivec3 loc) {
                 if (radius > 0 && abs(dx) == radius && abs(dz) == radius) {
                     continue;
                 }
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block);
+                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
             }
         }
     }
     
-    world.set_block(loc.x, loc.y+2, loc.z, log_block);
-    world.set_block(loc.x, loc.y+3, loc.z, log_block);
+    world.set_block(loc.x, loc.y+2, loc.z, log_block_model);
+    world.set_block(loc.x, loc.y+3, loc.z, log_block_model);
 }
 
 void generate_tree_cute(World& world, ivec3 loc) {
-    world.set_block(loc.x, loc.y, loc.z, log_block);
-    world.set_block(loc.x, loc.y+1, loc.z, log_block);
+    world.set_block(loc.x, loc.y, loc.z, log_block_model);
+    world.set_block(loc.x, loc.y+1, loc.z, log_block_model);
 
     for(int dx = -1; dx <= 1; dx++){
         for(int dz = -1; dz <= 1; dz++){
             for(int dy = 2; dy <= 3; dy++){
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block);
+                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
             }
         }
     }
 
-    world.set_block(loc.x, loc.y + 4, loc.z, leaf_block);
+    world.set_block(loc.x, loc.y + 4, loc.z, leaf_block_model);
 }
 
 void generate_tree_overhang(World& world, ivec3 loc) {
     for(int dy = 0; dy <= 2; dy++){
-        world.set_block(loc.x, loc.y + dy, loc.z, log_block);
+        world.set_block(loc.x, loc.y + dy, loc.z, log_block_model);
     }
 
     for(int dx = -2; dx <= 2; dx++){
         for(int dz = -2; dz <= 2; dz++){
             for(int dy = 3; dy <= 4; dy++){
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block);
+                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
             }
         }
     }
@@ -119,11 +125,11 @@ void generate_tree_overhang(World& world, ivec3 loc) {
 
     for(int dx = -1; dx <= 1; dx++){
         for(int dz = -1; dz <= 1; dz++){
-            world.set_block(loc.x + dx, loc.y + 5, loc.z + dz, leaf_block);
+            world.set_block(loc.x + dx, loc.y + 5, loc.z + dz, leaf_block_model);
         }
     }
 
-    world.set_block(loc.x, loc.y + 3, loc.z, log_block);
+    world.set_block(loc.x, loc.y + 3, loc.z, log_block_model);
 }
 
 void generate_chunk(World& world, ivec3 chunk_coords) {
@@ -192,11 +198,11 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                     int height = heights[i][k];
                     int stone_height = stone_heights[i][k];
                     if (loc.y < stone_height) {
-                        world.set_block(loc.x, loc.y, loc.z, stone_block);
+                        world.set_block(loc.x, loc.y, loc.z, stone_block_model);
                     } else if (loc.y < height) {
-                        world.set_block(loc.x, loc.y, loc.z, dirt_block);
+                        world.set_block(loc.x, loc.y, loc.z, dirt_block_model);
                     } else if (loc.y == height) {
-                        world.set_block(loc.x, loc.y, loc.z, grass_block);
+                        world.set_block(loc.x, loc.y, loc.z, grass_block_model);
                     }
                 }
             }
@@ -211,7 +217,7 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                     if (hash_ivec3(loc, 4930214) % 10000 < 10000 * prob) {
                         int tree_extra_height = hash_ivec3(loc, 4321) % 2;
                         for(int m = 0; m < tree_extra_height; m++) {
-                            world.set_block(start.x+i, heights[i][k] + 1 + m, start.z+k, log_block);
+                            world.set_block(start.x+i, heights[i][k] + 1 + m, start.z+k, log_block_model);
                         }
                         generate_random_tree(world, ivec3(start.x+i, heights[i][k] + 1 + tree_extra_height, start.z+k));
                     }
