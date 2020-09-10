@@ -111,7 +111,6 @@ Mesh::Mesh(const char* filepath) {
         }
 
         int a_v, a_vt, a_vn, b_v, b_vt, b_vn, c_v, c_vt, c_vn, d_v, d_vt, d_vn;
-        char c;
         if(line[0] == 'f' && line[1] == ' ') {
             std::istringstream in(line.substr(2));
 
