@@ -94,6 +94,7 @@ Game::Game() {
 
     // Register All Components
     grass_block_component = get_universe()->register_component("assets/components/grass.json");
+    grass_block_component = get_universe()->register_component("assets/components/log.json");
 
     // Register All Models
     grass_block_model = get_universe()->register_model("assets/models/grass_block.json");

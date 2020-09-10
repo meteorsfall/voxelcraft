@@ -40,29 +40,6 @@ int Universe::register_mesh(const char* mesh_path) {
     return mesh_id;
 }
 
-extern int grass_block_component;
-
-int Universe::register_model(const char* model_path) {
-    UNUSED(model_path);
-    Model my_model = Model(vector<string>{}, [](const map<string, string>& props) -> vector<ComponentPossibilities> {
-        UNUSED(props);
-        vector<vector<int>> models;
-
-        models.push_back(vector<int>{
-            grass_block_component
-        });
-
-        return models;
-    });
-    models.push_back(std::move(my_model));
-    return models.size();
-}
-
-extern int mesh_id;
-extern int grass_side_texture;
-extern int dirt_texture;
-extern int grass_top_texture;
-
 int Universe::register_component(const char* component_path) {
     // Read JSON
     ifstream in(component_path, std::ios::binary | std::ios::ate);
@@ -75,26 +52,26 @@ int Universe::register_component(const char* component_path) {
     buf[size] = '\0';
     in.close();
 
-    Document d;
-    d.Parse(buf);
+    Document json;
+    json.Parse(buf);
 
     free(buf);
 
     // Grab mesh
-    Value& s = d["mesh"];
-    const char* mesh_name = d["mesh"].GetString();
+    Value& s = json["mesh"];
+    const char* mesh_name = json["mesh"].GetString();
     int mesh_id = mesh_names.at(mesh_name);
 
     // Grab textures
     map<string,int> textures;
-    const Value& json_textures = d["textures"];
+    const Value& json_textures = json["textures"];
     for(auto& m : json_textures.GetObject()) {
         textures[m.name.GetString()] = atlas_texture_names.at(m.value.GetString());
     }
 
     // Grab opacities
     bool opacities[6] = {true};
-    const Value& json_opacities = d["opacities"].GetObject();
+    const Value& json_opacities = json["opacities"].GetObject();
     const char* opacity_name[] = {"-x", "+x", "-y", "+y", "-z", "+z"};
     for(int i = 0; i < 6; i++) {
         opacities[i] = json_opacities[opacity_name[i]].GetBool();
@@ -110,7 +87,52 @@ int Universe::register_component(const char* component_path) {
     );
 
     components.push_back(std::move(c));
-    return components.size();
+    int component_id = components.size();
+    string filename = std::filesystem::path(component_path).stem().generic_string();
+    component_names[filename] = component_id;
+    return component_id;
+}
+
+int Universe::register_model(const char* model_path) {
+    ifstream in(model_path, std::ios::binary | std::ios::ate);
+
+    int size = in.tellg();
+    in.seekg(0, std::ios::beg);
+
+    vector<char> buf(size+1);
+    in.read(&buf[0], size);
+    buf[size] = '\0';
+    in.close();
+
+    // Document
+
+    Model my_model = Model(vector<string>{}, [this, buf](const map<string, string>& props) -> vector<ComponentPossibilities> {
+        UNUSED(props);
+        vector<vector<int>> models;
+
+        Document json;
+        json.Parse(&buf[0]);
+
+        const Value& as_arr = json;
+        for(uint i = 0; i < as_arr.Size(); i++) {
+            const Value& obj = json[i].GetObject();
+            const Value& apply = obj["apply"];
+
+            // Get array of component possibilities from this "apply"
+            vector<int> components;
+            for(uint j = 0; j < apply.Size(); j++) {
+                const Value& comp = apply[j];
+                components.push_back(this->component_names.at(comp["component"].GetString()));
+            }
+
+            // Add ComponentPossibilities to the model
+            models.push_back(components);
+        }
+
+        return models;
+    });
+    models.push_back(std::move(my_model));
+    return models.size();
 }
 
 int Universe::register_event() {
