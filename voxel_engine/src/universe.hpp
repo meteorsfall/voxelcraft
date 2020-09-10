@@ -60,6 +60,9 @@ private:
     vector<Component> components;
     vector<Model> models;
     vector<Event> events;
+    map<string, int> mesh_names;
+    map<string, int> texture_names;
+    map<string, int> atlas_texture_names;
     GLuint opengl_atlas_texture;
 };
 

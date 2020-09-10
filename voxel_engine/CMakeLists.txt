@@ -60,7 +60,7 @@ else ()
   add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Wno-unused-variable -Wno-unused-but-set-variable -Werror -Wfatal-errors)
   add_link_options(-rdynamic)
   set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
-  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast")
+  set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -flto")
 endif ()
 
 # don't read CMAKE_BUILD_TYPE, it has no meaning with multiconfig

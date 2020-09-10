@@ -1,5 +1,7 @@
 #include "universe.hpp"
 #include "gl_utils.hpp"
+#include <rapidjson/document.h>
+using namespace rapidjson;
 
 Universe main_universe;
 
@@ -16,17 +18,26 @@ TextureAtlasser* Universe::get_atlasser() {
 }
 
 int Universe::register_atlas_texture(const char* texture_path, ivec3 color_key) {
-    return atlasser.add_bmp(BMP(texture_path, color_key));
+    int texture_id = atlasser.add_bmp(BMP(texture_path, color_key));
+    string filename = std::filesystem::path(texture_path).filename().generic_string();
+    atlas_texture_names[filename] = texture_id;
+    return texture_id;
 }
 
 int Universe::register_texture(const char* texture_path, ivec3 color_key) {
     textures.push_back(Texture(BMP(texture_path, color_key)));
-    return textures.size();
+    int texture_id = textures.size();
+    string filename = std::filesystem::path(texture_path).filename().generic_string();
+    texture_names[filename] = texture_id;
+    return texture_id;
 }
 
 int Universe::register_mesh(const char* mesh_path) {
     meshes.push_back(Mesh(mesh_path));
-    return meshes.size();
+    int mesh_id = meshes.size();
+    string filename = std::filesystem::path(mesh_path).filename().generic_string();
+    mesh_names[filename] = mesh_id;
+    return mesh_id;
 }
 
 extern int grass_block_component;
@@ -53,19 +64,50 @@ extern int dirt_texture;
 extern int grass_top_texture;
 
 int Universe::register_component(const char* component_path) {
-    UNUSED(component_path);
+    // Read JSON
+    ifstream in(component_path, std::ios::binary | std::ios::ate);
 
-    bool opacities[6] = {true, true, true, true, true, true};
-    Component c(map<string,mat4>{
-        {"block",mat4()}
-    }, mesh_id, map<string,int>{
-        {"negative_x", grass_side_texture},
-        {"positive_x", grass_side_texture},
-        {"negative_y", dirt_texture},
-        {"positive_y", grass_top_texture},
-        {"negative_z", grass_side_texture},
-        {"positive_z", grass_side_texture}
-    }, opacities);
+    int size = in.tellg();
+    in.seekg(0, std::ios::beg);
+
+    char* buf = new char[size+1];
+    in.read(buf, size);
+    buf[size] = '\0';
+    in.close();
+
+    Document d;
+    d.Parse(buf);
+
+    free(buf);
+
+    // Grab mesh
+    Value& s = d["mesh"];
+    const char* mesh_name = d["mesh"].GetString();
+    int mesh_id = mesh_names.at(mesh_name);
+
+    // Grab textures
+    map<string,int> textures;
+    const Value& json_textures = d["textures"];
+    for(auto& m : json_textures.GetObject()) {
+        textures[m.name.GetString()] = atlas_texture_names.at(m.value.GetString());
+    }
+
+    // Grab opacities
+    bool opacities[6] = {true};
+    const Value& json_opacities = d["opacities"].GetObject();
+    const char* opacity_name[] = {"-x", "+x", "-y", "+y", "-z", "+z"};
+    for(int i = 0; i < 6; i++) {
+        opacities[i] = json_opacities[opacity_name[i]].GetBool();
+    }
+
+    Component c(
+        map<string,mat4>{
+            {"block",mat4()}
+        },
+        mesh_id,
+        textures,
+        opacities
+    );
 
     components.push_back(std::move(c));
     return components.size();
