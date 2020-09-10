@@ -173,10 +173,15 @@ namespace GL {
         GLReference(const GLReference& other);
         /// Moves a GLReference
         GLReference(GLReference&& other) noexcept;
-        /// Copy-Assigns a GLReference. Important: Same Note as with previous copy function
-        GLReference& operator=(const GLReference& other);
-        /// Move-Assigns a GLReference.
-        GLReference& operator=(GLReference&& other) noexcept;
+        /// Assigns a GLReference, consuming other if it was an rvalue
+        GLReference& operator=(GLReference other);
+        /// std::swap implementation
+        void swap(GLReference& second) {
+            // enable ADL (not necessary in our case, but good practice)
+            using std::swap;
+
+            swap(this->opengl_id, second.opengl_id);
+        }
         /// The OpenGL Reference ID itself
         optional<GLuint> opengl_id;
     };
@@ -187,6 +192,15 @@ namespace GL {
     public:
         GLArrayBuffer();
         ~GLArrayBuffer();
+        // GLReference handles copy/move checking.
+        /// default
+        GLArrayBuffer(const GLArrayBuffer& mE)            = default;
+        /// default
+        GLArrayBuffer(GLArrayBuffer&& mE)                 = default;
+        /// default
+        GLArrayBuffer& operator=(const GLArrayBuffer& mE) = default;
+        /// default
+        GLArrayBuffer& operator=(GLArrayBuffer&& mE)      = default;
 
         /// Creates a GLArrayBuffer with a given data and length
         GLArrayBuffer(const GLfloat* data, int len);

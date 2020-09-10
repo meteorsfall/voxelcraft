@@ -31,7 +31,6 @@ ChunkData* MegaChunk::create_chunk(ivec3 chunk_coords) {
     // Create chunk
     optional_chunkdata = alloc_chunkdata();
     ChunkData* cd = get_allocated_chunkdata(optional_chunkdata.value());
-    cd->chunk = Chunk();
 
     return cd;
 }
@@ -174,7 +173,8 @@ int alloc_chunkdata() {
         index = unused_chunk_allocations.back();
         unused_chunk_allocations.pop_back();
         // Regenerate chunk data
-        *chunk_allocations[index] = ChunkData();
+        ChunkData d;
+        std::swap(*chunk_allocations[index], d);
     } else {
         chunk_allocations.push_back(new ChunkData());
         index = chunk_allocations.size() - 1;

@@ -53,6 +53,7 @@ vec3 Component::get_pivot() {
     return this->pivot;
 }
 
+/*
 SpecifiedComponent::SpecifiedComponent(int component_id, float x_rotation, float y_rotation, bool uvlock) {
     this->component_id = component_id;
     this->x_rotation = x_rotation;
@@ -63,7 +64,7 @@ SpecifiedComponent::SpecifiedComponent(int component_id, float x_rotation, float
 
 tuple<byte*, byte*, int> SpecifiedComponent::get_mesh_data(bool visible_neighbors[6]) {
     return get_universe()->get_component(this->component_id)->get_mesh_data(visible_neighbors);
-}
+}*/
 
 Model::Model(vector<string> valid_properties, SpecifiedModelGenerator model_generator) {
     this->valid_properties = valid_properties;
