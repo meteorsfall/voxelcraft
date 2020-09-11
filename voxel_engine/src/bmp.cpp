@@ -206,11 +206,11 @@ void BMP::set_pixel(int x, int y, ivec4 color) {
 
 GLuint BMP::generate_texture(bool mipmapped) const {
 	// Create one OpenGL texture
-	GLuint textureID;
-	glGenTextures(1, &textureID);
+	GLuint texture_id;
+	glGenTextures(1, &texture_id);
 	
 	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, textureID);
+	glBindTexture(GL_TEXTURE_2D, texture_id);
 
 	byte* postmultipled_data = new byte[width*height*4];
 	for(int i = 0; i < width*height; i++) {
@@ -264,7 +264,7 @@ GLuint BMP::generate_texture(bool mipmapped) const {
     */
 
 	// Return the ID of the texture we just created
-	return textureID;
+	return texture_id;
 }
 
 void BMP::blit(int x, int y, BMP& bmp) {

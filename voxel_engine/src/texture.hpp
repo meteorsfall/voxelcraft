@@ -23,6 +23,15 @@ public:
     Texture();
     /// Generates a Texture from a BMP
     Texture(const BMP& image);
+    /// default
+    Texture(const Texture& mE)            = default;
+    /// default
+    Texture(Texture&& mE)                 = default;
+    /// default
+    Texture& operator=(const Texture& mE) = default;
+    /// default
+    Texture& operator=(Texture&& mE)      = default;
+    ~Texture();
 };
 
 /// The CubeMapTexture class represents an OpenGL Texture of a cubemap.

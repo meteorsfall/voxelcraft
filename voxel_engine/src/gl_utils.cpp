@@ -9,6 +9,7 @@ GLReference::GLReference() {
 GLReference::~GLReference() {
     if (this->opengl_id) {
         dbg("ERROR: Memory leak found! GLReference not freed yet!");
+        CRASH();
     }
 }
 
@@ -17,53 +18,24 @@ GLReference::GLReference(const GLReference& other) // copy constructor
 {
     if (other.opengl_id) {
         dbg("ERROR: Tried to copy-construct an allocated GLReference!");
-            int* a = 0;
-            dbg("STOP: %d", *a);
+        CRASH();
         // Pass it along anyway
         this->opengl_id = other.opengl_id;
     }
 }
 
 // GLReference my_new_ref = std::move(my_old_ref);
-GLReference::GLReference(GLReference&& other) noexcept {
+GLReference::GLReference(GLReference&& other) noexcept // move constructor
+{
     other.swap(*this);
 }
 
 // my_old_ref = my_older_ref;
-GLReference& GLReference::operator=(GLReference other) // copy assignment
+GLReference& GLReference::operator=(GLReference other) // lvalue/rvalue assignment
 {
-    //GLReference tmp(other);
     other.swap(*this);
-    /*
-    if(this != &other) {
-        // Real copy-assign constructor
-        if (other.opengl_id) {
-            dbg("ERROR: Tried to copy-assign from an allocated GLReference!");
-            int* a = 0;
-            dbg("STOP: %d", *a);
-        }
-        if (this->opengl_id) {
-            dbg("ERROR: Tried to copy-assign to an allocated GLReference!");
-        }
-        // Pass it long anyway
-        this->opengl_id = other.opengl_id;
-    }
-    */
     return *this;
 }
-
-/*
-// my_old_ref = std::move(my_older_ref);
-GLReference& GLReference::operator=(GLReference&& other) noexcept {
-    if (this->opengl_id) {
-        dbg("ERROR: Memory leak found! Move-assigned into an allocated GLReference!");
-        // Pass it along anyway
-    }
-    this->opengl_id = other.opengl_id;
-    other.opengl_id = nullopt;
-    return *this;
-}
-*/
 
 GLArrayBuffer::GLArrayBuffer() {}
 GLArrayBuffer::GLArrayBuffer(const GLfloat* data, int len) { init(data, len); }

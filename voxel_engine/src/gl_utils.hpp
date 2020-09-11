@@ -194,11 +194,7 @@ namespace GL {
         ~GLArrayBuffer();
         // GLReference handles copy/move checking.
         /// default
-        GLArrayBuffer(const GLArrayBuffer& mE)            = default;
-        /// default
         GLArrayBuffer(GLArrayBuffer&& mE)                 = default;
-        /// default
-        GLArrayBuffer& operator=(const GLArrayBuffer& mE) = default;
         /// default
         GLArrayBuffer& operator=(GLArrayBuffer&& mE)      = default;
 

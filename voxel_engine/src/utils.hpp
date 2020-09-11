@@ -33,6 +33,7 @@ using std::variant;
 using std::get;
 
 #define UNUSED(x) ((void)x)
+#define CRASH() {int* _CRASHIT_ = 0; printf("%d", *_CRASHIT_);}
 #define len(x) (sizeof(x) / sizeof((x)[0]))
 // Mod, but works on negatives
 #define pos_mod(a, b) ( (((a) % (b)) + (b)) % (b) )

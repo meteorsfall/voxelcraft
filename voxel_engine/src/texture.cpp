@@ -9,6 +9,13 @@ Texture::Texture(const BMP& image) {
     this->opengl_texture_id.opengl_id = image.generate_texture();
 }
 
+Texture::~Texture() {
+    if (this->opengl_texture_id.opengl_id) {
+        glDeleteTextures(1, &this->opengl_texture_id.opengl_id.value());
+        this->opengl_texture_id.opengl_id = nullopt;
+    }
+}
+
 CubeMapTexture::CubeMapTexture() {
 }
 
