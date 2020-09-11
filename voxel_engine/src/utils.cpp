@@ -2,7 +2,11 @@
 
 size_t hash_ivec3(ivec3 const& key) {
     // Using random primes
-    return (((((456818903U + (uint)key.x) * 832251403U) + (uint)key.y) * 1349392157U) + (uint)key.z) * 1866190769U;
+    uint hash = 456818903U;
+    for(int i = 0; i < 3; i++) {
+        hash = (hash * 832251403U) ^ (((uint)key[i]) * 1349392157U);
+    }
+    return hash;
 }
 
 size_t hash_ivec3(ivec3 const& key, int nonce) {
@@ -11,7 +15,11 @@ size_t hash_ivec3(ivec3 const& key, int nonce) {
 
 size_t hash_ivec4(ivec4 const& key) {
     // Using random primes
-    return ((((((456818903U + (uint)key.x) * 832251403U) + (uint)key.y) * 1349392157U) + (uint)key.z) * 1866190769U + (uint)key.w)*74709703U;
+    uint hash = 456818903U;
+    for(int i = 0; i < 4; i++) {
+        hash = (hash * 832251403U) ^ (((uint)key[i]) * 1349392157U);
+    }
+    return hash;
 }
 
 void write_integer(byte* buffer, unsigned index, int integer) {
