@@ -96,6 +96,13 @@ vector<vec3> VoxelEngine::World::collide(int world_id, vec3 collision_box_min_po
 }
 
 void VoxelEngine::World::restart_world(int world_id) {
+    if (world_id != 1) dbg("ERROR: World doesn't exist! %d", world_id);
+    world = ::World();
+}
+
+void VoxelEngine::World::wasm_restart_world(void *ctx, int world_id) {
+    dbg("Restarting World!");
+    UNUSED(ctx);
     if (world_id != 1) dbg("ERROR: World doesn't exist!");
     world = ::World();
 }

@@ -6,6 +6,7 @@
 #include "UI.hpp"
 #include "example/main_game.hpp"
 #include "example/main_ui.hpp"
+#include "modloader.hpp"
 
 TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
@@ -24,6 +25,8 @@ void resize_callback(GLFWwindow* win, int w, int h) {
 
 int main( void )
 {
+	Mod main_mod("mods/host-functions.wasm");
+
 	// Initialise GLFW
 	if( !glfwInit() )
 	{
@@ -143,6 +146,7 @@ int main( void )
 		
 		double iter_timer = glfwGetTime();
 
+		main_mod.call("iterate");
 		game.iterate(input_state);
 
 		double iter_timer_time = (glfwGetTime() - iter_timer) * 1000.0;

@@ -5,6 +5,7 @@ include
 doxygen
 saves
 extras
+wasmer-c-api
 assets/images
 assets/fonts
 assets/models

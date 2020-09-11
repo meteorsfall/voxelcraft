@@ -28,6 +28,7 @@ namespace VoxelEngine {
         optional<ivec3> raycast(int world_id, vec3 position, vec3 direction, float max_distance, bool previous_block=false);
         vector<vec3> collide(int world_id, vec3 collision_box_min_point, vec3 collision_box_max_point);
         void restart_world(int world_id);
+        void wasm_restart_world(void* ctx, int world_id);
         bool load_world(int world_id, const char* filepath);
         void save_world(int world_id, const char* filepath);
     }
