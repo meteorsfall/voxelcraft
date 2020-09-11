@@ -1,16 +1,19 @@
 #ifndef _PLAYER_HPP_
 #define _PLAYER_HPP_
 
+#include "../api.hpp"
 #include "../utils.hpp"
 #include "../camera.hpp"
-#include "../world.hpp"
 #include "../rigid_body.hpp"
-#include "../block.hpp"
+#include "../aabb.hpp"
 
 /**
  *\addtogroup example_game
  * @{
  */
+
+/// Function type to handle collision events
+using fn_on_collide = function<void(vec3 move, float friction)>;
 
 /// The Player class represents a Player in the @ref example_game game
 
@@ -19,7 +22,7 @@ public:
     /// The hotbar index that is hand is on
     int hand = 0;
     /// The hotbar of block_types
-    int hotbar[9] = {0};
+    int hotbar[9];
 
     /// The Camera that the player holds at his head for viewing the world
     Camera camera;

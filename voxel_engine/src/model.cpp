@@ -118,16 +118,6 @@ static void mesh_render(const mat4& PV, const mat4& M, tuple<byte*, byte*, int> 
     vertex_buffer = create_array_buffer((GLfloat*)get<0>(mesh_data), num_triangles*3*3*sizeof(GLfloat));
     uv_buffer = create_array_buffer((GLfloat*)get<1>(mesh_data), num_triangles*3*2*sizeof(GLfloat));
 
-    if (PV == mat4(1.0f)) {
-        for(int i = 0; i < 3; i++) {
-            dbg("FOUND!");
-            vec3 vert = ((vec3*)get<0>(mesh_data))[i];
-            dbg("Vert: (%f, %f, %f)", vert.x, vert.y, vert.z);
-            vert = vec3(M * vec4(vert, 1.0));
-            dbg("Vert: (%f, %f, %f)", vert.x, vert.y, vert.z);
-        }
-    }
-
     // 1st attribute buffer : vertices
     bind_array(0, vertex_buffer, 3);
 

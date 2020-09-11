@@ -2,7 +2,6 @@
 #define _MAIN_GAME_HPP_
 
 #include "../utils.hpp"
-#include "../world.hpp"
 #include "player.hpp"
 #include "../input.hpp"
 

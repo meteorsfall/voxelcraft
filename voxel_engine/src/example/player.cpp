@@ -10,6 +10,7 @@ Player::Player() {
 
     this->camera.position = body.position + camera_relative_to_player;
     this->is_flying = false;
+    memset(this->hotbar, 0, sizeof(this->hotbar));
 }
 
 void Player::set_fly(bool is_flying) {

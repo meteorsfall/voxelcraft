@@ -1,5 +1,7 @@
 #include "main_ui.hpp"
 
+extern Player* g_player;
+
 int crosshair_texture;
 int main_button_texture;
 int button_texture;
@@ -20,10 +22,6 @@ MainUI::MainUI(Game* game) {
     hotbar_texture = get_universe()->register_texture("assets/images/hotbar.bmp", ivec3(255, 0, 255));
     hotbar_button_texture = get_universe()->register_texture("assets/images/hotbar_button.bmp", ivec3(255, 0, 255));
     hotbar_selected_texture = get_universe()->register_texture("assets/images/hotbar_selected.bmp", ivec3(255, 0, 255));
-
-    int dirt_texture = get_universe()->register_texture("assets/images/dirt.bmp");
-    int cobblestone_texture = get_universe()->register_texture("assets/images/cobblestone.bmp");
-    int plank_texture = get_universe()->register_texture("assets/images/planks.bmp");
     
     this->game = game;
     this->crosshair = UIElement(crosshair_texture);
@@ -32,12 +30,8 @@ MainUI::MainUI(Game* game) {
     hotbar_menu.background = UIElement(hotbar_texture);
     hotbar_menu.background.value().size = ivec2(163, 21) * 5;
 
-    vector<int> hotbar_textures = {dirt_texture, cobblestone_texture, plank_texture};
-    for(int i = 4; i <= 9; i++) {
-        hotbar_textures.push_back(hotbar_button_texture);
-    }
     for(int i = 1; i <= 9; i++) {
-        hotbar_menu.buttons.push_back(Button(UIElement(hotbar_textures[i - 1]), "", [](){}));
+        hotbar_menu.buttons.push_back(Button(UIElement(0), "", [](){}));
     }
 
     main_menu.font = &font;
@@ -132,6 +126,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
         UIElement& elem = hotbar_menu.buttons[i].elem;
         elem.size = ivec2(8, 8)*hotbar_size_multiple;
         elem.location = hotbar.location + ivec2(6 + 18*i, 6)*hotbar_size_multiple;
+        elem.set_model(g_player->hotbar[i]);
     }
 
     hotbar_selected.size = ivec2(22, 21)*hotbar_size_multiple;
@@ -165,11 +160,11 @@ void MainUI::iterate(InputState& input, int width, int height) {
     position_page(new_visible_page);
 
     if (menu == MenuState::SaveMenu || menu == MenuState::LoadMenu) {
-        new_visible_page.buttons[1].elem.texture = button_texture;
-        new_visible_page.buttons[2].elem.texture = button_texture;
-        new_visible_page.buttons[3].elem.texture = button_texture;
+        new_visible_page.buttons[1].elem.set_texture(button_texture);
+        new_visible_page.buttons[2].elem.set_texture(button_texture);
+        new_visible_page.buttons[3].elem.set_texture(button_texture);
         if (save_selected > 0) {
-            new_visible_page.buttons[save_selected].elem.texture = button_selection_texture;
+            new_visible_page.buttons[save_selected].elem.set_texture(button_selection_texture);
         }
     }
     
@@ -190,21 +185,6 @@ void MainUI::render() {
         hotbar_selected.render();
         hotbar_menu.render();
     }
-
-    vec2 loc = vec2(300.0, 200.0);
-    vec2 size = vec2(250.0, 250.0);
-
-    mat4 model = mat4(1.0f);
-    // Scale by screensize. Squash Z by 1/50 so that it stays within the drawing distance
-    model = scale(model, vec3(2.0f/(float)screen.x, 2.0f/(float)screen.y, 1.0/50.0));
-    // Translate to correct location
-    model = translate(model, vec3(-screen.x/2.0f, screen.y/2.0f - size.y, 0.0) + vec3(loc.x, -loc.y, 0.0));
-    // Scale to width and height in pixels
-    model = scale(model, vec3(size, 1.0));
-    // Translate to positive quadrant
-    model = translate(model, vec3(0.5, 0.5, 0.0));
-    //get_universe()->get_model(wireframe_block_model)->render(mat4(1.0f), mat4(1.0f), model, "gui", map<string,string>{});
-    //get_universe()->get_model(cobblestone_block_model)->render(mat4(1.0f), mat4(1.0f), model, "gui", map<string,string>{});
 
    	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.1", ivec3(240, 0, 0));
 }

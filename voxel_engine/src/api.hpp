@@ -1,4 +1,9 @@
+#ifndef _VE_API_HPP_
+#define _VE_API_HPP_
+
 #include "utils.hpp"
+
+#define CHUNK_SIZE 16
 
 namespace VoxelEngine {
     int register_font(const char* filepath);
@@ -54,3 +59,5 @@ UIElement {
     int texture_id;
 }
 */
+
+#endif

@@ -32,6 +32,11 @@ public:
     TextureRenderer();
     /// Set the window dimensions of the TextureRenderer
     void set_window_dimensions(int width, int height);
+
+    /// Screen width
+    int width;
+    /// Screen height
+    int height;
 private:
     void internal_render(const Texture& texture, ivec2 top_left, ivec2 size);
     GLuint vertex_buffer;
@@ -39,8 +44,6 @@ private:
     GLuint skybox_buffer;
     GLuint skybox_shader;
     GLuint ui_shader;
-    int width;
-    int height;
 };
 
 /// Get the global texture renderer
