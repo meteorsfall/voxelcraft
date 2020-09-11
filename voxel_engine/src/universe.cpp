@@ -190,6 +190,11 @@ int Universe::register_event() {
     return events.size();
 }
 
+int Universe::register_font(const char* filepath) {
+    fonts.push_back(Font(filepath));
+    return fonts.size();
+}
+
 Event* Universe::get_event(int event_id) {
     return &events.at(event_id-1);
 }
@@ -218,4 +223,8 @@ Component* Universe::get_component(int component_id) {
 
 Model* Universe::get_model(int model_id) {
     return &models.at(model_id - 1);
+}
+
+Font* Universe::get_font(int font_id) {
+    return &fonts.at(font_id - 1);
 }

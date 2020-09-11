@@ -8,6 +8,7 @@
 #include "mesh.hpp"
 #include "event.hpp"
 #include "model.hpp"
+#include "font.hpp"
 
 /**
  *\addtogroup VoxelEngine
@@ -32,6 +33,8 @@ public:
     int register_model(const char* model_path);
     /// Register a new event
     int register_event();
+    /// Register a font
+    int register_font(const char* font_path);
 
     /// The @ref TextureAtlasser will represent all textures thusfar added to the texture atlas
     TextureAtlasser* get_atlasser();
@@ -47,6 +50,8 @@ public:
     Model* get_model(int model_id);
     /// Gets a @ref Event from the given event_id
     Event* get_event(int event_id);
+    /// Gets a @ref Font from the given font_id
+    Font* get_font(int font_id);
 private:
     TextureAtlasser atlasser;
     vector<Texture> textures;
@@ -55,6 +60,7 @@ private:
     vector<Component> components;
     vector<Model> models;
     vector<Event> events;
+    vector<Font> fonts;
     map<string, int> mesh_names;
     map<string, int> texture_names;
     map<string, int> atlas_texture_names;

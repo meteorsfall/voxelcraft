@@ -2,6 +2,7 @@
 #include "world_gen.hpp"
 #include "../texture_renderer.hpp"
 #include "drop.hpp"
+#include "../api.hpp"
 
 // Mods
 DropMod* drop_mod;

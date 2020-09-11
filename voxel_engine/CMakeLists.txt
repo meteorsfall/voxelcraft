@@ -105,7 +105,7 @@ include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 include_directories(SYSTEM extras)
 
 # Define VoxelCraft executable
-add_executable(vc src/main.cpp src/mesh.cpp src/event.cpp src/model.cpp src/example/drop.cpp src/entity.cpp src/rigid_body.cpp src/utils.cpp src/universe.cpp src/example/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/megachunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
+add_executable(vc src/main.cpp src/api.cpp src/mesh.cpp src/event.cpp src/model.cpp src/example/drop.cpp src/entity.cpp src/rigid_body.cpp src/utils.cpp src/universe.cpp src/example/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/megachunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
 
 # Precompile includes.hpp header file
 target_precompile_headers(vc PRIVATE src/includes.hpp)

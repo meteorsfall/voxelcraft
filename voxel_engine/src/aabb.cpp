@@ -80,7 +80,7 @@ bool AABB::test_frustum(const mat4& PV) {
 }
 
 bool AABB::is_colliding(const AABB& other) {
-    // If our max_point is undernear the other's min_point, then we're obviously not going to collide
+    // If our max_point is underneath the other's min_point, then we're obviously not going to collide
     bool max_invalid = this->max_point.x <= other.min_point.x
                     || this->max_point.y <= other.min_point.y
                     || this->max_point.z <= other.min_point.z;
