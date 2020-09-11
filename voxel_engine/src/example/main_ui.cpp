@@ -8,6 +8,9 @@ int hotbar_texture;
 int hotbar_button_texture;
 int hotbar_selected_texture;
 
+extern int cobblestone_block_model;
+extern int wireframe_block_model;
+
 MainUI::MainUI(Game* game) {
     // Initialization of main UI stuff
     crosshair_texture = get_universe()->register_texture("assets/images/crosshair.bmp", ivec3(255, 0, 255));
@@ -187,5 +190,21 @@ void MainUI::render() {
         hotbar_selected.render();
         hotbar_menu.render();
     }
+
+    vec2 loc = vec2(300.0, 200.0);
+    vec2 size = vec2(250.0, 250.0);
+
+    mat4 model = mat4(1.0f);
+    // Scale by screensize. Squash Z by 1/50 so that it stays within the drawing distance
+    model = scale(model, vec3(2.0f/(float)screen.x, 2.0f/(float)screen.y, 1.0/50.0));
+    // Translate to correct location
+    model = translate(model, vec3(-screen.x/2.0f, screen.y/2.0f - size.y, 0.0) + vec3(loc.x, -loc.y, 0.0));
+    // Scale to width and height in pixels
+    model = scale(model, vec3(size, 1.0));
+    // Translate to positive quadrant
+    model = translate(model, vec3(0.5, 0.5, 0.0));
+    //get_universe()->get_model(wireframe_block_model)->render(mat4(1.0f), mat4(1.0f), model, "gui", map<string,string>{});
+    //get_universe()->get_model(cobblestone_block_model)->render(mat4(1.0f), mat4(1.0f), model, "gui", map<string,string>{});
+
    	TextureRenderer::render_text(font, ivec2(screen.x / 80, screen.y - screen.y / 80), 0.3, "VoxelCraft v0.1.1", ivec3(240, 0, 0));
 }

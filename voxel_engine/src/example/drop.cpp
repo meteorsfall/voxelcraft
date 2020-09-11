@@ -47,11 +47,14 @@ DropMod::DropMod() {
             model = rotate(model, (float)radians(glfwGetTime() * 360 / 2), vec3(0.0, 1.0, 0.0));
             drop.item.model_matrix = model;
             
+            // Apply gravity and then iterate
             drop.item.body.push(vec3(0.0, -9.8, 0.0), delta_time);
             drop.item.body.iterate(delta_time);
+
             // Have the drop bob up and down
             drop.item.aabb.min_point.y = -0.25/2 - 0.15 + 0.1*sin(radians(glfwGetTime() * 360 / 3));
 
+            // Collide the drop against the world blocks
             g_world->collide(drop.item.get_aabb(), drop.item.get_on_collide());
         }
     });

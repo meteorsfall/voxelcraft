@@ -47,6 +47,7 @@ int log_block_model;
 int stone_block_model;
 int cobblestone_block_model;
 int plank_block_model;
+int wireframe_block_model;
 
 #include "../entity.hpp"
 #include "../model.hpp"
@@ -108,6 +109,7 @@ Game::Game() {
     grass_block_model = get_universe()->register_model("assets/models/grass_block.json");
     cobblestone_block_model = get_universe()->register_model("assets/models/cobblestone_block.json");
     plank_block_model = get_universe()->register_model("assets/models/plank_block.json");
+    wireframe_block_model = get_universe()->register_model("assets/models/wireframe_block.json");
     
     // Register All Events
     on_break_event = get_universe()->register_event();

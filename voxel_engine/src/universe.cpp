@@ -67,7 +67,7 @@ int Universe::register_component(const char* component_path) {
             string k = transform.name.GetString();
             if (k.compare("rotation") == 0) {
                 for(int i = 0; i < 3; i++) {
-                    rotation[i] = transform.value[i].GetFloat();
+                    rotation[i] = radians(transform.value[i].GetFloat());
                 }
             }
             if (k.compare("translation") == 0) {
@@ -87,13 +87,11 @@ int Universe::register_component(const char* component_path) {
         mat4 model = mat4(1.0f);
         // Translation
         model = translate(model, translation);
+        // Rotate
+        mat4 euler_rotation = eulerAngleX(rotation.x) * eulerAngleY(rotation.y) * eulerAngleZ(rotation.z);
+        model = model * euler_rotation;
         // Scale
         model = scale(model, scale_factor);
-        // Rotate
-        model = translate(model, vec3(0.5));
-        mat4 euler_rotation = eulerAngleYXZ(rotation.y, rotation.x, rotation.z);
-        model = model * euler_rotation;
-        model = translate(model, -vec3(0.5));
         
         const char* key = m.name.GetString();
         perspectives[key] = model;
