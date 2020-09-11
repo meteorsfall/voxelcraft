@@ -1,10 +1,5 @@
 #include "megachunk.hpp"
 
-int alloc_chunkdata();
-ChunkData* get_allocated_chunkdata(int chunkdata_id);
-void free_chunkdata(int chunkdata_id);
-void clear_chunkdata();
-
 byte megachunk_serialization_buffer[MAX_MEGACHUNK_SIZE];
 
 MegaChunk::~MegaChunk() {
@@ -164,35 +159,28 @@ void MegaChunk::deserialize(byte* buffer, int size) {
 
 // Manual Chunk Allocation
 
-vector<ChunkData*> chunk_allocations;
-vector<int> unused_chunk_allocations;
+vector<ChunkData*>* MegaChunk::chunk_allocations = new vector<ChunkData*>();
+vector<int>* MegaChunk::unused_chunk_allocations = new vector<int>();
 
-int alloc_chunkdata() {
+int MegaChunk::alloc_chunkdata() {
     int index;
-    if (unused_chunk_allocations.size() > 0) {
-        index = unused_chunk_allocations.back();
-        unused_chunk_allocations.pop_back();
+    if (unused_chunk_allocations->size() > 0) {
+        index = unused_chunk_allocations->back();
+        unused_chunk_allocations->pop_back();
         // Regenerate chunk data
         ChunkData d;
-        std::swap(*chunk_allocations[index], d);
+        std::swap(*(*chunk_allocations)[index], d);
     } else {
-        chunk_allocations.push_back(new ChunkData());
-        index = chunk_allocations.size() - 1;
+        chunk_allocations->push_back(new ChunkData());
+        index = chunk_allocations->size() - 1;
     }
     return index;
 }
 
-ChunkData* get_allocated_chunkdata(int chunkdata_id) {
-    return chunk_allocations.at(chunkdata_id);
+ChunkData* MegaChunk::get_allocated_chunkdata(int chunkdata_id) {
+    return chunk_allocations->at(chunkdata_id);
 }
 
-void free_chunkdata(int chunkdata_id) {
-    unused_chunk_allocations.push_back(chunkdata_id);
-}
-
-void clear_chunkdata() {
-    unused_chunk_allocations.reserve(chunk_allocations.size());
-    for(uint i = 0; i < chunk_allocations.size(); i++) {
-        unused_chunk_allocations.push_back(i);
-    }
+void MegaChunk::free_chunkdata(int chunkdata_id) {
+    unused_chunk_allocations->push_back(chunkdata_id);
 }

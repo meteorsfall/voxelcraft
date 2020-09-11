@@ -9,7 +9,7 @@
  */
 
 /// Generate a chunk at the world, with coordinates given the chunk-coords
-void generate_chunk(World& world, ivec3 chunk_coords);
+void generate_chunk(int world_id, ivec3 chunk_coords);
 
 /**@}*/
 

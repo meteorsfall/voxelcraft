@@ -41,7 +41,6 @@ public:
     /// True if the game has been paused
     bool paused = false;
 private:
-    World world;
     InputState input;
     double last_save = -1.0f;
 

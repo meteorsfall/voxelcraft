@@ -56,7 +56,7 @@ public:
 private:
     GLFWwindow* window;
     InputState next_input;
-    bool last_relative_mouse;
+    bool last_relative_mouse = false;
     bool exiting;
 };
 

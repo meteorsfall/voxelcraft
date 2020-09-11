@@ -61,14 +61,24 @@ void VoxelEngine::World::mark_chunk(int world_id, ivec3 chunk_coords, int priori
     world.mark_chunk(chunk_coords, priority);
 }
 
+int VoxelEngine::World::get_block(int world_id, ivec3 coordinates) {
+    if (world_id != 1) dbg("ERROR: World doesn't exist!");
+    return world.read_block(coordinates)->block_model;
+}
+
 void VoxelEngine::World::set_block(int world_id, ivec3 coordinates, int model_id) {
     if (world_id != 1) dbg("ERROR: World doesn't exist!");
     world.set_block(coordinates.x, coordinates.y, coordinates.z, model_id);
 }
 
-int VoxelEngine::World::get_block(int world_id, ivec3 coordinates) {
+float VoxelEngine::World::get_break_amount(int world_id, ivec3 coordinates) {
     if (world_id != 1) dbg("ERROR: World doesn't exist!");
-    return world.read_block(coordinates)->block_model;
+    return world.read_block(coordinates)->break_amount;
+}
+
+void VoxelEngine::World::set_break_amount(int world_id, ivec3 coordinates, float break_amount) {
+    if (world_id != 1) dbg("ERROR: World doesn't exist!");
+    world.write_block(coordinates)->break_amount = break_amount;
 }
 
 optional<ivec3> VoxelEngine::World::raycast(int world_id, vec3 position, vec3 direction, float max_distance, bool previous_block) {
@@ -76,7 +86,7 @@ optional<ivec3> VoxelEngine::World::raycast(int world_id, vec3 position, vec3 di
     return world.raycast(position, direction, max_distance, previous_block);
 }
 
-vector<vec3> collide(int world_id, vec3 collision_box_min_point, vec3 collision_box_max_point) {
+vector<vec3> VoxelEngine::World::collide(int world_id, vec3 collision_box_min_point, vec3 collision_box_max_point) {
     if (world_id != 1) dbg("ERROR: World doesn't exist!");
     vector<vec3> collisions;
     world.collide(AABB(collision_box_min_point, collision_box_max_point), [&collisions](vec3 movement, float) {
@@ -85,9 +95,14 @@ vector<vec3> collide(int world_id, vec3 collision_box_min_point, vec3 collision_
     return collisions;
 }
 
-void VoxelEngine::World::load_world(int world_id, const char* filepath) {
+void VoxelEngine::World::restart_world(int world_id) {
     if (world_id != 1) dbg("ERROR: World doesn't exist!");
-    world.load(filepath);
+    world = ::World();
+}
+
+bool VoxelEngine::World::load_world(int world_id, const char* filepath) {
+    if (world_id != 1) dbg("ERROR: World doesn't exist!");
+    return world.load(filepath);
 }
 
 void VoxelEngine::World::save_world(int world_id, const char* filepath) {

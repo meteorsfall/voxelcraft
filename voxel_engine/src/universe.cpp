@@ -52,7 +52,7 @@ int Universe::register_component(const char* component_path) {
     Document json;
     json.Parse(buf);
 
-    free(buf);
+    delete[] buf;
 
     // Grab perspectives
     Value& persps = json["perspectives"];

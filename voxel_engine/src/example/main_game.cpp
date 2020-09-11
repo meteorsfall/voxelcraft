@@ -6,10 +6,9 @@
 
 // Mods
 DropMod* drop_mod;
-World* g_world;
 Player* g_player;
 
-// Events
+int world_id;
 
 // Data: vec3
 int on_break_event;
@@ -32,8 +31,6 @@ int plank_texture;
 int up_texture;
 
 int skybox_texture;
-
-int mesh_id;
 
 int grass_block_component;
 int leaf_block_component;
@@ -60,57 +57,58 @@ void Game::save_world(const char* filepath) {
     std::filesystem::create_directory("saves", ec);
     std::filesystem::create_directory(filepath, ec);
 
-    world.save(filepath);
+    VoxelEngine::World::save_world(world_id, filepath);
 }
 
 void Game::load_world(const char* filepath) {
-    if (!world.load(filepath)) {
+    if (!VoxelEngine::World::load_world(world_id, filepath)) {
         restart_world();
     }
 }
 
 Game::Game() {
     g_player = &this->player;
-    g_world = &this->world;
+
+    world_id = VoxelEngine::register_world();
 
     // Register All Atlas Textures
-    stone_texture = get_universe()->register_atlas_texture("assets/images/stone.bmp");
-    dirt_texture = get_universe()->register_atlas_texture("assets/images/dirt.bmp");
-    log_side_texture = get_universe()->register_atlas_texture("assets/images/log_side.bmp");
-    log_top_texture = get_universe()->register_atlas_texture("assets/images/log_top.bmp");
-    leaves_texture = get_universe()->register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
-    grass_side_texture = get_universe()->register_atlas_texture("assets/images/grass_side.bmp");
-    grass_top_texture = get_universe()->register_atlas_texture("assets/images/grass_top.bmp");
-    cobblestone_texture = get_universe()->register_atlas_texture("assets/images/cobblestone.bmp");
-    plank_texture = get_universe()->register_atlas_texture("assets/images/planks.bmp");
-    up_texture = get_universe()->register_atlas_texture("assets/images/up.bmp");
-    get_universe()->register_atlas_texture("assets/images/wireframe.bmp", ivec3(255, 0, 255));
+    stone_texture = VoxelEngine::register_atlas_texture("assets/images/stone.bmp");
+    dirt_texture = VoxelEngine::register_atlas_texture("assets/images/dirt.bmp");
+    log_side_texture = VoxelEngine::register_atlas_texture("assets/images/log_side.bmp");
+    log_top_texture = VoxelEngine::register_atlas_texture("assets/images/log_top.bmp");
+    leaves_texture = VoxelEngine::register_atlas_texture("assets/images/leaves.bmp", ivec3(255, 0, 255));
+    grass_side_texture = VoxelEngine::register_atlas_texture("assets/images/grass_side.bmp");
+    grass_top_texture = VoxelEngine::register_atlas_texture("assets/images/grass_top.bmp");
+    cobblestone_texture = VoxelEngine::register_atlas_texture("assets/images/cobblestone.bmp");
+    plank_texture = VoxelEngine::register_atlas_texture("assets/images/planks.bmp");
+    up_texture = VoxelEngine::register_atlas_texture("assets/images/up.bmp");
+    VoxelEngine::register_atlas_texture("assets/images/wireframe.bmp", ivec3(255, 0, 255));
 
     // Register All Cubemap Textures
-	skybox_texture = get_universe()->register_cubemap_texture("assets/images/skybox.bmp");
+	skybox_texture = VoxelEngine::register_cubemap_texture("assets/images/skybox.bmp");
 
     // Register All Meshes
-    mesh_id = get_universe()->register_mesh("assets/meshes/cube.mesh");
+    VoxelEngine::register_mesh("assets/meshes/cube.mesh");
 
     // Register All Components
-    get_universe()->register_component("assets/components/stone.json");
-    get_universe()->register_component("assets/components/dirt.json");
-    get_universe()->register_component("assets/components/log.json");
-    get_universe()->register_component("assets/components/leaf.json");
-    get_universe()->register_component("assets/components/grass.json");
-    get_universe()->register_component("assets/components/cobblestone.json");
-    get_universe()->register_component("assets/components/plank.json");
-    get_universe()->register_component("assets/components/wireframe.json");
+    VoxelEngine::register_component("assets/components/stone.json");
+    VoxelEngine::register_component("assets/components/dirt.json");
+    VoxelEngine::register_component("assets/components/log.json");
+    VoxelEngine::register_component("assets/components/leaf.json");
+    VoxelEngine::register_component("assets/components/grass.json");
+    VoxelEngine::register_component("assets/components/cobblestone.json");
+    VoxelEngine::register_component("assets/components/plank.json");
+    VoxelEngine::register_component("assets/components/wireframe.json");
 
     // Register All Models
-    stone_block_model = get_universe()->register_model("assets/models/stone_block.json");
-    dirt_block_model = get_universe()->register_model("assets/models/dirt_block.json");
-    log_block_model = get_universe()->register_model("assets/models/log_block.json");
-    leaf_block_model = get_universe()->register_model("assets/models/leaf_block.json");
-    grass_block_model = get_universe()->register_model("assets/models/grass_block.json");
-    cobblestone_block_model = get_universe()->register_model("assets/models/cobblestone_block.json");
-    plank_block_model = get_universe()->register_model("assets/models/plank_block.json");
-    wireframe_block_model = get_universe()->register_model("assets/models/wireframe_block.json");
+    stone_block_model = VoxelEngine::register_model("assets/models/stone_block.json");
+    dirt_block_model = VoxelEngine::register_model("assets/models/dirt_block.json");
+    log_block_model = VoxelEngine::register_model("assets/models/log_block.json");
+    leaf_block_model = VoxelEngine::register_model("assets/models/leaf_block.json");
+    grass_block_model = VoxelEngine::register_model("assets/models/grass_block.json");
+    cobblestone_block_model = VoxelEngine::register_model("assets/models/cobblestone_block.json");
+    plank_block_model = VoxelEngine::register_model("assets/models/plank_block.json");
+    wireframe_block_model = VoxelEngine::register_model("assets/models/wireframe_block.json");
     
     // Register All Events
     on_break_event = get_universe()->register_event();
@@ -127,7 +125,7 @@ Game::~Game() {
 }
 
 void Game::restart_world() {
-    this->world = World();
+    VoxelEngine::World::restart_world(world_id);
     this->player = Player();
     player.hotbar[0] = dirt_block_model;
     player.hotbar[1] = cobblestone_block_model;
@@ -186,12 +184,12 @@ void Game::iterate(InputState& input) {
         }
 
         // Generate chunk if it needs to be generated
-        if (world.is_generated(chunk)) {
+        if (VoxelEngine::World::is_generated(world_id, chunk)) {
             chunk_exists = true;
         } else {
             // If it does, only generate if its mandatory or if we haven't generated a chunk this frame
             if (mandatory || !already_generated_chunk || (glfwGetTime() - time_started)*1000.0 < 8.0) {
-                generate_chunk(world, chunk);
+                generate_chunk(world_id, chunk);
                 chunk_exists = true;
                 already_generated_chunk = true;
             }
@@ -200,15 +198,15 @@ void Game::iterate(InputState& input) {
         // Mark chunk for render, if it exists
         if (chunk_exists) {
             if (mandatory) {
-                world.mark_chunk(chunk, priority);
+                VoxelEngine::World::mark_chunk(world_id, chunk, priority);
             } else {
-                if (world.is_generated(chunk)
-                    && world.is_generated(ivec3(chunk.x-1, chunk.y, chunk.z))
-                    && world.is_generated(ivec3(chunk.x+1, chunk.y, chunk.z))
-                    && world.is_generated(ivec3(chunk.x, chunk.y, chunk.z-1))
-                    && world.is_generated(ivec3(chunk.x, chunk.y, chunk.z+1))
+                if (VoxelEngine::World::is_generated(world_id, chunk)
+                    && VoxelEngine::World::is_generated(world_id, ivec3(chunk.x-1, chunk.y, chunk.z))
+                    && VoxelEngine::World::is_generated(world_id, ivec3(chunk.x+1, chunk.y, chunk.z))
+                    && VoxelEngine::World::is_generated(world_id, ivec3(chunk.x, chunk.y, chunk.z-1))
+                    && VoxelEngine::World::is_generated(world_id, ivec3(chunk.x, chunk.y, chunk.z+1))
                 ) {
-                    world.mark_chunk(chunk, priority);
+                    VoxelEngine::World::mark_chunk(world_id, chunk, priority);
                 }
             }
         }
@@ -239,13 +237,13 @@ void Game::render() {
     get_universe()->get_event(on_render_event)->trigger_event(&PV);
 
     // Render World
-    world.render(P, V, *get_universe()->get_atlasser());
+    VoxelEngine::Renderer::render_world(world_id, P, V);
 
     // Render entities
     //entity.render(PV);
 
     // Render Skybox
-    TextureRenderer::render_skybox(P, V, *get_universe()->get_cubemap_texture(skybox_texture));
+    VoxelEngine::Renderer::render_skybox(skybox_texture, P, V);
 }
 
 const float MOVEMENT_SPEED = 4.5;
@@ -294,12 +292,12 @@ void Game::place_block(int block) {
         return;
     }
 
-    optional<ivec3> target_block = world.raycast(player.camera.position, player.camera.get_direction(), 6.0, true);
+    optional<ivec3> target_block = VoxelEngine::World::raycast(world_id, player.camera.position, player.camera.get_direction(), 6.0, true);
 
     if (target_block) {
         ivec3 loc = target_block.value();
         if (!player.get_collision_box().is_colliding(AABB(loc, loc + ivec3(1)))) {
-            world.set_block(loc.x, loc.y, loc.z, block);
+            VoxelEngine::World::set_block(world_id, loc, block);
         }
     }
 }
@@ -351,7 +349,11 @@ void Game::handle_player_movement(double current_time, float deltaTime) {
     player.rotate(mouse_rotation);
 
     if (!player.is_flying) {
-        world.collide(player.get_collision_box(), player.get_on_collide());
+        AABB aabb = player.get_collision_box();
+        vector<vec3> vecs = VoxelEngine::World::collide(world_id, aabb.min_point, aabb.max_point);
+        for(vec3 v : vecs) {
+            player.get_on_collide()(v, 0.5);
+        }
     }
 }
 
@@ -389,16 +391,16 @@ vec3 Game::get_keyboard_movement() {
 }
 
 bool Game::mining_block(float mining_time) {
-    optional<ivec3> target_block = world.raycast(player.camera.position, player.camera.get_direction(), 4.0);
+    optional<ivec3> target_block = VoxelEngine::World::raycast(world_id, player.camera.position, player.camera.get_direction(), 4.0);
     if (target_block) {
         ivec3 loc = target_block.value();
-        mining_time += world.read_block(loc.x, loc.y, loc.z)->break_amount;
+        mining_time += VoxelEngine::World::get_break_amount(world_id, loc);
         if (mining_time < 1.0) {
-            world.write_block(loc.x, loc.y, loc.z)->break_amount = mining_time;
+            VoxelEngine::World::set_break_amount(world_id, loc, mining_time);
             return false;
         } else {
             get_universe()->get_event(on_break_event)->trigger_event(&loc);
-            world.set_block(loc.x, loc.y, loc.z, 0);
+            VoxelEngine::World::set_block(world_id, loc, 0);
             return true;
         }
     } else {
@@ -406,4 +408,3 @@ bool Game::mining_block(float mining_time) {
         return true;
     }
 }
-

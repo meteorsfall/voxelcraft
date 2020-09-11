@@ -1,12 +1,13 @@
 #include "drop.hpp"
 #include "player.hpp"
+#include "../api.hpp"
 
 extern int on_break_event;
 extern int on_pickup_event;
 extern int on_tick_event;
 extern int on_render_event;
+extern int world_id;
 extern Player* g_player;
-extern World* g_world;
 
 ///// The DropMod handles drops
 
@@ -55,7 +56,11 @@ DropMod::DropMod() {
             drop.item.aabb.min_point.y = -0.25/2 - 0.15 + 0.1*sin(radians(glfwGetTime() * 360 / 3));
 
             // Collide the drop against the world blocks
-            g_world->collide(drop.item.get_aabb(), drop.item.get_on_collide());
+            AABB aabb = drop.item.get_aabb();
+            vector<vec3> collisions = VoxelEngine::World::collide(world_id, aabb.min_point, aabb.max_point);
+            for(vec3 v : collisions) {
+                drop.item.get_on_collide()(v, 0.5);
+            }
         }
     });
     
@@ -72,7 +77,7 @@ DropMod::DropMod() {
     get_universe()->get_event(on_break_event)->subscribe([this](void* data) {
         ivec3 location = *(ivec3*)data;
         Drop drop(vec3(location) + vec3(0.5, 0.5, 0.5));
-        drop.item.model_id = g_world->read_block(location)->block_model;
+        drop.item.model_id = VoxelEngine::World::get_block(world_id, location);
         int hash = hash_ivec3(location, 99);
         drop.item.body.velocity = vec3(hash % 8, 10, (hash / 8) % 8) / 5.0f;
         drop.spawn_time = glfwGetTime();

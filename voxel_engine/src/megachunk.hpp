@@ -46,6 +46,12 @@ public:
 private:
   /// Array of chunkdata, as an index to the chunk allocation
   optional<int> chunks[MEGACHUNK_SIZE][MEGACHUNK_SIZE][MEGACHUNK_SIZE];
+
+  static vector<ChunkData*>* chunk_allocations;
+  static vector<int>* unused_chunk_allocations;
+  static int alloc_chunkdata();
+  static ChunkData* get_allocated_chunkdata(int chunkdata_id);
+  static void free_chunkdata(int chunkdata_id);
 };
 
 /**@}*/

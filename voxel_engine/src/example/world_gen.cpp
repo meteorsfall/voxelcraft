@@ -1,5 +1,6 @@
 #include "world_gen.hpp"
 #include <libnoise/noise.h>
+#include "../api.hpp"
 using namespace noise;
 
 extern int air_block;
@@ -15,54 +16,54 @@ extern int dirt_block_model;
 extern int log_block_model;
 extern int stone_block_model;
 
-void generate_random_tree(World& world, ivec3 loc);
-void generate_tree_pyramid(World& world, ivec3 loc);
-void generate_tree_pyramid_truncated(World& world, ivec3 loc);
-void generate_tree_cute(World& world, ivec3 loc);
-void generate_tree_overhang(World& world, ivec3 loc);
+void generate_random_tree(int world_id, ivec3 loc);
+void generate_tree_pyramid(int world_id, ivec3 loc);
+void generate_tree_pyramid_truncated(int world_id, ivec3 loc);
+void generate_tree_cute(int world_id, ivec3 loc);
+void generate_tree_overhang(int world_id, ivec3 loc);
 
-void generate_random_tree(World& world, ivec3 loc) {
+void generate_random_tree(int world_id, ivec3 loc) {
     // Random number for a nonce
     int r = hash_ivec4(ivec4(loc.x, loc.y, loc.z, 137421)) % 4;
     switch(r) {
     case 0:
-        generate_tree_pyramid(world, loc);
+        generate_tree_pyramid(world_id, loc);
         break;
     case 1:
-        generate_tree_pyramid_truncated(world, loc);
+        generate_tree_pyramid_truncated(world_id, loc);
         break;
     case 2:
-        generate_tree_cute(world, loc);
+        generate_tree_cute(world_id, loc);
         break;
     case 3:
-        generate_tree_overhang(world, loc);
+        generate_tree_overhang(world_id, loc);
         break;
     }
 }
 
-void generate_tree_pyramid(World& world, ivec3 loc) {
+void generate_tree_pyramid(int world_id, ivec3 loc) {
     // Make stalk of tree
-    world.set_block(loc.x, loc.y, loc.z, log_block_model);
-    world.set_block(loc.x, loc.y+1, loc.z, log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y, loc.z), log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+1, loc.z), log_block_model);
 
     // Make pyramid
     for(int dy = 2; dy <= 4; dy++) {
         int radius = dy == 2 ? 2 : (dy == 3 ? 1 : 0);
         for(int dx = -radius; dx <= radius; dx++) {
             for(int dz = -radius; dz <= radius; dz++) {
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
+                VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + dy, loc.z + dz), leaf_block_model);
             }
         }
     }
     
-    world.set_block(loc.x, loc.y+2, loc.z, log_block_model);
-    world.set_block(loc.x, loc.y+3, loc.z, log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+2, loc.z), log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+3, loc.z), log_block_model);
 }
 
-void generate_tree_pyramid_truncated(World& world, ivec3 loc) {
+void generate_tree_pyramid_truncated(int world_id, ivec3 loc) {
     // Make stalk of tree
-    world.set_block(loc.x, loc.y, loc.z, log_block_model);
-    world.set_block(loc.x, loc.y+1, loc.z, log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y, loc.z), log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+1, loc.z), log_block_model);
 
     // Make pyramid
     for(int dy = 2; dy <= 4; dy++) {
@@ -72,39 +73,39 @@ void generate_tree_pyramid_truncated(World& world, ivec3 loc) {
                 if (radius > 0 && abs(dx) == radius && abs(dz) == radius) {
                     continue;
                 }
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
+                VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + dy, loc.z + dz), leaf_block_model);
             }
         }
     }
     
-    world.set_block(loc.x, loc.y+2, loc.z, log_block_model);
-    world.set_block(loc.x, loc.y+3, loc.z, log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+2, loc.z), log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+3, loc.z), log_block_model);
 }
 
-void generate_tree_cute(World& world, ivec3 loc) {
-    world.set_block(loc.x, loc.y, loc.z, log_block_model);
-    world.set_block(loc.x, loc.y+1, loc.z, log_block_model);
+void generate_tree_cute(int world_id, ivec3 loc) {
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y, loc.z), log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y+1, loc.z), log_block_model);
 
     for(int dx = -1; dx <= 1; dx++){
         for(int dz = -1; dz <= 1; dz++){
             for(int dy = 2; dy <= 3; dy++){
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
+                VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + dy, loc.z + dz), leaf_block_model);
             }
         }
     }
 
-    world.set_block(loc.x, loc.y + 4, loc.z, leaf_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y + 4, loc.z), leaf_block_model);
 }
 
-void generate_tree_overhang(World& world, ivec3 loc) {
+void generate_tree_overhang(int world_id, ivec3 loc) {
     for(int dy = 0; dy <= 2; dy++){
-        world.set_block(loc.x, loc.y + dy, loc.z, log_block_model);
+        VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y + dy, loc.z), log_block_model);
     }
 
     for(int dx = -2; dx <= 2; dx++){
         for(int dz = -2; dz <= 2; dz++){
             for(int dy = 3; dy <= 4; dy++){
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, leaf_block_model);
+                VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + dy, loc.z + dz), leaf_block_model);
             }
         }
     }
@@ -112,27 +113,27 @@ void generate_tree_overhang(World& world, ivec3 loc) {
     for(int dy = 3; dy <= 4; dy++){
         for(int dx = -2; dx <= 2; dx += 4){
             for(int dz = -2; dz <= 2; dz += 4){
-                world.set_block(loc.x + dx, loc.y + dy, loc.z + dz, air_block);
+                VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + dy, loc.z + dz), air_block);
             }
         }
     }
     
     for(int dx = -1; dx <= 1; dx++){
         for(int dz = -1; dz <= 1; dz++){
-            world.set_block(loc.x + dx, loc.y + 3, loc.z + dz, air_block);
+            VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + 3, loc.z + dz), air_block);
         }
     }
 
     for(int dx = -1; dx <= 1; dx++){
         for(int dz = -1; dz <= 1; dz++){
-            world.set_block(loc.x + dx, loc.y + 5, loc.z + dz, leaf_block_model);
+            VoxelEngine::World::set_block(world_id, ivec3(loc.x + dx, loc.y + 5, loc.z + dz), leaf_block_model);
         }
     }
 
-    world.set_block(loc.x, loc.y + 3, loc.z, log_block_model);
+    VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y + 3, loc.z), log_block_model);
 }
 
-void generate_chunk(World& world, ivec3 chunk_coords) {
+void generate_chunk(int world_id, ivec3 chunk_coords) {
     module::Perlin perlin_height;
     perlin_height.SetOctaveCount(6);
     perlin_height.SetFrequency(2.0);
@@ -157,7 +158,7 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
 
     const double perlin_tree_scale = 128.0;
 
-    if (world.is_generated(chunk_coords)) {
+    if (VoxelEngine::World::is_generated(world_id, chunk_coords)) {
         printf("CANNOT GENERATE CHUNK TWICE!\n");
         return;
     }
@@ -169,7 +170,7 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
     double start_time = glfwGetTime();
 
     if (chunk_coords.y > 0) {
-        world.set_block(start.x, start.y, start.z, air_block);
+        VoxelEngine::World::set_block(world_id, ivec3(start.x, start.y, start.z), air_block);
         // Just air
     } else {
         static int heights[CHUNK_SIZE][CHUNK_SIZE];
@@ -198,11 +199,11 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                     int height = heights[i][k];
                     int stone_height = stone_heights[i][k];
                     if (loc.y < stone_height) {
-                        world.set_block(loc.x, loc.y, loc.z, stone_block_model);
+                        VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y, loc.z), stone_block_model);
                     } else if (loc.y < height) {
-                        world.set_block(loc.x, loc.y, loc.z, dirt_block_model);
+                        VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y, loc.z), dirt_block_model);
                     } else if (loc.y == height) {
-                        world.set_block(loc.x, loc.y, loc.z, grass_block_model);
+                        VoxelEngine::World::set_block(world_id, ivec3(loc.x, loc.y, loc.z), grass_block_model);
                     }
                 }
             }
@@ -217,9 +218,9 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
                     if (hash_ivec3(loc, 4930214) % 10000 < 10000 * prob) {
                         int tree_extra_height = hash_ivec3(loc, 4321) % 2;
                         for(int m = 0; m < tree_extra_height; m++) {
-                            world.set_block(start.x+i, heights[i][k] + 1 + m, start.z+k, log_block_model);
+                            VoxelEngine::World::set_block(world_id, ivec3(start.x+i, heights[i][k] + 1 + m, start.z+k), log_block_model);
                         }
-                        generate_random_tree(world, ivec3(start.x+i, heights[i][k] + 1 + tree_extra_height, start.z+k));
+                        generate_random_tree(world_id, ivec3(start.x+i, heights[i][k] + 1 + tree_extra_height, start.z+k));
                     }
                 }
             }
@@ -232,5 +233,5 @@ void generate_chunk(World& world, ivec3 chunk_coords) {
         //dbg("Generate Time: %f", time);
     }
 
-    world.mark_generated(chunk_coords);
+    VoxelEngine::World::mark_generated(world_id, chunk_coords);
 }

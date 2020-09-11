@@ -14,11 +14,16 @@ namespace VoxelEngine {
         bool is_generated(int world_id, ivec3 chunk_coords);
         void mark_generated(int world_id, ivec3 chunk_coords);
         void mark_chunk(int world_id, ivec3 chunk_coords, int priority);
-        void set_block(int world_id, ivec3 coordinates, int model_id);
+
         int get_block(int world_id, ivec3 coordinates);
-        optional<ivec3> raycast(int world_id, vec3 position, vec3 direction, float max_distance, bool previous_block);
+        void set_block(int world_id, ivec3 coordinates, int model_id);
+        float get_break_amount(int world_id, ivec3 coordinates);
+        void set_break_amount(int world_id, ivec3 coordinates, float break_amount);
+
+        optional<ivec3> raycast(int world_id, vec3 position, vec3 direction, float max_distance, bool previous_block=false);
         vector<vec3> collide(int world_id, vec3 collision_box_min_point, vec3 collision_box_max_point);
-        void load_world(int world_id, const char* filepath);
+        void restart_world(int world_id);
+        bool load_world(int world_id, const char* filepath);
         void save_world(int world_id, const char* filepath);
     }
 
