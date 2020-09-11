@@ -24,7 +24,7 @@ DropMod::DropMod() {
 
             vec3 diff = g_player->body.position + vec3(0.0, 0.75, 0.0) - drop.item.body.position;
             if (diff.y > 0.0) {
-                diff.y *= 2.0f; // Stricter standards when comparing vertically
+                diff.y *= 1.5f; // Stricter standards when comparing vertically
             }
             if ( length(diff) < 2.0f) {
                 if (length(diff) > 0.1f) {
