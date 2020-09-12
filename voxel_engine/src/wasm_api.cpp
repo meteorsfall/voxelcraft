@@ -69,8 +69,7 @@ int32_t VoxelEngineWASM::register_font(void* raw_wasm_ctx, i32 filepath) {
     u32 memory_length = wasmer_memory_data_length(memory);
     
     //u32 length = *(u32*)(&memory_data[filepath-4]);
-    //dbg("File: %d", filepath);
-    dbg("File: %p", &filepath);
+    dbg("File: %d", filepath);
     dbg("Length: %d", memory_length);
 
     //dbg("Font! %p", get_wasm_string(wasm_ctx, filepath));
@@ -95,6 +94,7 @@ int32_t VoxelEngineWASM::register_texture(void* raw_wasm_ctx, int32_t filepath, 
 int32_t VoxelEngineWASM::register_cubemap_texture(void* raw_wasm_ctx, int32_t filepath) {
     wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
     UNUSED(wasm_ctx);
+    UNUSED(filepath);
     
     //const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
     //dbg("Mem: %p", memory);
@@ -236,6 +236,7 @@ void VoxelEngineWASM::Renderer::render_model(void* raw_wasm_ctx, int32_t model_i
 
 void VoxelEngineWASM::Renderer::render_skybox(void* raw_wasm_ctx, int32_t cubemap_texture_id, int32_t proj, int32_t view) {
     wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
+    UNUSED(cubemap_texture_id);
     
     const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
     u8* memory_data = wasmer_memory_data(memory);

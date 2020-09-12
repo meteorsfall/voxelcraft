@@ -15,7 +15,7 @@ let frame_num : i32 = 0;
 
 function iterate(a: i32): i32 {
   if (frame_num % 100 == 0) {
-    VoxelEngine.World.restart_world(1);
+    //VoxelEngine.World.restart_world(1);
   }
   frame_num++;
   return 0;

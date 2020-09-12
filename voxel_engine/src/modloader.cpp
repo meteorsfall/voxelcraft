@@ -25,21 +25,21 @@ int get_counter(wasmer_instance_context_t *ctx) {
 
 extern "C" int32_t add_to_counter(wasmer_instance_context_t *ctx, int32_t value_to_add) {
   UNUSED(ctx);
-  //int* local = &value_to_add;
+  int* local = &value_to_add;
   
   //counter += value_to_add;
-  //printf("CTX: %p\n", ctx);
-  //const wasmer_memory_t* memory = wasmer_instance_context_memory(ctx, 0);
-  //const u8* memory_data = wasmer_memory_data(memory);
-  //u32 memory_length = wasmer_memory_data_length(memory);
+  printf("CTX: %p\n", (void*)ctx);
+  const wasmer_memory_t* memory = wasmer_instance_context_memory(ctx, 0);
+  const u8* memory_data = wasmer_memory_data(memory);
+  u32 memory_length = wasmer_memory_data_length(memory);
   //printf("Memory: %p\n", memory);
   //printf("Length: %d\n", memory_length);
   printf("VAL: %d\n", value_to_add);
-  printf("VAL: %p\n", &value_to_add);
-  //VoxelEngine::register_font("assets/fonts/pixel.ttf");
-  //dbg("Ptr: %p", memory_data);
-  //dbg("Char: %c", memory_data[value_to_add]);
-  //dbg("STR: %s", get_wasm_string(ctx, value_to_add));
+  printf("VAL: %p\n", (void*)&value_to_add);
+  VoxelEngine::register_font("assets/fonts/pixel.ttf");
+  dbg("Ptr: %p", memory_data);
+  dbg("Char: %c", memory_data[value_to_add]);
+  dbg("STR: %s", get_wasm_string(ctx, value_to_add));
   return counter;
 }
 

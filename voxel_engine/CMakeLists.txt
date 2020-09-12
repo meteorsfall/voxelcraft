@@ -77,15 +77,12 @@ set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
 message(STATUS "Found OpenGL at ${OPENGL_LIBRARY}")
 
+# Include from /include and link from /lib on windows
+include_directories(SYSTEM include)
+link_directories(lib)
+
 if (WIN32)
-  # Include from /include and link from /lib on windows
-  include_directories(SYSTEM include)
-  link_directories(lib)
 else ()
-  # Import wasmer
-  include_directories(SYSTEM wasmer-c-api/include)
-  link_directories(wasmer-c-api/lib)
-  
   # Import packages on linux
   set(CMAKE_MODULE_PATH /usr/local/lib/cmake /usr/local/lib/x86_64-linux-gnu/cmake)
   set(CMAKE_PREFIX_PATH /usr/local/lib/cmake/glfw)
@@ -124,7 +121,7 @@ if (WIN32)
       $<TARGET_FILE_DIR:vc>)
 else ()
   # Link linux libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise wasmer ${FREETYPE_LIBRARIES})
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise wasmer ${FREETYPE_LIBRARIES} stdc++fs)
   # Run doxygen after compiling
   add_custom_command(TARGET vc POST_BUILD
       COMMAND doxygen

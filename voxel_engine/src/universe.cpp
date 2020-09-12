@@ -1,6 +1,7 @@
 #include "universe.hpp"
 #include "gl_utils.hpp"
 #include <rapidjson/document.h>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/euler_angles.hpp>
 using namespace rapidjson;
 

@@ -12,3 +12,7 @@ assets/components
 assets/meshes
 gmon.out
 analysis.txt
+
+*.wasm
+mods/math
+
