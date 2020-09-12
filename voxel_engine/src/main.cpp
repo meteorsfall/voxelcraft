@@ -25,8 +25,6 @@ void resize_callback(GLFWwindow* win, int w, int h) {
 
 int main( void )
 {
-	Mod main_mod("mods/host-functions.wasm");
-
 	// Initialise GLFW
 	if( !glfwInit() )
 	{
@@ -102,6 +100,10 @@ int main( void )
 	TextureRenderer texture_renderer;
 	texture_renderer.set_window_dimensions(width, height);
 	g_texture_renderer = &texture_renderer;
+	
+	// Import mods
+	Mod main_mod("mods/host-functions.wasm");
+	main_mod.call("init");
 
 	// MAKE GAME HERE
 	Game game;
@@ -171,6 +173,7 @@ int main( void )
 		double game_timer = glfwGetTime();
 
 		game.render();
+		//main_mod.call("render");
 
 		double game_timer_time = (glfwGetTime() - game_timer) * 1000.0;
 #if FRAME_TIMER
@@ -190,8 +193,10 @@ int main( void )
 		
 		// Render UI
 		main_ui.iterate(input_state, width, height);
+		//main_mod.call("iterate_ui");
 		if (main_ui.exiting) break;
 		main_ui.render();
+		main_mod.call("render_ui");
 #if FRAME_TIMER
 		dbg("UI CPU Render Time: %f", (glfwGetTime() - ui_timer)*1000.0);
 #endif

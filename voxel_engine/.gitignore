@@ -5,7 +5,6 @@ include
 doxygen
 saves
 extras
-wasmer-c-api
 assets/images
 assets/fonts
 assets/models
@@ -13,4 +12,3 @@ assets/components
 assets/meshes
 gmon.out
 analysis.txt
-

@@ -82,6 +82,10 @@ if (WIN32)
   include_directories(SYSTEM include)
   link_directories(lib)
 else ()
+  # Import wasmer
+  include_directories(SYSTEM wasmer-c-api/include)
+  link_directories(wasmer-c-api/lib)
+  
   # Import packages on linux
   set(CMAKE_MODULE_PATH /usr/local/lib/cmake /usr/local/lib/x86_64-linux-gnu/cmake)
   set(CMAKE_PREFIX_PATH /usr/local/lib/cmake/glfw)
@@ -103,8 +107,6 @@ endif ()
 include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 include_directories(SYSTEM extras)
-include_directories(SYSTEM wasmer-c-api/include)
-link_directories(wasmer-c-api/lib)
 
 # Define VoxelCraft executable
 add_executable(vc src/main.cpp src/modloader.cpp src/api.cpp src/mesh.cpp src/event.cpp src/model.cpp src/example/drop.cpp src/entity.cpp src/rigid_body.cpp src/utils.cpp src/universe.cpp src/example/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/megachunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
@@ -114,7 +116,7 @@ target_precompile_headers(vc PRIVATE src/includes.hpp)
 
 if (WIN32)
   # Link windows libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 noise freetype)
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 wasmer noise freetype ws2_32 userenv)
   # Copy .dll's into build directory
   add_custom_command(TARGET vc POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory
