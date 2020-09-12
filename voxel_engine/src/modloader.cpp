@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <string.h>
 
+#include "wasm_api.cpp"
+
 #define WASM_I32 wasmer_value_tag::WASM_I32
 #define WASM_I64 wasmer_value_tag::WASM_I64
 #define WASM_F32 wasmer_value_tag::WASM_F32
@@ -21,11 +23,26 @@ int get_counter(wasmer_instance_context_t *ctx) {
   return counter;
 }
 
-int add_to_counter(wasmer_instance_context_t *ctx, int value_to_add) {
+extern "C" int32_t add_to_counter(wasmer_instance_context_t *ctx, int32_t value_to_add) {
   UNUSED(ctx);
-  counter += value_to_add;
+  //int* local = &value_to_add;
+  
+  //counter += value_to_add;
+  //printf("CTX: %p\n", ctx);
+  //const wasmer_memory_t* memory = wasmer_instance_context_memory(ctx, 0);
+  //const u8* memory_data = wasmer_memory_data(memory);
+  //u32 memory_length = wasmer_memory_data_length(memory);
+  //printf("Memory: %p\n", memory);
+  //printf("Length: %d\n", memory_length);
+  printf("VAL: %d\n", value_to_add);
+  printf("VAL: %p\n", &value_to_add);
+  //VoxelEngine::register_font("assets/fonts/pixel.ttf");
+  //dbg("Ptr: %p", memory_data);
+  //dbg("Char: %c", memory_data[value_to_add]);
+  //dbg("STR: %s", get_wasm_string(ctx, value_to_add));
   return counter;
 }
+
 
 void abort_fn(wasmer_instance_context_t *ctx, uint message, uint filename, uint line, uint column) {
     UNUSED(ctx);
@@ -75,7 +92,7 @@ string colons_to_underscores(string str) {
 #define WASM_NAMED_IMPORT(func, str, ...) WasmFunction((void*)(func), (str), ##__VA_ARGS__)
 
 wasmer_instance_t *create_wasmer_instance(const char* filename, vector<WasmFunction> imports);
-int call_wasm_function_and_return_i32(wasmer_instance_t *instance, char* functionName, wasmer_value_t* params, int num_params);
+int call_wasm_function_and_return_i32(wasmer_instance_t *instance, const char* functionName, wasmer_value_t* params, int num_params);
 void print_wasmer_error();
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -95,7 +112,7 @@ Mod::Mod(const char* modname) {
         WASM_IMPORT(VoxelEngineWASM::register_font, {WASM_I32}, {WASM_I32}),
         WASM_IMPORT(VoxelEngineWASM::register_atlas_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
         WASM_IMPORT(VoxelEngineWASM::register_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture, {WASM_I32}, {WASM_I32}),
+        //WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture, {WASM_I32}, {WASM_I32}),
         WASM_IMPORT(VoxelEngineWASM::register_mesh, {WASM_I32}, {}),
         WASM_IMPORT(VoxelEngineWASM::register_component, {WASM_I32}, {}),
         WASM_IMPORT(VoxelEngineWASM::register_model, {WASM_I32}, {WASM_I32}),
@@ -115,12 +132,16 @@ Mod::Mod(const char* modname) {
         // Rendering
         WASM_IMPORT(VoxelEngineWASM::Renderer::render_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
         WASM_IMPORT(VoxelEngineWASM::Renderer::render_text, {WASM_I32, WASM_I32, WASM_I32, WASM_F32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
+        //WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox, {WASM_I32, WASM_I32, WASM_I32}, {}),
 
         // Internal functions
         WASM_IMPORT(get_counter, {}, {WASM_I32}),
         WASM_IMPORT(add_to_counter, {WASM_I32}, {WASM_I32}),
+        WASM_NAMED_IMPORT(add_to_counter, "VoxelEngine__register_cubemap_texture", {WASM_I32}, {WASM_I32}),
         WASM_NAMED_IMPORT(abort_fn, "abort", {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {})
     });
+
+    //this->call("_start");
 }
 
 Mod::~Mod() {
@@ -132,14 +153,10 @@ void Mod::call(const char* function_name) {
 
     wasmer_value_t increment_counter_loop_param_one;
     increment_counter_loop_param_one.tag = WASM_I32;
-    increment_counter_loop_param_one.value.I32 = counter;
+    increment_counter_loop_param_one.value.I32 = 0;
     wasmer_value_t increment_counter_loop_params[] = { increment_counter_loop_param_one };
 
-    int len = strlen(function_name);
-    char* buf = new char[len + 1];
-    memcpy(buf, function_name, len+1);
-    int buffer_pointer = call_wasm_function_and_return_i32((wasmer_instance_t*)this->instance, buf, increment_counter_loop_params, 0);
-    delete[] buf;
+    int buffer_pointer = call_wasm_function_and_return_i32((wasmer_instance_t*)this->instance, function_name, increment_counter_loop_params, 1);
 
     counter++;
     //printf("Final counter value: %d\n", counter);
@@ -155,6 +172,8 @@ wasmer_import_func_t *create_wasmer_import_function(WasmFunction wasm_function);
 
 // Function to create a function import to pass to our wasmer instance
 wasmer_import_func_t *create_wasmer_import_function(WasmFunction wasm_function) {
+
+  dbg("Importing %s %p with %zd parameters and %zd returns", wasm_function.function_name.c_str(), wasm_function.function_ptr, wasm_function.params.size(), wasm_function.returns.size());
 
   // Create a new func to hold the parameter and signature
   // of our `print_str` host function
@@ -181,7 +200,33 @@ wasmer_instance_t *create_wasmer_instance(const char* filename, vector<WasmFunct
   module_name_bytes.bytes = (const uint8_t *) module_name;
   module_name_bytes.bytes_len = strlen(module_name);
 
-  vector<wasmer_import_t> wasmer_imports;
+  // Memory Import
+  // Define a memory import
+  const char *import_memory_name = "memory";
+  wasmer_byte_array import_memory_name_bytes;
+  import_memory_name_bytes.bytes = (const uint8_t*)import_memory_name;
+  import_memory_name_bytes.bytes_len = strlen(import_memory_name);
+  wasmer_import_t memory_import;
+  memory_import.module_name = module_name_bytes;
+  memory_import.import_name = import_memory_name_bytes;
+  memory_import.tag = wasmer_import_export_kind::WASM_MEMORY;
+  wasmer_memory_t *memory = NULL;
+  wasmer_limits_t descriptor;
+  descriptor.min = 1;
+  wasmer_limit_option_t max;
+  max.has_some = true;
+  max.some = 256;
+  descriptor.max = max;
+  wasmer_result_t memory_result = wasmer_memory_new(&memory, descriptor);
+  if (memory_result != wasmer_result_t::WASMER_OK)
+  {
+    dbg("Could not create memory");
+    print_wasmer_error();
+  }
+  memory_import.value.memory = memory;
+
+  // Function Imports
+  vector<wasmer_import_t> wasmer_imports = {memory_import};
   for(uint i = 0; i < imports.size(); i++) {
     WasmFunction& fn = imports[i];
 
@@ -202,6 +247,10 @@ wasmer_instance_t *create_wasmer_instance(const char* filename, vector<WasmFunct
   // Read the Wasm file bytes
   FILE *file = fopen(filename, "r");
   ifstream wasm_file(filename, std::ios::binary | std::ios::ate);
+  if (!wasm_file) {
+    dbg("Could not open modfile!");
+    assert(false);
+  }
   long length = wasm_file.tellg();
   wasm_file.seekg(0, std::ios::beg);
   byte* bytes = new byte[length];
@@ -238,7 +287,7 @@ wasmer_instance_t *create_wasmer_instance(const char* filename, vector<WasmFunct
 }
 
 // Function to call a function on the guest Wasm module, and return an i32 result
-int call_wasm_function_and_return_i32(wasmer_instance_t *instance, char* functionName, wasmer_value_t* params, int num_params) {
+int call_wasm_function_and_return_i32(wasmer_instance_t *instance, const char* functionName, wasmer_value_t* params, int num_params) {
   // Define our results. Results are created with { 0 } to avoid null issues,
   // And will be filled with the proper result after calling the guest Wasm function.
   wasmer_value_t result_one;
@@ -252,7 +301,7 @@ int call_wasm_function_and_return_i32(wasmer_instance_t *instance, char* functio
       params, // Our array of parameters
       num_params, // The number of parameters
       results, // Our array of results
-      0 // The number of results
+      1 // The number of results
     );
 
   // Get our response, we know the function is an i32, thus we assign the value to an int
@@ -260,7 +309,7 @@ int call_wasm_function_and_return_i32(wasmer_instance_t *instance, char* functio
   //int response_value = results[0].value.I32; 
 
   if (call_result != wasmer_result_t::WASMER_OK) {
-    dbg("Could not run WASM function!");
+    dbg("Could not run WASM function %s!", functionName);
     print_wasmer_error();
   }
 
@@ -275,4 +324,5 @@ void print_wasmer_error()
   wasmer_last_error_message(error_str, error_len);
   dbg("Error: `%s`\n", error_str);
   delete[] error_str;
+  assert(false);
 }

@@ -71,9 +71,9 @@ namespace VoxelEngineWASM {
     namespace Renderer {
         void render_texture(void* wasm_ctx, int32_t texture_id, int32_t location_x, int32_t location_y, int32_t size_x, int32_t size_y);
         void render_text(void* wasm_ctx, int32_t font_id, int32_t location_x, int32_t location_y, float32_t scale, int32_t text, int32_t color_x, int32_t color_y, int32_t color_z);
-        void render_model(void* wasm_ctx, int32_t model_id, mat4 proj, mat4 view, mat4 model, const char* perspective, map<string,string> properties);
-        void render_world(void* wasm_ctx, int32_t world_id, mat4 proj, mat4 view);
-        void render_skybox(void* wasm_ctx, int32_t cubemap_texture_id, mat4 proj, mat4 view);
+        //void render_model(void* wasm_ctx, int32_t model_id, mat4 proj, mat4 view, mat4 model, const char* perspective, map<string,string> properties);
+        //void render_world(void* wasm_ctx, int32_t world_id, mat4 proj, mat4 view);
+        void render_skybox(void* wasm_ctx, int32_t cubemap_texture_id, int32_t proj, int32_t view);
     }
 }
 

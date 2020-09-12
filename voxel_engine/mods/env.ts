@@ -23,6 +23,7 @@ export declare function VoxelEngine__World__save_world(world_id: i32, filepath: 
 
 export declare function VoxelEngine__Renderer__render_texture(texture_id: i32, location_x: i32, location_y: i32, size_x: i32, size_y: i32): void;
 export declare function VoxelEngine__Renderer__render_text(font_id: i32, location_x: i32, location_y: i32, scale: f32, text: string, color_x: i32, color_y: i32, color_z: i32): void;
+export declare function VoxelEngine__Renderer__render_skybox(cubemap_texture_id: i32, proj: Array<f32>, view: Array<f32>): void;
 
 export declare function get_counter(): i32;
 export declare function add_to_counter(value_to_add: i32): i32;

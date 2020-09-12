@@ -51,9 +51,9 @@ if (WIN32)
   # Add cl.exe commandline options
   add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2 /GS-")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2 /GS-")
   if (CMAKE_BUILD_TYPE MATCHES Release)
-    add_link_options(/LTCG)
+    add_link_options()
   endif ()
 else ()
   # Add gcc commandline options

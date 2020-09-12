@@ -102,7 +102,7 @@ int main( void )
 	g_texture_renderer = &texture_renderer;
 	
 	// Import mods
-	Mod main_mod("mods/host-functions.wasm");
+	Mod main_mod("mods/main.wasm");
 	main_mod.call("init");
 
 	// MAKE GAME HERE
