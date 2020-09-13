@@ -3,6 +3,10 @@ import * as env from './env';
 import { Vector2 } from './math/Vector2';
 import { Matrix4 } from './math/Matrix4';
 
+export function print(s: string): void {
+    env.VoxelEngine__print(s);
+}
+
 namespace VoxelEngine {
     export function register_font(filepath: string): i32 {
         return env.VoxelEngine__register_font(filepath);
@@ -26,7 +30,7 @@ namespace VoxelEngine {
             env.VoxelEngine__Renderer__render_text(font_id, i32(location.x), i32(location.y), scale, text, color_x, color_y, color_z);
         }
         export function render_skybox(cubemap_texture_id: i32, proj: Matrix4, view: Matrix4): void {
-            //env.VoxelEngine__Renderer__render_skybox(cubemap_texture_id, proj.elements, view.elements);
+            env.VoxelEngine__Renderer__render_skybox(cubemap_texture_id, proj.elements, view.elements);
         }
     }
 }

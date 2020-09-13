@@ -1,4 +1,5 @@
-#include "api.hpp"
+#include "utils.hpp"
+#include "wasm_api.hpp"
 #include <wasmer.hh>
 
 ///////////////////////////////
@@ -11,6 +12,7 @@ typedef uint32_t u32;
 
 char str_buffer[2048];
 
+/// Read string from wasm context and a wasm memory index
 const char* get_wasm_string(wasmer_instance_context_t* wasm_ctx, i32 string_ptr_i) {
     // Access memory
     const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
@@ -18,8 +20,6 @@ const char* get_wasm_string(wasmer_instance_context_t* wasm_ctx, i32 string_ptr_
     u32 memory_length = wasmer_memory_data_length(memory);
 
     u32 string_ptr = (u32)string_ptr_i;
-
-    dbg("PTR: %d", string_ptr);
 
     // Error on very long string
     if (string_ptr > UINT32_MAX/2) {
@@ -35,7 +35,6 @@ const char* get_wasm_string(wasmer_instance_context_t* wasm_ctx, i32 string_ptr_
 
     // Get length and check for memory errors
     u32 length = *(u32*)(&memory_data[string_ptr-4]);
-    dbg("Length: %d", length);
     if (length/2 > sizeof(str_buffer)) {
         dbg("ERROR: String too long!");
         assert(false);
@@ -59,22 +58,40 @@ const char* get_wasm_string(wasmer_instance_context_t* wasm_ctx, i32 string_ptr_
     return str_buffer;
 }
 
+mat4 get_mat4(wasmer_instance_context_t* wasm_ctx, i32 mat4_ptr_i) {
+    const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
+    u8* memory_data = wasmer_memory_data(memory);
+    u32 memory_length = wasmer_memory_data_length(memory);
+
+    u32 mat4_ptr = (u32)mat4_ptr_i;
+
+    if (mat4_ptr > UINT32_MAX/2) {
+        dbg("ERROR: mat4 ptr too large!");
+        assert(false);
+    }
+    if (mat4_ptr + 16*4 > memory_length) {
+        dbg("ERROR: mat4 ptr out of bounds!");
+        assert(false);
+    }
+
+    mat4 ret;
+
+    memcpy(&ret[0][0], &memory_data[mat4_ptr], 16*4);
+
+    return ret;
+}
+
+void VoxelEngineWASM::print(void* raw_wasm_ctx, int32_t str) {
+    wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
+
+    dbg(" WASM: %s", get_wasm_string(wasm_ctx, str));
+}
+
 int32_t VoxelEngineWASM::register_font(void* raw_wasm_ctx, i32 filepath) {
     wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
     UNUSED(wasm_ctx);
     
-    dbg("Wasm: %p", raw_wasm_ctx);
-    const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
-    const u8* memory_data = wasmer_memory_data(memory);
-    u32 memory_length = wasmer_memory_data_length(memory);
-    
-    //u32 length = *(u32*)(&memory_data[filepath-4]);
-    dbg("File: %d", filepath);
-    dbg("Length: %d", memory_length);
-
-    //dbg("Font! %p", get_wasm_string(wasm_ctx, filepath));
-    return 0;
-    //return VoxelEngine::register_font(get_wasm_string(wasm_ctx, filepath));
+    return VoxelEngine::register_font(get_wasm_string(wasm_ctx, filepath));
 }
 
 int32_t VoxelEngineWASM::register_atlas_texture(void* raw_wasm_ctx, int32_t filepath, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z) {
@@ -94,22 +111,8 @@ int32_t VoxelEngineWASM::register_texture(void* raw_wasm_ctx, int32_t filepath, 
 int32_t VoxelEngineWASM::register_cubemap_texture(void* raw_wasm_ctx, int32_t filepath) {
     wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
     UNUSED(wasm_ctx);
-    UNUSED(filepath);
     
-    //const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
-    //dbg("Mem: %p", memory);
-    //const u8* memory_data = wasmer_memory_data(memory);
-    //u32 memory_length = wasmer_memory_data_length(memory);
-
-    const char* cfilepath = "";
-    //cfilepath = get_wasm_string(wasm_ctx, filepath);
-    dbg("WASM Cubemap: %s", cfilepath);
-    //cfilepath = get_wasm_string(wasm_ctx, filepath);
-    dbg("WASM Cubemap: %s", cfilepath);
-    int a = 1;
-    //a = VoxelEngine::register_cubemap_texture("assets/images/skybox.bmp");//get_wasm_string(wasm_ctx, filepath));
-    dbg("Num: %d", a);
-    return a;
+    return VoxelEngine::register_cubemap_texture(get_wasm_string(wasm_ctx, filepath));
 }
 
 void VoxelEngineWASM::register_mesh(void* raw_wasm_ctx, int32_t filepath) {
@@ -234,14 +237,11 @@ void VoxelEngineWASM::Renderer::render_model(void* raw_wasm_ctx, int32_t model_i
 }*/
 
 
-void VoxelEngineWASM::Renderer::render_skybox(void* raw_wasm_ctx, int32_t cubemap_texture_id, int32_t proj, int32_t view) {
+void VoxelEngineWASM::Renderer::render_skybox(void* raw_wasm_ctx, int32_t cubemap_texture_id, int32_t proj_ptr, int32_t view_ptr) {
     wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
-    UNUSED(cubemap_texture_id);
-    
-    const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
-    u8* memory_data = wasmer_memory_data(memory);
-    u32 memory_length = wasmer_memory_data_length(memory);
 
-    dbg("Proj: %d", proj);
-    dbg("View: %d", view);
+    mat4 proj = get_mat4(wasm_ctx, proj_ptr);
+    mat4 view = get_mat4(wasm_ctx, view_ptr);
+
+    VoxelEngine::Renderer::render_skybox(cubemap_texture_id, proj, view);
 }

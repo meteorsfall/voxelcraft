@@ -5,8 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-
-#include "wasm_api.cpp"
+#include "wasm_api.hpp"
 
 #define WASM_I32 wasmer_value_tag::WASM_I32
 #define WASM_I64 wasmer_value_tag::WASM_I64
@@ -16,34 +15,6 @@
 // Global counter our Wasm module will be updating
 
 ////////////////////// API ////////////////////////////
-int counter = 0;
-
-int get_counter(wasmer_instance_context_t *ctx) {
-  UNUSED(ctx);
-  return counter;
-}
-
-extern "C" int32_t add_to_counter(wasmer_instance_context_t *ctx, int32_t value_to_add) {
-  UNUSED(ctx);
-  int* local = &value_to_add;
-  
-  //counter += value_to_add;
-  printf("CTX: %p\n", (void*)ctx);
-  const wasmer_memory_t* memory = wasmer_instance_context_memory(ctx, 0);
-  const u8* memory_data = wasmer_memory_data(memory);
-  u32 memory_length = wasmer_memory_data_length(memory);
-  //printf("Memory: %p\n", memory);
-  //printf("Length: %d\n", memory_length);
-  printf("VAL: %d\n", value_to_add);
-  printf("VAL: %p\n", (void*)&value_to_add);
-  VoxelEngine::register_font("assets/fonts/pixel.ttf");
-  dbg("Ptr: %p", memory_data);
-  dbg("Char: %c", memory_data[value_to_add]);
-  dbg("STR: %s", get_wasm_string(ctx, value_to_add));
-  return counter;
-}
-
-
 void abort_fn(wasmer_instance_context_t *ctx, uint message, uint filename, uint line, uint column) {
     UNUSED(ctx);
     UNUSED(message);
@@ -107,12 +78,13 @@ Mod::Mod(const char* modname) {
     modname,
     {
         // API functions
+        WASM_IMPORT(VoxelEngineWASM::print, {WASM_I32}, {}),
 
         // Registry
         WASM_IMPORT(VoxelEngineWASM::register_font, {WASM_I32}, {WASM_I32}),
         WASM_IMPORT(VoxelEngineWASM::register_atlas_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
         WASM_IMPORT(VoxelEngineWASM::register_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
-        //WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture, {WASM_I32}, {WASM_I32}),
+        WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture, {WASM_I32}, {WASM_I32}),
         WASM_IMPORT(VoxelEngineWASM::register_mesh, {WASM_I32}, {}),
         WASM_IMPORT(VoxelEngineWASM::register_component, {WASM_I32}, {}),
         WASM_IMPORT(VoxelEngineWASM::register_model, {WASM_I32}, {WASM_I32}),
@@ -132,16 +104,11 @@ Mod::Mod(const char* modname) {
         // Rendering
         WASM_IMPORT(VoxelEngineWASM::Renderer::render_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
         WASM_IMPORT(VoxelEngineWASM::Renderer::render_text, {WASM_I32, WASM_I32, WASM_I32, WASM_F32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
-        //WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox, {WASM_I32, WASM_I32, WASM_I32}, {}),
+        WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox, {WASM_I32, WASM_I32, WASM_I32}, {}),
 
         // Internal functions
-        WASM_IMPORT(get_counter, {}, {WASM_I32}),
-        WASM_IMPORT(add_to_counter, {WASM_I32}, {WASM_I32}),
-        WASM_NAMED_IMPORT(add_to_counter, "VoxelEngine__register_cubemap_texture", {WASM_I32}, {WASM_I32}),
         WASM_NAMED_IMPORT(abort_fn, "abort", {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {})
     });
-
-    //this->call("_start");
 }
 
 Mod::~Mod() {
@@ -149,17 +116,12 @@ Mod::~Mod() {
 }
 
 void Mod::call(const char* function_name) {
-    //printf("Initial counter value: %d\n", counter);
-
     wasmer_value_t increment_counter_loop_param_one;
     increment_counter_loop_param_one.tag = WASM_I32;
     increment_counter_loop_param_one.value.I32 = 0;
     wasmer_value_t increment_counter_loop_params[] = { increment_counter_loop_param_one };
 
     int buffer_pointer = call_wasm_function_and_return_i32((wasmer_instance_t*)this->instance, function_name, increment_counter_loop_params, 1);
-
-    counter++;
-    //printf("Final counter value: %d\n", counter);
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

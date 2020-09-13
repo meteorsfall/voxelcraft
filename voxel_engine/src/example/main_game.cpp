@@ -243,7 +243,7 @@ void Game::render() {
     //entity.render(PV);
 
     // Render Skybox
-    VoxelEngine::Renderer::render_skybox(skybox_texture, P, V);
+    //VoxelEngine::Renderer::render_skybox(skybox_texture, P, V);
 }
 
 const float MOVEMENT_SPEED = 4.5;

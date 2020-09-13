@@ -173,7 +173,7 @@ int main( void )
 		double game_timer = glfwGetTime();
 
 		game.render();
-		//main_mod.call("render");
+		main_mod.call("render");
 
 		double game_timer_time = (glfwGetTime() - game_timer) * 1000.0;
 #if FRAME_TIMER

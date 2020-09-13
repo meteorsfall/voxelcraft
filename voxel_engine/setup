@@ -2,16 +2,25 @@
 set -e
 
 function import {
-    mkdir -p $3
-    wget $2 -O $1
-    unzip -DD -o $1 -x / -d $3
-    rm $1
+  mkdir -p $3
+  wget $2 -O $1
+  unzip -DD -o $1 -x / -d $3
+  rm $1
 }
 
-pkgs='doxygen npm wget unzip make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglm-dev libfreetype6-dev libnoise-dev'
+# Install all dependencies
+pkgs='doxygen graphviz npm wget unzip make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglm-dev libfreetype6-dev libnoise-dev'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs
 fi
+# Install assemblyscript globally
+if ! npm list -g assemblyscript; then
+  sudo npm i -g assemblyscript
+fi
 
-import assets.zip https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1 ./assets
+# Wasm include/lib was from https://github.com/wasmerio/wasmer/releases/download/0.17.1/wasmer-c-api-linux-amd64.tar.gz
+import include.zip https://www.dropbox.com/sh/cnxuwvleq6ellre/AAAPtFQv0LiQ37kRBbIBkEjTa?dl=1 ./include
+import lib.zip https://www.dropbox.com/sh/ufxc5m6oboggyu8/AABg_WOZoX-Fcr_kM6AcoU6Qa?dl=1 ./lib
 import extras.zip https://www.dropbox.com/sh/ivstaw0kblgimwe/AADib2fNuH0XbmpP-jshBWoTa?dl=1 ./extras
+import assets.zip https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1 ./assets
+
