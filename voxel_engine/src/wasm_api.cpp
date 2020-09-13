@@ -99,23 +99,35 @@ mat4 get_mat4(wasmer_instance_context_t* wasm_ctx, i32 mat4_ptr_i) {
     return ret;
 }
 
-void VoxelEngineWASM::print(void* raw_wasm_ctx, int32_t str) {
-    wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
-
-    dbg(" WASM: %s", get_wasm_string(wasm_ctx, str));
-}
-
-void VoxelEngineWASM::get_input_state(void* raw_wasm_ctx, int32_t ptr_i) {
-    wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
+void memcpy_wasm(wasmer_instance_context_t* wasm_ctx, i32 ptr_i, void* buffer, u32 length) {
+    u32 ptr = (u32)ptr_i;
 
     const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
     u8* memory_data = wasmer_memory_data(memory);
     u32 memory_length = wasmer_memory_data_length(memory);
 
-    u32 ptr = (u32)ptr_i;
+    if (ptr >= UINT32_MAX/2 || length >= UINT32_MAX/2) {
+        dbg("ERROR: ptr/length too large! %d %d", ptr, length);
+        assert(false);
+    }
+    if (ptr + length > memory_length) {
+        dbg("ERROR: copy out of bounds!");
+        assert(false);
+    }
 
-    dbg("Size: %d", *(u32*)&memory_data[ptr-4]);
-    memcpy(&memory_data[ptr], g_input_state, sizeof(g_input_state));
+    memcpy(&memory_data[ptr], buffer, length);
+}
+
+void VoxelEngineWASM::print(void* raw_wasm_ctx, int32_t str) {
+    wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
+
+    dbg("~~ WASM ~~ %s", get_wasm_string(wasm_ctx, str));
+}
+
+void VoxelEngineWASM::get_input_state(void* raw_wasm_ctx, int32_t ptr_i) {
+    wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
+
+    memcpy_wasm(wasm_ctx, ptr_i, g_input_state, sizeof(g_input_state));
 }
 
 int32_t VoxelEngineWASM::register_font(void* raw_wasm_ctx, i32 filepath) {

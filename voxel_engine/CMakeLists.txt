@@ -20,11 +20,27 @@ ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
   COMMENT "Checking GCH Compilation"
 )
 
+file(GLOB_RECURSE wasm_sources CONFIGURE_DEPENDS "mods/*.ts")
+
+if (WIN32)
+ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
+  COMMAND ${CMAKE_COMMAND} -E echo "Compiled Wasm!" > "mods/main.wasm"
+  COMMENT "Checking wasm Compilation"
+)
+else()
+ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
+  COMMAND asc mods/main.ts --runtime half --importMemory -o mods/main.wasm
+  DEPENDS ${wasm_sources}
+  COMMENT "Checking wasm compilation"
+)
+endif ()
+
 # Add release build
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all --parallel 4
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
+          "mods/main.wasm"
   COMMENT "Creating the executable in release mode."
 )
 
@@ -33,6 +49,7 @@ ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all --parallel 4
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
+          "mods/main.wasm"
   COMMENT "Creating the executable in debug mode."
 )
 

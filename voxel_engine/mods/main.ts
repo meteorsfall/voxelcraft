@@ -18,7 +18,7 @@ let input_state: InputState;
 
 function iterate(a: i32): i32 {
   input_state = VoxelEngine.get_input_state();
-  print("Iterate!");
+  //print("Iterate!");
   if (frame_num % 100 == 0) {
     //VoxelEngine.World.restart_world(1);
   }
