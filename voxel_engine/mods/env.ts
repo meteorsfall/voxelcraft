@@ -1,4 +1,5 @@
 export declare function VoxelEngine__print(filepath: string): void;
+export declare function VoxelEngine__get_input_state(filepath: ArrayBuffer): void;
 
 // Registry
 export declare function VoxelEngine__register_font(filepath: string): i32;

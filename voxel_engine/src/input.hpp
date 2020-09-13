@@ -26,18 +26,24 @@ public:
     /// The current Input state
     struct InputState {
         /// The current screen dimensions
+        // i32, i32
         ivec2 screen_dimensions;
         /// The current time
+        // f64
         double current_time;
-
-        /// An InputButtonState for each key on the keyboard
-        InputButtonState keys[350];
         /// The mouse position. If relative_mouse was true, this is a delta-position representing how much the mouse would have moved, had it been visible
+        // i32, i32
         ivec2 mouse_pos;
         /// An InputButtonState for the left mouse button
+        // i32
         InputButtonState left_mouse;
         /// An InputButtonState for the right mouse button
+        // i32
         InputButtonState right_mouse;
+
+        /// An InputButtonState for each key on the keyboard
+        // 350 * i32
+        InputButtonState keys[350];
     };
 
     /// Returns true if an exiting condition was triggered

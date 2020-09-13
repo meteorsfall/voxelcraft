@@ -148,6 +148,7 @@ int main( void )
 		
 		double iter_timer = glfwGetTime();
 
+		main_mod.set_input_state(&input_state, sizeof(input_state));
 		main_mod.call("iterate");
 		game.iterate(input_state);
 

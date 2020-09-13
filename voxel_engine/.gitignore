@@ -13,6 +13,7 @@ assets/meshes
 gmon.out
 analysis.txt
 
-*.wasm
+**/*.wasm
+**/*.wat
 mods/math
 

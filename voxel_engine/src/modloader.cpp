@@ -77,8 +77,9 @@ Mod::Mod(const char* modname) {
   this->instance = (wasmer_instance_t*)create_wasmer_instance(
     modname,
     {
-        // API functions
+        // Assistance functions
         WASM_IMPORT(VoxelEngineWASM::print, {WASM_I32}, {}),
+        WASM_IMPORT(VoxelEngineWASM::get_input_state, {WASM_I32}, {}),
 
         // Registry
         WASM_IMPORT(VoxelEngineWASM::register_font, {WASM_I32}, {WASM_I32}),
@@ -113,6 +114,10 @@ Mod::Mod(const char* modname) {
 
 Mod::~Mod() {
     wasmer_instance_destroy((wasmer_instance_t*)instance);
+}
+
+void Mod::set_input_state(void* input_state, int length) {
+  WASM_set_input_state(input_state, length);
 }
 
 void Mod::call(const char* function_name) {

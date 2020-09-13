@@ -3,8 +3,12 @@
 
 #include "api.hpp"
 
+void WASM_set_input_state(void* input_state, int length);
+
 namespace VoxelEngineWASM {
     void print(void* wasm_ctx, int32_t str);
+    void get_input_state(void* wasm_ctx, int32_t ptr);
+
     int32_t register_font(void* wasm_ctx, int32_t filepath);
     int32_t register_atlas_texture(void* raw_wasm_ctx, int32_t filepath, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z);
     int32_t register_texture(void* wasm_ctx, int32_t filepath, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z);

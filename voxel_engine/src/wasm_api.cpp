@@ -10,6 +10,24 @@ typedef int32_t i32;
 typedef uint8_t u8;
 typedef uint32_t u32;
 
+// i32, i32 screen dimensions
+// i64 current_time
+// 350 * i32 keys
+// i32, i32 mouse_pos
+// i32 left_mouse
+// i32 right_mouse
+#define INPUT_STATE_SIZE (358*4)
+
+// Default-initialized to 0, so will not leak system memory
+byte g_input_state[INPUT_STATE_SIZE];
+
+void WASM_set_input_state(void* input_state, int length) {
+  if (length != sizeof(g_input_state)) {
+    dbg("Wrong input state size!");
+  }
+  memcpy(g_input_state, input_state, sizeof(g_input_state));
+}
+
 char str_buffer[2048];
 
 /// Read string from wasm context and a wasm memory index
@@ -85,6 +103,19 @@ void VoxelEngineWASM::print(void* raw_wasm_ctx, int32_t str) {
     wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
 
     dbg(" WASM: %s", get_wasm_string(wasm_ctx, str));
+}
+
+void VoxelEngineWASM::get_input_state(void* raw_wasm_ctx, int32_t ptr_i) {
+    wasmer_instance_context_t* wasm_ctx = (wasmer_instance_context_t*)raw_wasm_ctx;
+
+    const wasmer_memory_t* memory = wasmer_instance_context_memory(wasm_ctx, 0);
+    u8* memory_data = wasmer_memory_data(memory);
+    u32 memory_length = wasmer_memory_data_length(memory);
+
+    u32 ptr = (u32)ptr_i;
+
+    dbg("Size: %d", *(u32*)&memory_data[ptr-4]);
+    memcpy(&memory_data[ptr], g_input_state, sizeof(g_input_state));
 }
 
 int32_t VoxelEngineWASM::register_font(void* raw_wasm_ctx, i32 filepath) {
