@@ -23,6 +23,14 @@ void resize_callback(GLFWwindow* win, int w, int h) {
 	get_texture_renderer()->set_window_dimensions(width, height);
 }
 
+int fib(int a) {
+	if (a < 2) {
+		return 1;
+	} else {
+		return fib(a-1) + fib(a-2);
+	}
+}
+
 int main( void )
 {
 	// Initialise GLFW
@@ -103,7 +111,12 @@ int main( void )
 	
 	// Import mods
 	Mod main_mod("mods/main.wasm");
-	main_mod.call("init");
+
+	double tt = glfwGetTime();
+	//for(int i = 0; i < 10; i++) {
+		main_mod.call("init");
+	//}
+	dbg("WASM Time: %f", (glfwGetTime() - tt) * 1000.0);
 
 	// MAKE GAME HERE
 	Game game;
@@ -148,8 +161,10 @@ int main( void )
 		
 		double iter_timer = glfwGetTime();
 
-		main_mod.set_input_state(&input_state, sizeof(input_state));
-		main_mod.call("iterate");
+		if (!game.paused) {
+			main_mod.set_input_state(&input_state, sizeof(input_state));
+			main_mod.call("iterate");
+		}
 		game.iterate(input_state);
 
 		double iter_timer_time = (glfwGetTime() - iter_timer) * 1000.0;
@@ -194,7 +209,11 @@ int main( void )
 		
 		// Render UI
 		main_ui.iterate(input_state, width, height);
-		//main_mod.call("iterate_ui");
+		double ttt = glfwGetTime();
+		if (!game.paused) {
+			main_mod.call("iterate_ui");
+		}
+		dbg("Iter: %f", (glfwGetTime() - ttt)*1000);
 		if (main_ui.exiting) break;
 		main_ui.render();
 		main_mod.call("render_ui");
