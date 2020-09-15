@@ -135,7 +135,7 @@ all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,
 Mod::~Mod() {
 	// Clean up the WAVM runtime objects.
 	WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(*(GCPointer<Compartment>*)compartment)));
-  delete compartment;
+  delete (GCPointer<Compartment>*)compartment;
 }
 
 void Mod::set_input_state(void* input_state, int length) {
