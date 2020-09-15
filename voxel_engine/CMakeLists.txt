@@ -138,12 +138,14 @@ if (WIN32)
       $<TARGET_FILE_DIR:vc>)
 else ()
   # Link linux libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise wasmer ${FREETYPE_LIBRARIES} stdc++fs)
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise wasmer WAVM ${FREETYPE_LIBRARIES} stdc++fs)
   # Run doxygen after compiling
   add_custom_command(TARGET vc POST_BUILD
       COMMAND doxygen
     )
 endif ()
+
+target_compile_definitions(vc PUBLIC "WAVM_API=")
 
 # Define pixel_helper executable
 add_executable(pixel_helper pixel_helper_src/main.cpp)
