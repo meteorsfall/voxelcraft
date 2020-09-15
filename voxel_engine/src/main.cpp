@@ -23,11 +23,11 @@ void resize_callback(GLFWwindow* win, int w, int h) {
 	get_texture_renderer()->set_window_dimensions(width, height);
 }
 
-int fib(int a) {
+int fib(int a, int seed=1) {
 	if (a < 2) {
 		return 1;
 	} else {
-		return fib(a-1) + fib(a-2);
+		return fib(a-1, seed) + fib(a-2, seed) + seed;
 	}
 }
 
@@ -111,6 +111,12 @@ int main( void )
 	
 	// Import mods
 	Mod main_mod("mods/main.wasm");
+
+	double t55t = glfwGetTime();
+	for(int i = 0; i < 10; i++) {
+		//dbg("Fib: %d", fib(40, i));
+	}
+	dbg("Compile Time: %f", (glfwGetTime() - t55t) * 1000.0);
 
 	double tt = glfwGetTime();
 	//for(int i = 0; i < 10; i++) {

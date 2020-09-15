@@ -94,7 +94,7 @@ set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
 message(STATUS "Found OpenGL at ${OPENGL_LIBRARY}")
 
-# Include from /include and link from /lib on windows
+# Include from /include and link from /lib
 include_directories(SYSTEM include)
 link_directories(lib)
 
@@ -123,14 +123,14 @@ include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 include_directories(SYSTEM extras)
 
 # Define VoxelCraft executable
-add_executable(vc src/main.cpp src/modloader.cpp src/wasm_api.cpp src/api.cpp src/mesh.cpp src/event.cpp src/model.cpp src/example/drop.cpp src/entity.cpp src/rigid_body.cpp src/utils.cpp src/universe.cpp src/example/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/megachunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
+add_executable(vc src/main.cpp src/modloader.cpp src/api.cpp src/mesh.cpp src/event.cpp src/model.cpp src/example/drop.cpp src/entity.cpp src/rigid_body.cpp src/utils.cpp src/universe.cpp src/example/player.cpp src/world.cpp src/camera.cpp src/input.cpp src/aabb.cpp src/block.cpp src/chunk.cpp src/megachunk.cpp src/texture.cpp src/UI.cpp src/gl_utils.cpp src/font.cpp src/texture_renderer.cpp src/texture_atlasser.cpp src/bmp.cpp src/example/main_ui.cpp src/example/main_game.cpp src/example/page_ui.cpp src/example/world_gen.cpp extras/zip.cpp)
 
 # Precompile includes.hpp header file
 target_precompile_headers(vc PRIVATE src/includes.hpp)
 
 if (WIN32)
   # Link windows libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 wasmer noise freetype ws2_32 userenv)
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 wasmer libWAVM noise freetype ws2_32 userenv)
   # Copy .dll's into build directory
   add_custom_command(TARGET vc POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory

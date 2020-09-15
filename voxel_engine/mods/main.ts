@@ -8,16 +8,19 @@ import { Camera } from './camera';
 let font_id: i32;
 let skybox_texture_id: i32;
 
-function fib(a: i32): i32 {
+function fib(a: i32, seed: i32): i32 {
   if (a < 2) {
     return 1;
   } else {
-    return fib(a-1) + fib(a-2);
+    return fib(a-1, seed) + fib(a-2, seed) + seed;
   }
 }
 
 function init(a: i32): i32 {
   print("Init!");
+  for(let i = 0; i < 10; i++) {
+    //print(fib(40, i).toString());
+  }
   font_id = VoxelEngine.register_font("assets/fonts/pixel.ttf");
   skybox_texture_id = VoxelEngine.register_cubemap_texture("assets/images/skybox.bmp");
   return 0;
@@ -62,7 +65,7 @@ function iterate_ui(a: i32): i32 {
 
 function render_ui(a: i32): i32 {
   let m: Vector2 = new Vector2(10, 200);
-  //VoxelEngine.Renderer.render_text(font_id, m, 0.7, "JAVASCRIPT!", 255, 0, 0);
+  VoxelEngine.Renderer.render_text(font_id, m, 0.7, "JAVASCRIPT!", 255, 0, 0);
   return 0;
 }
 

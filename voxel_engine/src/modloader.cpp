@@ -5,35 +5,17 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
-#include "wasm_api.hpp"
 
-#include "WAVM/IR/Module.h"
-#include "WAVM/IR/Types.h"
-#include "WAVM/IR/Value.h"
-#include "WAVM/Runtime/Intrinsics.h"
-#include "WAVM/Runtime/Runtime.h"
-#include "WAVM/WASTParse/WASTParse.h"
+#include <WAVM/IR/Module.h>
 
-using namespace WAVM;
-using namespace WAVM::IR;
-using namespace WAVM::Runtime;
-
-WAVM_DEFINE_INTRINSIC_MODULE(embedder)
-WAVM_DEFINE_INTRINSIC_FUNCTION(embedder, "hello", I32, hello, I32 argument)
-{
-	printf("Hello world! (argument = %i)\n", argument);
-	return argument + 1;
-}
-
-#define WASM_I32 wasmer_value_tag::WASM_I32
-#define WASM_I64 wasmer_value_tag::WASM_I64
-#define WASM_F32 wasmer_value_tag::WASM_F32
-#define WASM_F64 wasmer_value_tag::WASM_F64
+// Include wasm cpp
+#include "wasm_api.cpp"
 
 // Global counter our Wasm module will be updating
 
 ////////////////////// API ////////////////////////////
-void abort_fn(wasmer_instance_context_t *ctx, uint message, uint filename, uint line, uint column) {
+WASM_NAMED_DECLARE(void, , abort_fn, "abort", I32, I32, I32, I32);
+void abort_fn(ContextRuntimeData* ctx, i32 message, i32 filename, i32 line, i32 column) {
     UNUSED(ctx);
     UNUSED(message);
     UNUSED(filename);
@@ -52,34 +34,6 @@ public:
         : function_ptr(function_ptr), function_name(function_name), params(params), returns(returns) {}
 };
 
-string colons_to_underscores(string str) {
-  if(str.empty()) {
-    return str;
-  }
-
-  size_t start_pos = 0;
-
-  // First swap out wasm to voxelengine
-  if ((start_pos = str.find("VoxelEngineWASM", start_pos)) != std::string::npos) {
-    str.replace(start_pos, string("VoxelEngineWASM").length(), "VoxelEngine");
-    start_pos += string("VoxelEngine").length();
-  }
-
-  string from = "::";
-  string to = "__";
-
-  // Now swap all colons with underscores
-  while((start_pos = str.find(from, start_pos)) != std::string::npos) {
-    str.replace(start_pos, from.length(), to);
-    start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
-  }
-
-  return str;
-}
-
-#define WASM_IMPORT(func, ...) WasmFunction((void*)(func), colons_to_underscores(#func), ##__VA_ARGS__)
-#define WASM_NAMED_IMPORT(func, str, ...) WasmFunction((void*)(func), (str), ##__VA_ARGS__)
-
 wasmer_instance_t *create_wasmer_instance(const char* filename, vector<WasmFunction> imports);
 int call_wasm_function_and_return_i32(wasmer_instance_t *instance, const char* functionName, wasmer_value_t* params, int num_params);
 void print_wasmer_error();
@@ -90,95 +44,144 @@ void print_wasmer_error();
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+//WAVM_DECLARE_INTRINSIC_FUNCTION(voxelmainmod, "hello", I32, hello, I32 argument);
+
+#include <WAVM/RuntimeABI/RuntimeABI.h>
+#include <WAVM/IR/Types.h>
+#include <WAVM/IR/Module.h>
+
 Mod::Mod(const char* modname) {
   // WAVM
-
-  	// Compile a WASM module from text.
-	char helloWAST[]
-		= "(module\n"
-		  "  (import \"\" \"hello\" (func $1 (param i32) (result i32)))\n"
-		  "  (func (export \"run\") (param i32) (result i32)\n"
-		  "    (call $1 (local.get 0))\n"
-		  "  )\n"
-		  ")";
-
-	IR::Module irModule;
-	std::vector<WAST::Error> wastErrors;
-	if(!WAST::parseModule(helloWAST, sizeof(helloWAST), irModule, wastErrors))
+  
+  // Read the Wasm file bytes
+  FILE *file = fopen(modname, "r");
+  ifstream wasm_file(modname, std::ios::binary | std::ios::ate);
+  if (!wasm_file) {
+    dbg("Could not open modfile!");
+    assert(false);
+  }
+  long wasm_bytes_length = wasm_file.tellg();
+  wasm_file.seekg(0, std::ios::beg);
+  byte* wasm_bytes = new byte[wasm_bytes_length];
+  if (!wasm_file.read((char*)wasm_bytes, wasm_bytes_length)) {
+    dbg("Could not read all bytes! Only %zd could be read!", wasm_file.gcount());
+    assert(false);
+  } 
+  wasm_file.close();
+  
+	ModuleRef module;
+  IR::FeatureSpec feature;
+	WAVM::WASM::LoadError wasm_error;
+	if(!Runtime::loadBinaryModule(wasm_bytes, wasm_bytes_length, module, feature, &wasm_error))
 	{ dbg("Fail to parse!"); }
 
-	ModuleRef module = compileModule(irModule);
+  dbg("TTTT");
 
 	// Create a WAVM compartment and context.
 	GCPointer<Compartment> compartment = createCompartment();
-	Context* context = createContext(compartment);
+	this->context = createContext(compartment);
 
 	// Create an instance that encapsulates the intrinsic function in a way that allows it to be
 	// imported by WASM instances.
 	Instance* intrinsicsInstance = WAVM::Intrinsics::instantiateModule(
-		compartment, {WAVM_INTRINSIC_MODULE_REF(embedder)}, "embedder");
-	const FunctionType i32_to_i32({ValueType::i32}, {ValueType::i32});
-	Function* intrinsicFunction = getTypedInstanceExport(intrinsicsInstance, "hello", i32_to_i32);
+		compartment, {WAVM_INTRINSIC_MODULE_REF(voxelmainmod)}, "env");
+
+  // Get functions
+  map<string, Object*> all_functions;
+
+#define WASM_NAMED_IMPORT(func, name) \
+functions.push_back(asObject(getTypedInstanceExport(intrinsicsInstance, name,\
+  FunctionType(WAVM::Intrinsics::inferIntrinsicFunctionType(&func).results(),\
+              WAVM::Intrinsics::inferIntrinsicFunctionType(&func).params(),\
+              WAVM::IR::CallingConvention::wasm)\
+)))
+//#define WASM_NAMED_IMPORT(func, name) functions.push_back(getInstanceExport(intrinsicsInstance, name))
+#define WASM_IMPORT(func) WASM_NAMED_IMPORT(func, colons_to_underscores(#func));\
+dbg("Name: %s", colons_to_underscores(#func));
+
+  WASM_NAMED_IMPORT(abort_fn, "abort");
+  WASM_IMPORT(VoxelEngineWASM::print);
+  WASM_IMPORT(VoxelEngineWASM::register_font);
+  WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture);
+  WASM_IMPORT(VoxelEngineWASM::get_input_state);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_text);
+
+  FunctionType ft = WAVM::Intrinsics::inferIntrinsicFunctionType(&(VoxelEngineWASM::print));
+
+  dbg("Rets: %s", asString(ft).c_str());
+
+  for(int i = 0; i < functions.size(); i++) {
+    if (!functions[i]) {
+      dbg("Bad: %d", i);
+      dbg("P: %p", getTypedInstanceExport(intrinsicsInstance, "VoxelEngine__print", ft));
+    } else {
+      dbg("T: %lld", asFunction(functions[i])->encodedType.impl);
+    }
+  }
+
+  /*
+  WASM_IMPORT(VoxelEngineWASM::print);
+	WASM_IMPORT(VoxelEngineWASM::get_input_state);
+  WASM_IMPORT(VoxelEngineWASM::register_font);
+  WASM_IMPORT(VoxelEngineWASM::register_atlas_texture);
+  WASM_IMPORT(VoxelEngineWASM::register_texture);
+  WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture);
+  WASM_IMPORT(VoxelEngineWASM::register_mesh);
+  WASM_IMPORT(VoxelEngineWASM::register_component);
+  WASM_IMPORT(VoxelEngineWASM::register_model);
+  WASM_IMPORT(VoxelEngineWASM::World::is_generated);
+  WASM_IMPORT(VoxelEngineWASM::World::mark_generated);
+  WASM_IMPORT(VoxelEngineWASM::World::mark_chunk);
+  WASM_IMPORT(VoxelEngineWASM::World::get_block);
+  WASM_IMPORT(VoxelEngineWASM::World::set_block);
+  WASM_IMPORT(VoxelEngineWASM::World::get_break_amount);
+  WASM_IMPORT(VoxelEngineWASM::World::set_break_amount);
+  WASM_IMPORT(VoxelEngineWASM::World::restart_world);
+  WASM_IMPORT(VoxelEngineWASM::World::load_world);
+  WASM_IMPORT(VoxelEngineWASM::World::save_world);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_texture);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_text);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox);
+  */
+
+  dbg("TEMST");
+
+  vector<Object*> all_functions;
+  IR::Module irmod = getModuleIR(module);
+  for(int i = 0; i < irmod.imports.size(); i++) {
+    const auto& kindIndex = irmod.imports[i];
+    const auto& importType
+				= irmod.types[irmod.functions.getType(kindIndex.index).index];
+    dbg("Type: %lld", importType.getEncoding().impl);
+    string module_name = irmod.functions.imports[kindIndex.index].moduleName;
+    string export_name = irmod.functions.imports[kindIndex.index].exportName;
+    if (module_name.compare("env") == 0 && )
+    dbg("Name: %s", export_name);
+  }
 
 	// Instantiate the WASM module using the intrinsic function as its import.
-	Instance* instance
-		= instantiateModule(compartment, module, {asObject(intrinsicFunction)}, "hello");
+	this->instance = instantiateModule(compartment, module, std::move(functions), "debug");
 
-	// Call the WASM module's "run" function.
-	Function* runFunction = getTypedInstanceExport(instance, "run", i32_to_i32);
-
-	UntaggedValue args[1]{I32(100)};
-	UntaggedValue results[1];
-	invokeFunction(context, runFunction, i32_to_i32, args, results);
-
-	printf("WASM call returned: %i\n", results[0].i32);
+  dbg("INST!");
 
 	// Clean up the WAVM runtime objects.
-	WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(compartment)));
+	//WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(compartment)));
 
-
+/*
 
   // Expose API via Wasm Imports
   this->instance = (wasmer_instance_t*)create_wasmer_instance(
     modname,
     {
-        // Assistance functions
-        WASM_IMPORT(VoxelEngineWASM::print, {WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::get_input_state, {WASM_I32}, {}),
-
-        // Registry
-        WASM_IMPORT(VoxelEngineWASM::register_font, {WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::register_atlas_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::register_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::register_cubemap_texture, {WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::register_mesh, {WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::register_component, {WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::register_model, {WASM_I32}, {WASM_I32}),
-
-        // World
-        WASM_IMPORT(VoxelEngineWASM::World::is_generated, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::World::mark_generated, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::World::mark_chunk, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::World::get_block, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::World::set_block, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::World::get_break_amount, {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {WASM_F32}),
-        WASM_IMPORT(VoxelEngineWASM::World::set_break_amount, {WASM_I32, WASM_I32, WASM_I32, WASM_I32, WASM_F32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::World::restart_world, {WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::World::load_world, {WASM_I32, WASM_I32}, {WASM_I32}),
-        WASM_IMPORT(VoxelEngineWASM::World::save_world, {WASM_I32, WASM_I32}, {}),
-
-        // Rendering
-        WASM_IMPORT(VoxelEngineWASM::Renderer::render_texture, {WASM_I32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::Renderer::render_text, {WASM_I32, WASM_I32, WASM_I32, WASM_F32, WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {}),
-        WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox, {WASM_I32, WASM_I32, WASM_I32}, {}),
 
         // Internal functions
-        WASM_NAMED_IMPORT(abort_fn, "abort", {WASM_I32, WASM_I32, WASM_I32, WASM_I32}, {})
-    });
+        WASM_NAMED_IMPORT(abort_fn, "abort", {I32, I32, I32, I32}, {})
+    });*/
 }
 
 Mod::~Mod() {
-    wasmer_instance_destroy((wasmer_instance_t*)instance);
+    //wasmer_instance_destroy((wasmer_instance_t*)instance);
 }
 
 void Mod::set_input_state(void* input_state, int length) {
@@ -186,12 +189,24 @@ void Mod::set_input_state(void* input_state, int length) {
 }
 
 void Mod::call(const char* function_name) {
+
+	// Call the WASM module's "run" function.
+	const FunctionType i32_to_i32({ValueType::i32}, {ValueType::i32});
+	Function* runFunction = getTypedInstanceExport((Instance*)instance, function_name, i32_to_i32);
+
+	UntaggedValue args[1]{I32(100)};
+	UntaggedValue results[1];
+	invokeFunction((Context*)context, runFunction, i32_to_i32, args, results);
+
+	printf("WASM call returned: %i\n", results[0].i32);
+  /*
     wasmer_value_t increment_counter_loop_param_one;
-    increment_counter_loop_param_one.tag = WASM_I32;
+    increment_counter_loop_param_one.tag = I32;
     increment_counter_loop_param_one.value.I32 = 0;
     wasmer_value_t increment_counter_loop_params[] = { increment_counter_loop_param_one };
 
     int buffer_pointer = call_wasm_function_and_return_i32((wasmer_instance_t*)this->instance, function_name, increment_counter_loop_params, 1);
+    */
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

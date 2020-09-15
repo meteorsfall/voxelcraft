@@ -14,6 +14,7 @@ public:
     void set_input_state(void* input_state, int length);
 private:
     void* instance;
+    void* context;
 };
 
 #endif
