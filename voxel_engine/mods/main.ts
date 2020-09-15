@@ -4,32 +4,18 @@ import { Matrix4 } from './math/Matrix4';
 import { Vector3 } from './math/Vector3';
 import { Game } from './game';
 import { Camera } from './camera';
+import {VoxelEngine__World__is_generated} from './env';
 
 let font_id: i32;
 let skybox_texture_id: i32;
-
-function fib(a: i32, seed: i32): i32 {
-  if (a < 2) {
-    return 1;
-  } else {
-    return fib(a-1, seed) + fib(a-2, seed) + seed;
-  }
-}
-
 
 let frame_num : i32 = 0;
 let input_state: InputState;
 let previous_time: f64 = 0;
 
-
-let pos: f32 = 1;
 let c: Camera = new Camera();
 
 function init(a: i32): i32 {
-  print("Init!");
-  for(let i = 0; i < 10; i++) {
-    print(fib(40, i).toString());
-  }
   font_id = VoxelEngine.register_font("assets/fonts/pixel.ttf");
   skybox_texture_id = VoxelEngine.register_cubemap_texture("assets/images/skybox.bmp");
   return 0;

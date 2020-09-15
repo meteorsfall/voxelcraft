@@ -111,18 +111,7 @@ int main( void )
 	
 	// Import mods
 	Mod main_mod("mods/main.wasm");
-
-	double t55t = glfwGetTime();
-	for(int i = 0; i < 10; i++) {
-		dbg("Fib: %d", fib(40, i));
-	}
-	dbg("Compile Time: %f", (glfwGetTime() - t55t) * 1000.0);
-
-	double tt = glfwGetTime();
-	//for(int i = 0; i < 10; i++) {
-		main_mod.call("init");
-	//}
-	dbg("WASM Time: %f", (glfwGetTime() - tt) * 1000.0);
+	main_mod.call("init");
 
 	// MAKE GAME HERE
 	Game game;

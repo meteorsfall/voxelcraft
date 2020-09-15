@@ -21,30 +21,8 @@ void abort_fn(ContextRuntimeData* ctx, i32 message, i32 filename, i32 line, i32 
     UNUSED(filename);
     UNUSED(line);
     UNUSED(column);
+    dbg("Abort occured!");
 }
-////////////////////// API ////////////////////////////
-
-class WasmFunction {
-public:
-    void* function_ptr;
-    string function_name;
-    vector<wasmer_value_tag> params;
-    vector<wasmer_value_tag> returns;
-    WasmFunction(void* function_ptr, string function_name, vector<wasmer_value_tag> params, vector<wasmer_value_tag> returns)
-        : function_ptr(function_ptr), function_name(function_name), params(params), returns(returns) {}
-};
-
-wasmer_instance_t *create_wasmer_instance(const char* filename, vector<WasmFunction> imports);
-int call_wasm_function_and_return_i32(wasmer_instance_t *instance, const char* functionName, wasmer_value_t* params, int num_params);
-void print_wasmer_error();
-
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Wasm Loader ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-//WAVM_DECLARE_INTRINSIC_FUNCTION(voxelmainmod, "hello", I32, hello, I32 argument);
 
 #include <WAVM/RuntimeABI/RuntimeABI.h>
 #include <WAVM/IR/Types.h>
@@ -54,7 +32,6 @@ Mod::Mod(const char* modname) {
   // WAVM
   
   // Read the Wasm file bytes
-  FILE *file = fopen(modname, "r");
   ifstream wasm_file(modname, std::ios::binary | std::ios::ate);
   if (!wasm_file) {
     dbg("Could not open modfile!");
@@ -72,13 +49,15 @@ Mod::Mod(const char* modname) {
 	ModuleRef module;
   IR::FeatureSpec feature;
 	WAVM::WASM::LoadError wasm_error;
-	if(!Runtime::loadBinaryModule(wasm_bytes, wasm_bytes_length, module, feature, &wasm_error))
-	{ dbg("Fail to parse!"); }
-
-  dbg("TTTT");
+	if(!Runtime::loadBinaryModule(wasm_bytes, wasm_bytes_length, module, feature, &wasm_error)) {
+    dbg("Fail to parse!");
+    assert(false);
+  }
 
 	// Create a WAVM compartment and context.
-	GCPointer<Compartment> compartment = createCompartment();
+  this->compartment = new GCPointer<Compartment>();
+  GCPointer<Compartment>& compartment = *(GCPointer<Compartment>*)this->compartment;
+	compartment = createCompartment();
 	this->context = createContext(compartment);
 
 	// Create an instance that encapsulates the intrinsic function in a way that allows it to be
@@ -89,14 +68,15 @@ Mod::Mod(const char* modname) {
   // Get functions
   map<string, Object*> all_functions;
 
+  // Macro
 #define WASM_NAMED_IMPORT(func, name) \
 all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,\
   FunctionType(WAVM::Intrinsics::inferIntrinsicFunctionType(&func).results(),\
               WAVM::Intrinsics::inferIntrinsicFunctionType(&func).params(),\
               WAVM::IR::CallingConvention::wasm)\
 )))
-#define WASM_IMPORT(func) WASM_NAMED_IMPORT(func, colons_to_underscores(#func));\
-dbg("Name: %s", colons_to_underscores(#func));
+#define WASM_IMPORT(func) WASM_NAMED_IMPORT(func, colons_to_underscores(#func))
+  // End Macro
   
   WASM_IMPORT(VoxelEngineWASM::print);
 	WASM_IMPORT(VoxelEngineWASM::get_input_state);
@@ -119,6 +99,8 @@ dbg("Name: %s", colons_to_underscores(#func));
   WASM_IMPORT(VoxelEngineWASM::World::save_world);
   WASM_IMPORT(VoxelEngineWASM::Renderer::render_texture);
   WASM_IMPORT(VoxelEngineWASM::Renderer::render_text);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_model);
+  WASM_IMPORT(VoxelEngineWASM::Renderer::render_world);
   WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox);
 
   WASM_NAMED_IMPORT(abort_fn, "abort");
@@ -132,8 +114,6 @@ dbg("Name: %s", colons_to_underscores(#func));
           = irmod.types.at(irmod.functions.getType(kindIndex.index).index);
       string module_name = irmod.functions.imports.at(kindIndex.index).moduleName;
       string export_name = irmod.functions.imports.at(kindIndex.index).exportName;
-      dbg("M: %s", module_name.c_str());
-      dbg("Exp: %s", export_name.c_str());
       if (module_name.compare("env") == 0 && all_functions.count(export_name)) {
         functions.push_back(all_functions.at(export_name));
       } else {
@@ -149,14 +129,14 @@ dbg("Name: %s", colons_to_underscores(#func));
 	// Instantiate the WASM module using the intrinsic function as its import.
 	this->instance = instantiateModule(compartment, module, std::move(functions), "debug");
 
-  dbg("INST!");
-
+  // Call explicit start in order to initialize static variables
   call("_start");
 }
 
 Mod::~Mod() {
 	// Clean up the WAVM runtime objects.
-	//WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(compartment)));
+	WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(*(GCPointer<Compartment>*)compartment)));
+  delete compartment;
 }
 
 void Mod::set_input_state(void* input_state, int length) {
@@ -175,14 +155,13 @@ void Mod::call(const char* function_name) {
 	const FunctionType void_to_void({}, {});
 	Function* runFunction = getTypedInstanceExport((Instance*)instance, function_name, starting ? void_to_void : i32_to_i32);
 
+  if (!runFunction) {
+    dbg("Function not found!");
+    assert(false);
+  }
+
 	UntaggedValue args[1]{I32(100)};
 	UntaggedValue results[1];
 	invokeFunction((Context*)context, runFunction, starting ? void_to_void : i32_to_i32, args, results);
-/*
-	UntaggedValue args[1]{I32(100)};
-	UntaggedValue results[1];
-	invokeFunction((Context*)context, runFunction, i32_to_i32, args, results);
-
-	printf("WASM call returned: %i\n", results[0].i32);
-  */
+	//printf("WASM call returned: %i\n", results[0].i32);
 }

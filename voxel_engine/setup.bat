@@ -3,6 +3,7 @@ CALL :import lib.zip "https://www.dropbox.com/sh/1p5yfvm1ipowdy4/AAAG7fXpmhTStNW
 CALL :import include.zip "https://www.dropbox.com/sh/8wcwnom54d3iub1/AADdoO609RsbOt1JrdCAp6tIa?dl=1" include
 CALL :import assets.zip "https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1" assets
 CALL :import extras.zip "https://www.dropbox.com/sh/ivstaw0kblgimwe/AADib2fNuH0XbmpP-jshBWoTa?dl=1" extras
+CALL :import mod_extras.zip "https://www.dropbox.com/sh/ow2q77abt5rrf01/AAC1NcP6tKWE-4Q5ZLF6tM38a?dl=1" mods
 EXIT /B 0
 
 :import

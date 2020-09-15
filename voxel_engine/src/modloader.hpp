@@ -15,6 +15,7 @@ public:
 private:
     void* instance;
     void* context;
+    void* compartment;
 };
 
 #endif
