@@ -393,7 +393,7 @@ void VoxelEngineWASM::Renderer::render_skybox(ContextRuntimeData* wasm_ctx, int3
     dbg("TEST! %d", cubemap_texture_id);
     for(int i = 0; i < 4; i++) {
         for(int j = 0; j < 4; j++) {
-            dbg("Proj[%d][%d] = %f", i, j, proj[i][j]);
+            dbg("Proj[%d][%d] = %f", i, j, view[i][j]);
         }
     }
     VoxelEngine::Renderer::render_skybox(cubemap_texture_id, proj, view);

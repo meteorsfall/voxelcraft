@@ -90,12 +90,11 @@ Mod::Mod(const char* modname) {
   map<string, Object*> all_functions;
 
 #define WASM_NAMED_IMPORT(func, name) \
-functions.push_back(asObject(getTypedInstanceExport(intrinsicsInstance, name,\
+all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,\
   FunctionType(WAVM::Intrinsics::inferIntrinsicFunctionType(&func).results(),\
               WAVM::Intrinsics::inferIntrinsicFunctionType(&func).params(),\
               WAVM::IR::CallingConvention::wasm)\
 )))
-//#define WASM_NAMED_IMPORT(func, name) functions.push_back(getInstanceExport(intrinsicsInstance, name))
 #define WASM_IMPORT(func) WASM_NAMED_IMPORT(func, colons_to_underscores(#func));\
 dbg("Name: %s", colons_to_underscores(#func));
 
@@ -106,19 +105,6 @@ dbg("Name: %s", colons_to_underscores(#func));
   WASM_IMPORT(VoxelEngineWASM::get_input_state);
   WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox);
   WASM_IMPORT(VoxelEngineWASM::Renderer::render_text);
-
-  FunctionType ft = WAVM::Intrinsics::inferIntrinsicFunctionType(&(VoxelEngineWASM::print));
-
-  dbg("Rets: %s", asString(ft).c_str());
-
-  for(int i = 0; i < functions.size(); i++) {
-    if (!functions[i]) {
-      dbg("Bad: %d", i);
-      dbg("P: %p", getTypedInstanceExport(intrinsicsInstance, "VoxelEngine__print", ft));
-    } else {
-      dbg("T: %lld", asFunction(functions[i])->encodedType.impl);
-    }
-  }
 
   /*
   WASM_IMPORT(VoxelEngineWASM::print);
@@ -145,19 +131,20 @@ dbg("Name: %s", colons_to_underscores(#func));
   WASM_IMPORT(VoxelEngineWASM::Renderer::render_skybox);
   */
 
-  dbg("TEMST");
-
-  vector<Object*> all_functions;
+  vector<Object*> functions;
   IR::Module irmod = getModuleIR(module);
   for(int i = 0; i < irmod.imports.size(); i++) {
-    const auto& kindIndex = irmod.imports[i];
+    const auto& kindIndex = irmod.imports.at(i);
     const auto& importType
-				= irmod.types[irmod.functions.getType(kindIndex.index).index];
-    dbg("Type: %lld", importType.getEncoding().impl);
-    string module_name = irmod.functions.imports[kindIndex.index].moduleName;
-    string export_name = irmod.functions.imports[kindIndex.index].exportName;
-    if (module_name.compare("env") == 0 && )
-    dbg("Name: %s", export_name);
+				= irmod.types.at(irmod.functions.getType(kindIndex.index).index);
+    string module_name = irmod.functions.imports.at(kindIndex.index).moduleName;
+    string export_name = irmod.functions.imports.at(kindIndex.index).exportName;
+    if (module_name.compare("env") == 0 && all_functions.count(export_name)) {
+      functions.push_back(all_functions.at(export_name));
+    } else {
+      dbg("Unxpected import!");
+      assert(false);
+    }
   }
 
 	// Instantiate the WASM module using the intrinsic function as its import.
