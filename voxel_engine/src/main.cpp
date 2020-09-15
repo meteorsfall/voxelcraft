@@ -114,7 +114,7 @@ int main( void )
 
 	double t55t = glfwGetTime();
 	for(int i = 0; i < 10; i++) {
-		//dbg("Fib: %d", fib(40, i));
+		dbg("Fib: %d", fib(40, i));
 	}
 	dbg("Compile Time: %f", (glfwGetTime() - t55t) * 1000.0);
 
@@ -219,7 +219,7 @@ int main( void )
 		if (!game.paused) {
 			main_mod.call("iterate_ui");
 		}
-		dbg("Iter: %f", (glfwGetTime() - ttt)*1000);
+		//dbg("Iter: %f", (glfwGetTime() - ttt)*1000);
 		if (main_ui.exiting) break;
 		main_ui.render();
 		main_mod.call("render_ui");

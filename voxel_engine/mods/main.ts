@@ -16,15 +16,6 @@ function fib(a: i32, seed: i32): i32 {
   }
 }
 
-function init(a: i32): i32 {
-  print("Init!");
-  for(let i = 0; i < 10; i++) {
-    //print(fib(40, i).toString());
-  }
-  font_id = VoxelEngine.register_font("assets/fonts/pixel.ttf");
-  skybox_texture_id = VoxelEngine.register_cubemap_texture("assets/images/skybox.bmp");
-  return 0;
-}
 
 let frame_num : i32 = 0;
 let input_state: InputState;
@@ -33,6 +24,16 @@ let previous_time: f64 = 0;
 
 let pos: f32 = 1;
 let c: Camera = new Camera();
+
+function init(a: i32): i32 {
+  print("Init!");
+  for(let i = 0; i < 10; i++) {
+    print(fib(40, i).toString());
+  }
+  font_id = VoxelEngine.register_font("assets/fonts/pixel.ttf");
+  skybox_texture_id = VoxelEngine.register_cubemap_texture("assets/images/skybox.bmp");
+  return 0;
+}
 
 function iterate(a: i32): i32 {
   input_state = VoxelEngine.get_input_state();

@@ -37,8 +37,8 @@ namespace VoxelEngineWASM {
         static float32_t get_break_amount(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z);
         static void set_break_amount(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z, float32_t break_amount);
 
-        static optional<ivec3> raycast(ContextRuntimeData* wasm_ctx, int32_t world_id, vec3 position, vec3 direction, float32_t max_distance, int32_t previous_block);
-        static vector<vec3> collide(ContextRuntimeData* wasm_ctx, int32_t world_id, vec3 collision_box_min_point, vec3 collision_box_max_point);
+        //static optional<ivec3> raycast(ContextRuntimeData* wasm_ctx, int32_t world_id, vec3 position, vec3 direction, float32_t max_distance, int32_t previous_block);
+        //static vector<vec3> collide(ContextRuntimeData* wasm_ctx, int32_t world_id, vec3 collision_box_min_point, vec3 collision_box_max_point);
         static void restart_world(ContextRuntimeData* wasm_ctx, int32_t world_id);
         static int32_t load_world(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t filepath);
         static void save_world(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t filepath);
@@ -224,7 +224,6 @@ mat4 get_mat4(ContextRuntimeData* wasm_ctx, i32 mat4_ptr_i) {
     }
 
     mat4 ret;
-
     memcpy(&ret[0][0], &memory_data[mat4_ptr], 16*4);
 
     return ret;
@@ -279,102 +278,87 @@ int32_t VoxelEngineWASM::register_texture(ContextRuntimeData* wasm_ctx, int32_t 
 }
 
 int32_t VoxelEngineWASM::register_cubemap_texture(ContextRuntimeData* wasm_ctx, int32_t filepath) {
-    
-    
     return VoxelEngine::register_cubemap_texture(get_wasm_string(wasm_ctx, filepath));
 }
 
 void VoxelEngineWASM::register_mesh(ContextRuntimeData* wasm_ctx, int32_t filepath) {
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::register_mesh(get_wasm_string(wasm_ctx, filepath));
 }
 
 void VoxelEngineWASM::register_component(ContextRuntimeData* wasm_ctx, int32_t filepath) {
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::register_component(get_wasm_string(wasm_ctx, filepath));
 }
 
 int32_t VoxelEngineWASM::register_model(ContextRuntimeData* wasm_ctx, int32_t filepath) {
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::register_model(get_wasm_string(wasm_ctx, filepath));
 }
 
 int32_t VoxelEngineWASM::register_world(ContextRuntimeData* wasm_ctx) {
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::register_world();
 }
 
 int32_t VoxelEngineWASM::World::is_generated(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z){
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::World::is_generated(world_id, ivec3(color_key_x, color_key_y, color_key_z));
 }
 
 void VoxelEngineWASM::World::mark_generated(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z){
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::World::mark_generated(world_id, ivec3(color_key_x, color_key_y, color_key_z));
 }
 
 void VoxelEngineWASM::World::mark_chunk(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z, int32_t priority){
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::World::mark_chunk(world_id, ivec3(color_key_x, color_key_y, color_key_z), priority);
 }
 
 int32_t VoxelEngineWASM::World::get_block(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z){
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::World::get_block(world_id, ivec3(color_key_x, color_key_y, color_key_z));
 }
 
 void VoxelEngineWASM::World::set_block(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z, int32_t model_id){
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::World::set_block(world_id, ivec3(color_key_x, color_key_y, color_key_z), model_id);
 }
 
 float VoxelEngineWASM::World::get_break_amount(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z){
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::World::get_break_amount(world_id, ivec3(color_key_x, color_key_y, color_key_z));
 }
 
 void VoxelEngineWASM::World::set_break_amount(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t color_key_x, int32_t color_key_y, int32_t color_key_z, float break_amount){
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::World::set_break_amount(world_id, ivec3(color_key_x, color_key_y, color_key_z), break_amount);
 }
 
 void VoxelEngineWASM::World::restart_world(ContextRuntimeData* wasm_ctx, int32_t world_id) {
+    UNUSED(wasm_ctx);
     dbg("Restarting World!");
     VoxelEngine::World::restart_world(world_id);
 }
 
 int32_t VoxelEngineWASM::World::load_world(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t filepath) {
-    
-
+    UNUSED(wasm_ctx);
     return VoxelEngine::World::load_world(world_id, get_wasm_string(wasm_ctx, filepath));
 }
 
 void VoxelEngineWASM::World::save_world(ContextRuntimeData* wasm_ctx, int32_t world_id, int32_t filepath) {
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::World::load_world(world_id, get_wasm_string(wasm_ctx, filepath));
 }
 
 void VoxelEngineWASM::Renderer::render_texture(ContextRuntimeData* wasm_ctx, int32_t texture_id, int32_t location_x, int32_t location_y, int32_t size_x, int32_t size_y) {
-    
-
+    UNUSED(wasm_ctx);
     VoxelEngine::Renderer::render_texture(texture_id, ivec2(location_x, location_y), ivec2(size_x, size_y));
 }
 
 void VoxelEngineWASM::Renderer::render_text(ContextRuntimeData* wasm_ctx, int32_t font_id, int32_t location_x, int32_t location_y, float32_t scale, int32_t text, int32_t color_x, int32_t color_y, int32_t color_z) {
-    dbg("Font: %d", font_id);
+    UNUSED(wasm_ctx);
     VoxelEngine::Renderer::render_text(font_id, ivec2(location_x, location_y), scale, get_wasm_string(wasm_ctx, text), ivec3(color_x, color_y, color_z));
 }
 
@@ -387,14 +371,9 @@ void VoxelEngineWASM::Renderer::render_model(ContextRuntimeData* wasm_ctx, int32
 
 
 void VoxelEngineWASM::Renderer::render_skybox(ContextRuntimeData* wasm_ctx, int32_t cubemap_texture_id, int32_t proj_ptr, int32_t view_ptr) {
+    UNUSED(wasm_ctx);
     mat4 proj = get_mat4(wasm_ctx, proj_ptr);
     mat4 view = get_mat4(wasm_ctx, view_ptr);
 
-    dbg("TEST! %d", cubemap_texture_id);
-    for(int i = 0; i < 4; i++) {
-        for(int j = 0; j < 4; j++) {
-            dbg("Proj[%d][%d] = %f", i, j, view[i][j]);
-        }
-    }
     VoxelEngine::Renderer::render_skybox(cubemap_texture_id, proj, view);
 }

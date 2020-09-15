@@ -29,7 +29,7 @@ ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
 )
 else()
 ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
-  COMMAND asc mods/main.ts --runtime half --importMemory -o mods/main.wasm
+  COMMAND asc mods/main.ts --runtime half --explicitStart -o mods/main.wasm
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm compilation"
 )
@@ -74,7 +74,7 @@ if (WIN32)
   endif ()
 else ()
   # Add gcc commandline options
-  add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Wno-unused-variable -Wno-unused-but-set-variable -Werror -Wfatal-errors)
+  add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Werror -Wfatal-errors)
   add_link_options(-rdynamic)
   set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -flto -g")
