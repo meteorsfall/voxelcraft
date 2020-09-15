@@ -12,6 +12,7 @@ assets/components
 assets/meshes
 gmon.out
 analysis.txt
+mods/compile_main.trigger
 
 **/*.wasm
 **/*.wat

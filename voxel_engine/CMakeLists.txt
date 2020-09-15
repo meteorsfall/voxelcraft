@@ -24,12 +24,14 @@ file(GLOB_RECURSE wasm_sources CONFIGURE_DEPENDS "mods/*.ts")
 
 if (WIN32)
 ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
-  COMMAND ${CMAKE_COMMAND} -E echo "Compiled Wasm!" > "mods/main.wasm"
+  COMMAND ${CMAKE_COMMAND} -E echo "Must compile WASM!" > "mods/main.wasm"
+  COMMAND ${CMAKE_COMMAND} -E echo "Must compile WASM!" > "mods/compile_main.trigger"
+  DEPENDS ${wasm_sources}
   COMMENT "Checking wasm Compilation"
 )
 else()
 ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
-  COMMAND asc mods/main.ts --runtime half --explicitStart -o mods/main.wasm
+  COMMAND asc mods/main.ts --runtime half --explicitStart -b mods/main.wasm
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm compilation"
 )
@@ -130,7 +132,7 @@ target_precompile_headers(vc PRIVATE src/includes.hpp)
 
 if (WIN32)
   # Link windows libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 wasmer libWAVM noise freetype ws2_32 userenv)
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 libWAVM noise freetype ws2_32 userenv)
   # Copy .dll's into build directory
   add_custom_command(TARGET vc POST_BUILD
       COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -138,7 +140,7 @@ if (WIN32)
       $<TARGET_FILE_DIR:vc>)
 else ()
   # Link linux libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise wasmer WAVM ${FREETYPE_LIBRARIES} stdc++fs)
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise WAVM ${FREETYPE_LIBRARIES} stdc++fs)
   # Run doxygen after compiling
   add_custom_command(TARGET vc POST_BUILD
       COMMAND doxygen
