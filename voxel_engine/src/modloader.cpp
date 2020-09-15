@@ -1,7 +1,6 @@
 #include "modloader.hpp"
 #include "utils.hpp"
 #include "api.hpp"
-#include <wasmer.hh>
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
