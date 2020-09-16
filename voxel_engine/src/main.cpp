@@ -124,6 +124,7 @@ int main( void )
 #if FRAME_TIMER
 		dbg("** Begin Frame");
 #endif
+		while ((glfwGetTime() - last_frame_time) < 1/90.0);
 		last_frame_time = glfwGetTime();
 
 		frames++;
