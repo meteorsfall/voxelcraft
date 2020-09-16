@@ -12,7 +12,7 @@ export declare function VoxelEngine__register_model(filepath: string): i32;
 export declare function VoxelEngine__register_world(): i32;
 
 // World
-export declare function VoxelEngine__World__is_generated(world_id: i32, chunk_coords_x: i32, chunk_coords_y: i32, chunk_coords_z: i32): i32;
+export declare function VoxelEngine__World__is_generated(world_id: i32, chunk_coords_x: i32, chunk_coords_y: i32, chunk_coords_z: i32): bool;
 export declare function VoxelEngine__World__mark_generated(world_id: i32, chunk_coords_x: i32, chunk_coords_y: i32, chunk_coords_z: i32): void;
 export declare function VoxelEngine__World__mark_chunk(world_id: i32, chunk_coords_x: i32, chunk_coords_y: i32, chunk_coords_z: i32, priority: i32): void;
 export declare function VoxelEngine__World__get_block(world_id: i32, coordinates_x: i32, coordinates_y: i32, coordinates_z: i32): i32;

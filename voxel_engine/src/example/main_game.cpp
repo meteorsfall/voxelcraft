@@ -183,6 +183,7 @@ void Game::iterate(InputState& input) {
             priority = dx*dx + dy*dy + dz*dz;
         }
 
+/*
         // Generate chunk if it needs to be generated
         if (VoxelEngine::World::is_generated(world_id, chunk)) {
             chunk_exists = true;
@@ -210,6 +211,7 @@ void Game::iterate(InputState& input) {
                 }
             }
         }
+        */
     }
 
     if (paused) {
@@ -237,7 +239,7 @@ void Game::render() {
     get_universe()->get_event(on_render_event)->trigger_event(&PV);
 
     // Render World
-    VoxelEngine::Renderer::render_world(world_id, P, V);
+    //VoxelEngine::Renderer::render_world(world_id, P, V);
 
     // Render entities
     //entity.render(PV);

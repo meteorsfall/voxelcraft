@@ -40,7 +40,7 @@ int VoxelEngine::register_world() {
 
     if (registered_world) {
         dbg("VoxelEngine does not support multiple worlds yet!");
-        return -1;
+        return 1;
     }
     registered_world = true;
 

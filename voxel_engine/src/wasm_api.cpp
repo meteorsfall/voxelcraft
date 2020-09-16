@@ -107,6 +107,7 @@ WASM_DECLARE(I32, VoxelEngineWASM::, register_cubemap_texture, I32);
 WASM_DECLARE(void, VoxelEngineWASM::, register_mesh, I32);
 WASM_DECLARE(void, VoxelEngineWASM::, register_component, I32);
 WASM_DECLARE(I32, VoxelEngineWASM::, register_model, I32);
+WASM_DECLARE(I32, VoxelEngineWASM::, register_world);
 
 // World
 WASM_DECLARE(I32, VoxelEngineWASM::World::, is_generated, I32, I32, I32, I32);

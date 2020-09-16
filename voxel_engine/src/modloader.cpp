@@ -86,6 +86,7 @@ all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,
   WASM_IMPORT(VoxelEngineWASM::register_mesh);
   WASM_IMPORT(VoxelEngineWASM::register_component);
   WASM_IMPORT(VoxelEngineWASM::register_model);
+  WASM_IMPORT(VoxelEngineWASM::register_world);
   WASM_IMPORT(VoxelEngineWASM::World::is_generated);
   WASM_IMPORT(VoxelEngineWASM::World::mark_generated);
   WASM_IMPORT(VoxelEngineWASM::World::mark_chunk);
@@ -116,7 +117,7 @@ all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,
       if (module_name.compare("env") == 0 && all_functions.count(export_name)) {
         functions.push_back(all_functions.at(export_name));
       } else {
-        dbg("Unxpected import!");
+        dbg("Unexpected import! %s::%s", module_name.c_str(), export_name.c_str());
         assert(false);
       } 
     } else {

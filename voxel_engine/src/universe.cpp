@@ -16,29 +16,44 @@ TextureAtlasser* Universe::get_atlasser() {
 }
 
 int Universe::register_atlas_texture(const char* texture_path, ivec3 color_key) {
-    int texture_id = atlasser.add_bmp(BMP(texture_path, color_key));
     string filename = std::filesystem::path(texture_path).filename().generic_string();
+    if (atlas_texture_names.count(filename)) {
+        return atlas_texture_names[filename];
+    }
+    int texture_id = atlasser.add_bmp(BMP(texture_path, color_key));
     atlas_texture_names[filename] = texture_id;
     return texture_id;
 }
 
 int Universe::register_texture(const char* texture_path, ivec3 color_key) {
+    string filename = std::filesystem::path(texture_path).filename().generic_string();
+    if (texture_names.count(filename)) {
+        return texture_names[filename];
+    }
     textures.push_back(Texture(BMP(texture_path, color_key)));
     int texture_id = textures.size();
-    string filename = std::filesystem::path(texture_path).filename().generic_string();
     texture_names[filename] = texture_id;
     return texture_id;
 }
 
 int Universe::register_mesh(const char* mesh_path) {
+    string filename = std::filesystem::path(mesh_path).filename().generic_string();
+    if (mesh_names.count(filename)) {
+        return mesh_names[filename];
+    }
     meshes.push_back(Mesh(mesh_path));
     int mesh_id = meshes.size();
-    string filename = std::filesystem::path(mesh_path).filename().generic_string();
     mesh_names[filename] = mesh_id;
     return mesh_id;
 }
 
 int Universe::register_component(const char* component_path) {
+    string filename = std::filesystem::path(component_path).stem().generic_string();
+    if (component_names.count(filename)) {
+        return component_names[filename];
+    }
+
+
     // Read JSON
     ifstream in(component_path, std::ios::binary | std::ios::ate);
 
@@ -139,7 +154,6 @@ int Universe::register_component(const char* component_path) {
 
     components.push_back(std::move(c));
     int component_id = components.size();
-    string filename = std::filesystem::path(component_path).stem().generic_string();
     component_names[filename] = component_id;
     return component_id;
 }

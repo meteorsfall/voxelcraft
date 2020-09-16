@@ -114,9 +114,9 @@ int main( void )
 	main_mod.call("init");
 
 	// MAKE GAME HERE
-	Game game;
+	//Game game;
 	// MAKE ALL CUSTOM UIs HERE
-	MainUI main_ui(&game);
+	//MainUI main_ui(&game);
     
     // START MAIN GAME LOOP
 	float last_frame_time;
@@ -140,7 +140,7 @@ int main( void )
 		double input_time = glfwGetTime();
         
 		// Relative mouse will be activated iff the game is not paused
-        InputState input_state = input_handler.capture_input(!game.paused);
+        InputState input_state = input_handler.capture_input(true);
 
 		if (input_handler.is_exiting() || glfwWindowShouldClose(window)) {
 			break;
@@ -156,11 +156,10 @@ int main( void )
 		
 		double iter_timer = glfwGetTime();
 
-		if (!game.paused) {
-			main_mod.set_input_state(&input_state, sizeof(input_state));
-			main_mod.call("iterate");
-		}
-		game.iterate(input_state);
+		main_mod.set_input_state(&input_state, sizeof(input_state));
+		main_mod.call("iterate");
+
+		//game.iterate(input_state);
 
 		double iter_timer_time = (glfwGetTime() - iter_timer) * 1000.0;
 #if FRAME_TIMER
@@ -183,7 +182,7 @@ int main( void )
 		
 		double game_timer = glfwGetTime();
 
-		game.render();
+		//game.render();
 		main_mod.call("render");
 
 		double game_timer_time = (glfwGetTime() - game_timer) * 1000.0;
@@ -203,14 +202,12 @@ int main( void )
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		
 		// Render UI
-		main_ui.iterate(input_state, width, height);
+		//main_ui.iterate(input_state, width, height);
 		double ttt = glfwGetTime();
-		if (!game.paused) {
-			main_mod.call("iterate_ui");
-		}
+		main_mod.call("iterate_ui");
+		
 		//dbg("Iter: %f", (glfwGetTime() - ttt)*1000);
-		if (main_ui.exiting) break;
-		main_ui.render();
+		//main_ui.render();
 		main_mod.call("render_ui");
 #if FRAME_TIMER
 		dbg("UI CPU Render Time: %f", (glfwGetTime() - ui_timer)*1000.0);
