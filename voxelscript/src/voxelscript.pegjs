@@ -84,7 +84,7 @@ class_block
 
 // A class implementation block includes variables declaration/declarations, and functions implementations
 class_implementation_block
-  = "{" _ decls:((init_implementation / function_implementation / variable_declaration / variable_definition / function_implementation))* _ "}" { return decls; }
+  = "{" _ decls:((init_implementation / function_implementation / variable_declaration / variable_definition))* _ "}" { return decls; }
 
 // A trait implementation block consists of a set of function implementations
 trait_implementation_block
