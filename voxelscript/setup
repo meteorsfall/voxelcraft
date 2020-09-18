@@ -11,4 +11,5 @@ npm_pkgs='npx'
 if ! npm list -g $npm_pkgs; then
   sudo npm i -g $npm_pkgs
 fi
+# Install npm packages everywhere
 npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..
