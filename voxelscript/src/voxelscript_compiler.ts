@@ -142,17 +142,14 @@ if (options.desired_module) {
 }
 
 if (err) {
-  if (compiler_context.missing_dependency) {
-    let err_string = error_to_string(compiler_context.error_module, voxelscripts[compiler_context.error_module].filepath, voxelscripts[compiler_context.error_module].code, {
-      missing_dependency: compiler_context.missing_dependency,
-      message: compiler_context.error_reason
-    });
-    console.log(err_string);
-    process.exit(1);
-  } else {
-    console.log("Error: Unknown compiler error!");
-    process.exit(2);
+  let err_data = {
+    missing_dependency: compiler_context.missing_dependency,
+    message: compiler_context.error_reason,
+    location: compiler_context.error_location,
   }
+  let err_string = error_to_string(compiler_context.error_module, voxelscripts[compiler_context.error_module].filepath, voxelscripts[compiler_context.error_module].code, err_data);
+  console.log(err_string);
+  process.exit(1);
 }
 
 // If there's a built target, we should get all compiled modules and write them to the build target

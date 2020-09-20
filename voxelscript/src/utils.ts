@@ -290,7 +290,7 @@ function error_to_string(module_name : string, file_path : string, code : string
       // Print the missing dependency error message
       output += err.message;
       output += "\n";
-  } else {
+  } else if (err.expected) {
     output += "Expected ";
 
     // Create list of expected symbols
@@ -323,6 +323,8 @@ function error_to_string(module_name : string, file_path : string, code : string
     } else {
       output += "end of file was found instead.\n";
     }
+  } else {
+    output += err.message;
   }
 
   // Return generated error message

@@ -136,7 +136,7 @@ expression
 // Operator Precedence from https://en.cppreference.com/w/c/language/operator_precedence
 
 precedence_15
-  = lhs:precedence_14 _ EQUAL _ rhs:precedence_15 { return {type: "assignment", lhs: lhs, rhs: rhs, location:location()}; }
+  = lhs:precedence_14 _ e:EQUAL_LOC _ rhs:precedence_15 { return {type: "assignment", lhs: lhs, equal: e /* for loc */, rhs: rhs, location:location()}; }
   / lhs:precedence_14 _ s:ARITHMETIC_SYMBOL EQUAL _ rhs:precedence_15 { return {type: "operator_assignment", operator: s, lhs: lhs, rhs: rhs, location:location()}; }
   / precedence_14
 
@@ -229,7 +229,7 @@ CAST_L "explicit cast \"<\""
 // Right Associative
 precedence_2
   = CAST_L _ lhs:type _ ">" _ rhs:precedence_2 { return {type: "cast", lhs: lhs, rhs: rhs, location:location()}; }
-  / PREFIX_NEW _ lhs:precedence_0 args:argument_list { return {type: "new", lhs: lhs, args: args, location:location()}; }
+  / PREFIX_NEW _ t:type args:argument_list { return {type: "new", new_type: t, args: args, location:location()}; }
   / PREFIX_MINUS _ rhs:precedence_2 { return {type: "minus", rhs: rhs, location:location()}; }
   / PREFIX_PLUSPLUS _ rhs:precedence_2 { return {type: "prefix_plus", rhs: rhs, location:location()}; }
   / PREFIX_MINUSMINUS _ rhs:precedence_2 { return {type: "prefix_minus", rhs: rhs, location:location()}; }
@@ -243,7 +243,7 @@ POSTFIX_MINUSMINUS "postfix operator"
   = "--"
 
 precedence_1_extensions
-  = _ "." _ rhs:value { return {type: "member_of", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  = _ "." _ rhs:identifier { return {type: "member_of", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args, location:location()}; }
   / _ POSTFIX_PLUSPLUS { return {type: "postfix_plus", capture_lhs: "lhs", location:location()}; }
@@ -275,13 +275,13 @@ function_declaration
 
 // A function implementation
 function_implementation
-  = r:voidable_type __ id:identifier _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"function_implementation",arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
+  = r:voidable_type __ id:identifier _ args:typed_argument_list _ b:function_block _ { return {type:"function_implementation", arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
 
 init_declaration
   = INIT _ args:typed_argument_list ENDSTATEMENT { return {type:"init_declaration", arguments:args, location:location()}; }
 
 init_implementation
-  = INIT _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"init_implementation", arguments:args, body:b, location:location()}; }
+  = i:INIT _ args:typed_argument_list _ b:function_block _ { return {type:"init_implementation", init: i /* for loc */, arguments:args, body:b, location:location()}; }
 
 // *************************
 // All Statements
@@ -417,7 +417,7 @@ STRING = "string"
 IMPORT = "import"
 CONST = "const"
 TRAIT = "trait"
-INIT = "init"
+INIT = "init" { return {location: location()}; }
 CLASS = "class"
 RETURN = "return"
 IMPLEMENT = "implement"
@@ -460,6 +460,7 @@ GREATER_THAN "binary operator" = ">"(!"=") {return ">"}
 GREATER_THAN_OR_EQUAL "binary operator" = ">="(!"=") {return ">="}
 
 EQUAL "assignment operator" = "="(!"=") {return "="}
+EQUAL_LOC "assignment operator" = "="(!"=") {return {location: location()}}
 
 ARROW = "=>" {return "=>"}
 UNDERSCORE = "_" {return "_"}

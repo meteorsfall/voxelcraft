@@ -13,13 +13,13 @@ implement Tester {
 
         c.fuel.give(f, 1);
         c.crushing.give(io, 1);
-        console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
+        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
         c.iterate();
-        console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
+        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
         c.iterate();
-        console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
+        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
         c.iterate();
-        console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
+        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
         c.iterate();
     }
 }

@@ -37,6 +37,7 @@ implement Crusher {
     init() {
         // The entity to be used as fuel
         this.fuel = new EntityContainer();
+        /*
         this.fuel.register_can_change((_, _, Entity new_entity, _) => {
             // You can either take fuel out entirely, or put in Combustible fuel
             return !new_entity.exists() || new_entity is Combustible;
@@ -71,6 +72,7 @@ implement Crusher {
                 return !new_entity.exists();
             }
         });
+        */
 
         this.current_progress = 0;
         this.energy_in_crusher = 0;
