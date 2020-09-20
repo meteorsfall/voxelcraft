@@ -1,6 +1,7 @@
 import Crusher;
 import Fuels;
 import Ores;
+import Entity;
 
 class Tester {
     init();
@@ -8,6 +9,7 @@ class Tester {
 implement Tester {
     init() {
         Coal f = new Coal();
+        Entity e = f;
         IronOre io = new IronOre();
         Crusher c = new Crusher();
 

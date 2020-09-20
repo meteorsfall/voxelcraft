@@ -56,6 +56,9 @@ implement EntityContainer {
     init() {
         this.entity = NullEntity;
         this.qty = 0;
+        this.is_locked = true;
+        this.registered_can_change = [];
+        this.registered_on_change = [];
     }
 
     void lock() {

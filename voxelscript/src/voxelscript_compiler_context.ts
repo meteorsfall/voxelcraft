@@ -508,16 +508,21 @@ class VSCompiler {
 
   // Render normal args as (arg1, arg2, arg3),
   // Rendering each expression accordingly
-  render_args(args : any[]) {
+  render_args(arg_types: symbl_type[] | null, args : any[]) {
     let ret = "";
     this.write_output("(");
     let first = true;
-    for(let arg of args) {
+    for(let i in args) {
+      let arg = args[i];
       if (!first) {
         this.write_output(", ");
       }
       // Arguments are arrays of expressions
-      this.render_expression(arg);
+      if (arg_types) {
+        this.render_coalesced(arg.value, arg_types[i]);
+      } else {
+        this.render_expression(arg);
+      }
       first = false;
     }
     this.write_output(")");
@@ -591,17 +596,65 @@ class VSCompiler {
     throw new Error("FATAL ERROR: Incorrect type!");
   }
 
+  coalesce_to(lhs: symbl_type, rhs: symbl_type): symbl_type | null {
+    if (lhs.is_array && rhs.is_array && rhs.array_type == null) {
+      return lhs;
+    }
+    if (lhs.is_trait && rhs.is_class) {
+      return lhs;
+    }
+    if (lhs.is_trait && rhs.is_trait) {
+      return lhs;
+    }
+    if (_.isEqual(lhs, rhs)) {
+      return lhs;
+    } else {
+      return null;
+    }
+  }
+
+  render_coalesced(rhs: any, t: symbl_type): void {
+    let right = this.type_subexpression(rhs)!;
+
+    if (t.is_trait && right.is_class) {
+      let cast_type = t;
+      this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
+      this.write_output("static_cast<Object*>")
+      this.render_subexpression(rhs);
+      this.write_output(")");
+    } else if (t.is_trait && right.is_trait && !_.isEqual(right, t)) {
+      let cast_type = t;
+      this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
+      this.render_subexpression(rhs);
+      this.write_output(".obj");
+      this.write_output(")");
+    } else if (t.is_array && right.array_type == null) {
+      this.write_output("(");
+      this.write_output("new " + this.render_type(t).slice(0, -1));
+      this.render_subexpression(rhs);
+      this.write_output(")");
+    } else {
+      this.render_subexpression(rhs);
+    }
+  }
+
   type_subexpression(e: any): symbl_type | null {
     switch(e.type) {
     case "assignment":
-      let left = this.type_subexpression(e.lhs)!;
-      let right = this.type_subexpression(e.rhs)!;
+      let left = this.type_subexpression(e.lhs);
+      let right = this.type_subexpression(e.rhs);
+      if (!left || !right) {
+        throw new Error("Type is null");
+      }
+      e.calculated_type = this.coalesce_to(left, right);
+      if (!e.calculated_type) {
+        throw {
+          message: "Cannot assign " + this.readable_type(left) + " to " + this.readable_type(right),
+          location: e.equal.location,
+        };
+      }
       if (left.is_trait && right.is_class) {
         // Okay
-      }
-      else if (!_.isEqual(left, right)) {
-        this.error_location = e.equal.location;
-        throw new Error("Cannot assign " + this.readable_type(left) + " to " + this.readable_type(right));
       }
       return null;
     case "operator_assignment":
@@ -652,27 +705,37 @@ class VSCompiler {
     case "ternary":
       let cond = this.type_subexpression(e.condition);
       if (!cond || !cond.is_primitive || cond.primitive_type != primitive_type.BOOL) {
-        throw new Error("Ternary condition must be a boolean!");
+        throw {
+          message: "Ternary condition must be a boolean!",
+          location: e.condition.location,
+        };
       }
       let left = this.type_subexpression(e.if_true);
       let right = this.type_subexpression(e.if_false);
       if (!_.isEqual(left, right)) {
-        throw new Error("Both paths of a ternary must be of the same type!");
+        throw {
+          message: "Both paths of a ternary must be of the same type!",
+          location: e.location,
+        };
       }
       t = left;
       break;
     case "member_of":
       let cls = this.type_subexpression(e.lhs);
       if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array)) {
-        this.error_location = e.location;
-        throw new Error("Member-of operator \".\" must have a class or trait on the left-hand-side.");
+        throw {
+          message: "Member-of operator \".\" must have a class or trait on the left-hand-side.",
+          location: e.location,
+        };
       }
       let member_name = this.parse_identifier(e.rhs);
       let resulting_type = this.get_context().resolve_member_of(cls, member_name);
       if (!resulting_type) {
-        this.error_location = e.location;
         let lhs_type = cls.is_class ? "class" : "trait";
-        throw new Error("\"" + member_name + "\" is not a member of " + lhs_type + " \"" + (cls.class_name || cls.trait_name) + "\"");
+        throw {
+          message: "\"" + member_name + "\" is not a member of " + lhs_type + " \"" + (cls.class_name || cls.trait_name) + "\"",
+          location: e.location,
+        };
       }
       t = resulting_type;
       break;
@@ -684,24 +747,37 @@ class VSCompiler {
       t = e.lhs.calculated_type;
       break;
     case "is_not":
-      //this.write_output("!");
+      // this.write_output("!");
       // Pass onto "is"
     case "is":
       this.type_subexpression(e.lhs);
       e.rhs.calculated_type = this.get_context().resolve_type(e.rhs);
       t = make_primitive_type(primitive_type.BOOL);
       break;
-    case "array":
+    case "array": {
+      t = null;
       for (let elem of e.value) {
-        this.type_subexpression(elem);
+        let subt = this.type_subexpression(elem);
+        if (t == null) {
+          subt = t;
+        }
+        if (!_.isEqual(t, subt)) {
+          throw {
+            message: "All elements an array must be of the same time",
+            location: elem.location,
+          };
+        }
       }
-      break;
+      t = make_array_type(t!);
+    } break;
     case "identifier":
       let id = this.parse_identifier(e);
       t = this.get_context().resolve_symbol_type(id);
       if (!t) {
-        this.error_location = e.location;
-        throw new Error("Identifier not recognized: " + id);
+        throw {
+          message: "Identifier not recognized: " + id,
+          location: e.location,
+        };
       }
       break;
     case "integer":
@@ -738,8 +814,17 @@ class VSCompiler {
       break;
     case "new": {
       let type_name = this.get_context().resolve_type(e.new_type);
-      if (!type_name || !type_name.is_class) {
-        throw new Error("Argument to new call must have type Class");
+      if (!type_name) {
+        throw {
+          message: "Type not found",
+          location: e.new_type.location,
+        };
+      }
+      if (!type_name.is_class) {
+        throw {
+          message: "Argument to new call must have type Class, " + this.readable_type(type_name) + " is not a class.",
+          location: e.new_type.location,
+        };
       }
       t = type_name;
       // TODO: Typecheck args
@@ -748,11 +833,27 @@ class VSCompiler {
     case "function_call":
       let fn = this.type_subexpression(e.lhs);
       if (!fn || !fn.is_lambda) {
-        this.error_location = e.lhs.location;
-        throw new Error("Function call must have type function");
+        throw {
+          message: "Function call must have type function",
+          location: e.lhs.location,
+        };
       }
-      // TODO: Typecheck args
-      //this.render_args(e.args);
+      if (fn.lambda_type!.arg_types.length != e.args.length) {
+        throw {
+          message: "Function expected " + fn.lambda_type!.arg_types.length + " arguments, but only received " + e.args.length,
+          location: e.lhs.location,
+        };
+      }
+      for(let i = 0; i < fn.lambda_type!.arg_types.length; i++) {
+        let expected_type = fn.lambda_type!.arg_types[i];
+        let actual_type = this.type_expression(e.args[i])!;
+        if (!this.coalesce_to(expected_type, actual_type)) {
+          throw {
+            message: "Could not cast type " + this.readable_type(actual_type) + " to " + this.readable_type(expected_type),
+            location: e.args[i].location,
+          }
+        }
+      }
       t = fn.lambda_type!.return_type;
       break;
     case "this":
@@ -788,22 +889,18 @@ class VSCompiler {
   render_subexpression(e : any): void {
     switch(e.type) {
     case "assignment":
+      this.write_output("(");
       this.render_subexpression(e.lhs);
       this.write_output(" = ");
-      if (e.lhs.calculated_type.is_trait && e.rhs.calculated_type.is_class) {
-        let cast_type = e.lhs.calculated_type;
-        this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
-        this.write_output("static_cast<Object*>")
-        this.render_subexpression(e.rhs);
-        this.write_output(")");
-      } else {
-        this.render_subexpression(e.rhs);
-      }
+      this.render_coalesced(e.rhs, e.lhs.calculated_type);
+      this.write_output(")");
       return;
     case "operator_assignment":
+      this.write_output("(");
       this.render_subexpression(e.lhs);
       this.write_output(" " + e.operator + "= ");
       this.render_subexpression(e.rhs);
+      this.write_output(")");
       return;
     }
 
@@ -900,11 +997,11 @@ class VSCompiler {
       this.write_output(".obj)");
       break;
     case "array":
-      this.write_output("[");
+      this.write_output("{");
       for (let elem of e.value) {
         this.render_subexpression(elem);
       }
-      this.write_output("]");
+      this.write_output("}");
       break;
     case "identifier":
       let id = this.parse_identifier(e);
@@ -945,12 +1042,12 @@ class VSCompiler {
     case "new": {
       let type_name = e.new_type.calculated_type;
       this.write_output(this.render_type(type_name).slice(0, -1) + "::_create_class");
-      this.render_args(e.args);
+      this.render_args(null, e.args);
       // Pass onto function call for the rest of the new
     } break;
     case "function_call":
       let fn = this.render_subexpression(e.lhs);
-      this.render_args(e.args);
+      this.render_args(e.lhs.calculated_type.lambda_type!.arg_types, e.args);
       break;
     case "this":
       this.write_output("self");
@@ -1129,9 +1226,10 @@ class VSCompiler {
       this.write_output("namespace _Trait_" + trait_name + " {\n");
       this.tab(1);
 
+      this.write_output("TRAIT_HEADER\n");
       this.write_output("static const id_type trait_id = " + this.trait_id + ";\n");
       this.trait_id++;
-      this.write_output("TRAIT_HEADER\n");
+      this.write_output("TRAIT_MID1\n");
       this.tab(1);
 
       // Vtable Typedefs
@@ -1270,7 +1368,10 @@ class VSCompiler {
 
       let cls = this.get_context().resolve_class_type(class_name);
       if (cls == null) {
-        throw new Error("Error: implementing class " + class_name + " that has not yet been declared!");
+        throw {
+          message: "implementing class " + class_name + " that has not yet been declared!",
+          location: data.identifier.location,
+        };
       }
 
       // Keep track of ASTs for all members with member_map
@@ -1280,13 +1381,18 @@ class VSCompiler {
           let key = statement.var_identifier.value;
           cls.private_members[key] = this.get_context().resolve_type(statement.var_type);
           if (member_map[key]) {
-            throw new Error("Member \"" + key + "\" defined twice in class \"" + class_name + "\"");
+            throw {
+              message: "Member \"" + key + "\" defined twice in class \"" + class_name + "\"",
+              location: statement.var_identifier.location,
+            };
           }
           member_map[key] = statement;
         } else if (statement.type == "init_implementation") {
           if (!cls.public_functions["init"]) {
-            this.error_location = statement.init.location;
-            throw new Error("init implemented, but no such init found in declaration of " + class_name);
+            throw {
+              message: "init implemented, but no such init found in declaration of " + class_name,
+              location: statement.init.location,
+            };
           }
           cls.public_functions["init"] = this.get_context().resolve_function_type(statement);
           member_map["init"] = statement;
@@ -1294,7 +1400,10 @@ class VSCompiler {
           let key = statement.identifier.value;
           cls.private_functions[key] = this.get_context().resolve_function_type(statement);
           if (member_map[key]) {
-            throw new Error("Member \"" + key + "\" defined twice in class \"" + class_name + "\"");
+            throw {
+              message: "Member \"" + key + "\" defined twice in class \"" + class_name + "\"",
+              location: statement.identifier.location,
+            };
           }
           member_map[key] = statement;
         } else {
@@ -1343,8 +1452,10 @@ class VSCompiler {
       this.write_output(referenced_class_name + " self = this;\n");
       if (cls.public_functions["init"]) {
         if (!member_map["init"]) {
-          this.error_location = data.identifier.location;
-          throw new Error("init declared, but not defined in implementation");
+          throw {
+            message: "init declared, but not defined in implementation",
+            location: data.identifier.location,
+          };
         }
         this.render_statement(member_map["init"]);
       }
@@ -1356,8 +1467,10 @@ class VSCompiler {
       for(let func in all_functions) {
         if (func == "init") continue;
         if (!member_map[func]) {
-          this.error_location = data.identifier.location;
-          throw new Error("\"" + func + "\" declared, but not defined in implementation");
+          throw {
+            message: "\"" + func + "\" declared, but not defined in implementation",
+            location: data.identifier.location,
+          };
         }
 
         let return_type = member_map[func].return_type ? this.get_context().resolve_type(member_map[func].return_type) : null;
@@ -1430,7 +1543,7 @@ class VSCompiler {
       this.write_output(" ")
       this.write_output("_VS_" + this.parse_identifier(data.var_identifier));
       this.write_output(" = ")
-      this.render_expression(data.var_definition);
+      this.render_coalesced(data.var_definition.value, var_type);
       this.write_output(";\n");
     } break;
     case "block_statement":
@@ -1474,13 +1587,15 @@ class VSCompiler {
       let collection_type = this.type_expression(data.collection)!;
 
       if (!collection_type.is_array) {
-        this.error_location = data.collection.location;
-        throw new Error("For-each loop must loop over an array.");
+        throw {
+          message: "For-each loop must loop over an array.",
+          location: data.collection.location,
+        };
       }
 
       this.get_context().register_variable(this.parse_identifier(data.item_identifier), collection_type.array_type!);
 
-      this.write_output("for (auto _VS_" + this.parse_identifier(data.item_identifier) + " : ");
+      this.write_output("for (auto& _VS_" + this.parse_identifier(data.item_identifier) + " : *");
       this.render_expression(data.collection);
       this.write_output(") ");
 
@@ -1530,14 +1645,19 @@ class VSCompiler {
       this.tab(-1);
       this.write_output("}\n");
 
+      if (module_name == "Main") {
+        this.write_output("int main() {return 0;}");
+      }
+
       // Close context, and save results
       this.compiler_context = null;
       this.compiling_module = null;
       this.loaded_modules[module_name] = true;
       return true;
     } catch(e) {
-      if (this.error_location) {
-        // Propogate error messages
+      if (e && e.location) {
+        // Propogate type-check error messages
+        this.error_location = e.location;
         this.error_module = module_name;
         this.error_reason = e.message;
         return false;
@@ -1719,14 +1839,15 @@ public:
 };
 
 #define TRAIT_HEADER \\
-        class _Instance; \\
-        class _Vtable { \\
-        public:
-
-#define TRAIT_MID \\
-      }; \\
       class _Instance : public Trait { \\
       public: \\
+
+#define TRAIT_MID1 \\
+          class _Vtable { \\
+          public:
+
+#define TRAIT_MID \\
+          }; \\
           _Instance() : Trait(NULL), vtbl(NULL) {} \\
           _Instance(Object* obj, void* vtbl) : Trait(obj), vtbl((_Vtable*)vtbl) { \\
               if (vtbl == nullptr) { \\
@@ -1756,7 +1877,7 @@ T cast_to_trait(Object* obj) {
     if (!is_trait<T>(obj)) {
         throw "Fail to cast!";
     }
-    return T(obj, (T::Vtable*)vtbls[obj->object_id][T::trait_id]);
+    return T(obj, vtbls[obj->object_id][T::trait_id]);
 }
 
 template<typename T>
