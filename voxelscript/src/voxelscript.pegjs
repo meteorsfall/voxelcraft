@@ -67,8 +67,8 @@ trait_implementation
   = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b, location:location()}; }
 
 typedef
-  = TYPEDEF __ lhs:type _ EQUAL _ args:typed_argument_list _ ARROW _ r:type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r, location:location()}; }
-  / TYPEDEF __ lhs:type _ EQUAL _ rhs:type ENDSTATEMENT { return {type:"typedef_statement", lhs: lhs, rhs: rhs, location:location()}; }
+  = TYPEDEF __ lhs:identifier _ EQUAL _ args:typed_argument_list _ ARROW _ r:voidable_type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r, location:location()}; }
+  / TYPEDEF __ lhs:identifier _ EQUAL _ rhs:type ENDSTATEMENT { return {type:"typedef_statement", lhs: lhs, rhs: rhs, location:location()}; }
 
 // *************************
 // Blocks
@@ -264,18 +264,18 @@ import
   = IMPORT __ id:identifier ENDSTATEMENT { return {type:"import", identifier: id, location:location()}; }
 
 const
-  = CONST __ id:identifier _ EQUAL _ val:value ENDSTATEMENT { return {type:"const", identifier:id, value:val, location:location()}; }
+  = CONST __ t:type __ id:identifier _ EQUAL _ val:value ENDSTATEMENT { return {type:"const", var_type:t, identifier:id, value:val, location:location()}; }
 
 // *************************
 // Class-level Statements
 // *************************
 
 function_declaration
-  = r:type __ id:identifier _ args:typed_argument_list ENDSTATEMENT { return {type:"function_declaration", arguments:args, "identifier":id, "return_type":r, location:location()}; }
+  = r:voidable_type __ id:identifier _ args:typed_argument_list ENDSTATEMENT { return {type:"function_declaration", arguments:args, "identifier":id, "return_type":r, location:location()}; }
 
 // A function implementation
 function_implementation
-  = r:type __ id:identifier _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"function_implementation",arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
+  = r:voidable_type __ id:identifier _ args:typed_argument_list_with_underscore _ b:function_block _ { return {type:"function_implementation",arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
 
 init_declaration
   = INIT _ args:typed_argument_list ENDSTATEMENT { return {type:"init_declaration", arguments:args, location:location()}; }
@@ -329,7 +329,7 @@ throw
 
 // General identifier
 general_identifier
-  = !(KEYWORDS ![a-zA-Z_0-9]) id:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return "_VS_" + id[0] + (id[1] ? id[1].join("") : ""); }
+  = !(KEYWORDS ![a-zA-Z_0-9]) id:([a-zA-Z_][a-zA-Z_0-9]*) ![a-zA-Z_0-9] { return id[0] + (id[1] ? id[1].join("") : ""); }
 
 this
   = THIS { return {type:"this"} }
@@ -356,6 +356,10 @@ double
   = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"double", value: num.join(""), location:location()}; }
 
 // String
+char
+  = "\'" chr:([^"]) "\'" { return {type: "char", value: chr, location:location()}; }
+
+// String
 string
   = "\"" str:([^"]*) "\"" { return {type: "string", value: str.join(""), location:location()}; }
 
@@ -364,11 +368,15 @@ value_comma
 
 // Values can be constants, identifiers, or arrays of identifiers
 value "value"
-  = v:(bool / double / integer / string / identifier) { return v; }
+  = v:(bool / double / integer / char / string / identifier) { return v; }
   / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
 
 type "type"
-  = t:(VOID / INT / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value:t, location:location()}; }
+  = t:(INT / CHAR / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value: t, location:location()}; }
+
+voidable_type "type or void"
+  = VOID { return null; }
+  / t:type { return t; }
 
 // *************************
 // Comments
@@ -396,10 +404,11 @@ __ "whitespace"
 // Constants
 // *************************
 
-KEYWORDS = THIS / INT / DOUBLE / BOOL / TRUE / FALSE / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
+KEYWORDS = THIS / INT / CHAR / DOUBLE / BOOL / TRUE / FALSE / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
 
 THIS = "this"
 INT = "int"
+CHAR = "char"
 DOUBLE = "double"
 BOOL = "bool"
 TRUE = "true"

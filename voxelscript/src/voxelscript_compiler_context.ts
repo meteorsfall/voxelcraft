@@ -1,4 +1,131 @@
 import { stringify } from 'querystring';
+import { bool } from './base_ts';
+
+//////////////////////////////////////////////////
+// A function type
+interface function_type {
+  arg_types: symbl_type[],
+  return_type: symbl_type | null,
+}
+
+// A primitive type
+enum primitive_type {
+  STRING,
+  CHAR,
+  FLOAT,
+  INT,
+  BOOL,
+}
+
+// Symbol Type
+// -------
+// Primitive (int, float, bool)
+// Lambda
+// Class
+// Trait
+interface symbl_type {
+  is_primitive: bool,
+  is_lambda: bool,
+  is_class: bool,
+  is_trait: bool,
+  is_array: bool,
+
+  primitive_type: primitive_type | null,
+  lambda_type: function_type | null,
+  class_name: string | null,
+  trait_name: string | null,
+  array_type: symbl_type | null,
+}
+
+function make_primitive_type(prim: primitive_type): symbl_type {
+  return {
+    is_primitive: true,
+    is_lambda: false,
+    is_class: false,
+    is_trait: false,
+    is_array: false,
+    primitive_type: prim,
+    lambda_type: null,
+    class_name: null,
+    trait_name: null,
+    array_type: null,
+  };
+}
+
+function make_class_type(class_name: string) : symbl_type {
+  return {
+    is_primitive: false,
+    is_lambda: false,
+    is_class: true,
+    is_trait: false,
+    is_array: false,
+    primitive_type: null,
+    lambda_type: null,
+    class_name: class_name,
+    trait_name: null,
+    array_type: null,
+  };
+}
+
+function make_trait_type(trait_name: string) : symbl_type {
+  return {
+    is_primitive: false,
+    is_lambda: false,
+    is_class: false,
+    is_trait: true,
+    is_array: false,
+    primitive_type: null,
+    lambda_type: null,
+    class_name: null,
+    trait_name: trait_name,
+    array_type: null,
+  };
+}
+
+function make_lambda_type(fn_type: function_type): symbl_type {
+  return {
+    is_primitive: false,
+    is_lambda: true,
+    is_class: false,
+    is_trait: false,
+    is_array: false,
+    primitive_type: null,
+    lambda_type: fn_type,
+    class_name: null,
+    trait_name: null,
+    array_type: null,
+  };
+}
+
+function make_array_type(sym_type: symbl_type): symbl_type {
+  return {
+    is_primitive: false,
+    is_lambda: false,
+    is_class: false,
+    is_trait: false,
+    is_array: true,
+    primitive_type: null,
+    lambda_type: null,
+    class_name: null,
+    trait_name: null,
+    array_type: sym_type,
+  };
+}
+
+//////////////////////////////////////////////////
+
+// Classes have pub/priv members/functions
+interface class_type {
+  public_members: Record<string, symbl_type>
+  public_functions: Record<string, function_type>,
+  private_members: Record<string, symbl_type>,
+  private_functions: Record<string, function_type>,
+  traits: Record<string, bool>
+}
+
+interface trait_type {
+  public_functions: Record<string, function_type>,
+}
 
 interface dependency {
   module_name : string,
@@ -8,149 +135,226 @@ interface dependency {
 interface module {
   name: string,
   voxelscript_ast: any,
-  compiled: string,
-  mapping: string,
   dependencies: dependency[],
-  exports: Record<string, symbl>,
-  imports: module[],
+
+  imports: Record<string, bool>,
+
+  typedefs: Record<string, symbl_type>,
+  static_variables: Record<string, symbl_type>,
+  classes: Record<string, class_type>,
+  traits: Record<string, trait_type>,
+
+  exports: Record<string, bool>,
 }
 
-interface symbl {
-  type: string,
-  type_name: string | null,
-  identifier: string,
-  module: module,
-  class_data: Record<string, symbl> | null,
-}
-
-interface context {
-  module : module,
-  symbols : Record<string, symbl>,
-  parent_context : context | null,
-  current_scope : symbl | null
+interface block {
+  variables: Record<string, symbl_type>
 }
 
 class VSContext {
-  context_stack : context[] = [];
-  module : module;
+  // Modules
+  modules: Record<string, module>;
+  // Module
+  module: string;
 
-  constructor(module : module) {
+  // Top-level context
+  is_in_class: bool = false;
+  is_in_trait: bool = false;
+  is_implementing_trait: bool = false;
+  class: string | null = null;
+  trait: string | null = null;
+
+  // Blocks
+  blocks: block[] = [];
+
+  constructor(modules: Record<string, module>, module : string) {
+    this.modules = modules;
     this.module = module;
   }
-
-  current_context() : context | null {
-    return this.context_stack[this.context_stack.length - 1];
-  }
-
-  push_context() {
-    let prev_context = this.current_context();
-
-    this.context_stack.push({
-      symbols: {},
-      module: this.module,
-      parent_context: prev_context,
-      current_scope: null
+  
+  push_block() {
+    this.blocks.push({
+      variables: {}
     });
   }
 
-  push_context_class(class_id : string) {
-    this.push_context();
-    this.current_context()!.current_scope = this.get_symbol(class_id);
+  pop_block() {
+    this.blocks.pop();
   }
 
-  pop_context() {
-    let scope = this.current_context()!.current_scope;
-    if (scope) {
-      switch(scope.type) {
-      case 'class':
-        scope.class_data = this.current_context()!.symbols;
-        break;
+  check_empty() {
+    if(this.class
+    || this.trait) {
+      console.log("BAD! Top Level Context set but not empty!");
+    }
+  }
+
+  set_top_level_class(cls: string) {
+    this.check_empty();
+    this.is_in_class = true;
+    this.class = cls;
+  }
+
+  set_top_level_trait(trait: string) {
+    this.check_empty();
+    this.is_in_trait = true;
+    this.trait = trait;
+  }
+
+  set_top_level_implementing_trait(cls: string, trait: string) {
+    this.check_empty();
+    this.is_implementing_trait = true;
+    this.class = cls;
+    this.trait = trait;
+  }
+
+  clear_top_level() {
+    this.is_in_class = false;
+    this.is_in_trait = false;
+    this.is_implementing_trait = false;
+    this.class = null;
+    this.trait = null;
+  }
+
+  // Resolves a static variable, or a class, or a trait
+  resolve_top_level_from_module(module: string, identifier: string, name: string, check_export: bool = false): any {
+    let mod = this.modules[module];
+    // If the identifier wasn't even exported from that module,
+    // then clearly we can't resolve the symbol
+    let guarantee = false;
+    if (check_export && identifier in mod.exports) {
+      guarantee = true;
+    }
+    if (identifier in (<any>mod)[name]) {
+      return (<any>mod)[name][identifier];
+    }
+    for(let import_module in mod.imports) {
+      let resolved_symbol = this.resolve_top_level_from_module(import_module, identifier, name, true);
+      if (resolved_symbol) {
+        return resolved_symbol;
       }
     }
-    this.context_stack.pop();
+    if (guarantee && !identifier) {
+      // Symbol not found, but exports guaranteed they would be found
+      throw new Error("ERROR: Symbol " + identifier + " referenced, but no such symbol found");
+    } else {
+      // Symbol not found
+      return null;
+    }
   }
 
-  get_symbol(identifier : string) : symbl | null {
-    let cur = this.current_context();
-    while(cur != null) {
-      if (identifier in cur.symbols) {
-        return cur.symbols[identifier];
+  // For a given variable, check what symbl_type it has (Check blocks and static variables)
+  resolve_symbol_type(identifier : string): symbl_type | null {
+    // Check any code blocks for this symbol
+    let cur = this.blocks.length - 1;
+    while(cur >= 0) {
+      if (identifier in this.blocks[cur].variables) {
+        return this.blocks[cur].variables[identifier];
       }
-      cur = cur.parent_context;
+      cur--;
     }
 
-    for (let imported_module of this.module.imports) {
-      for(let e in imported_module.exports) {
-        if (identifier == e) {
-          return imported_module.exports[e];
-        }
+    // Check modules for static variables
+    return this.resolve_top_level_from_module(this.module, identifier, "static_variables");
+  }
+
+  // For a given trait, get the trait type (Ie, trait funcs)
+  resolve_trait_type(trait: string): trait_type | null {
+    // Check modules for trait
+    return this.resolve_top_level_from_module(this.module, trait, "traits");
+  }
+
+  // For a given class, get the class type (Ie, member vars, member funcs, etc)
+  resolve_class_type(cls: string): class_type | null {
+    // Check modules for class
+    return this.resolve_top_level_from_module(this.module, cls, "classes");
+  }
+
+  resolve_typedef_type(type_name: string): symbl_type | null {
+    return this.resolve_top_level_from_module(this.module, type_name, "typedefs");
+  }
+
+  resolve_function_type(t: any): function_type {
+    let return_type = t.return_type == null ? null : this.resolve_type(t.return_type);
+    let args = [];
+    for(let arg of t.arguments) {
+      args.push(this.resolve_type(arg.arg_type));
+    }
+    return {
+      return_type: return_type,
+      arg_types: args,
+    };
+  }
+
+  // For a pegjs type, get the type
+  resolve_type(t: any): symbl_type {
+    let type_name: string;
+    let type_value: symbl_type | null = null;
+
+    if (t.value.type == "identifier") {
+      type_name = t.value.value;
+      console.log("Looking for " + type_name);
+      if (this.resolve_class_type(type_name)) {
+        type_value = make_class_type(type_name);
+      }
+      else if (this.resolve_trait_type(type_name)) {
+        type_value = make_trait_type(type_name);
+      } else if (this.resolve_typedef_type(type_name)) {
+        type_value = this.resolve_typedef_type(type_name);
+      }
+    } else {
+      type_name = t.value;
+      if (type_name == 'int') {
+        type_value = make_primitive_type(primitive_type.INT);
+      }
+      else if (type_name == 'float') {
+        type_value = make_primitive_type(primitive_type.FLOAT);
+      }
+      else if (type_name == 'bool') {
+        type_value = make_primitive_type(primitive_type.BOOL);
+      }
+      else if (type_name == 'char') {
+        type_value = make_primitive_type(primitive_type.CHAR);
+      }
+      else if (type_name == 'string') {
+        type_value = make_primitive_type(primitive_type.STRING);
       }
     }
 
-    return null;
+    if (type_value == null) {
+      throw new Error("No such symbol type " + type_name + "!");
+    } else {
+      if (t.type == "array_type") {
+        type_value = make_array_type(type_value);
+      }
+      return type_value;
+    }
   }
 
-  register_class(identifier : string) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "class",
-      identifier,
-      class_data: {},
-      type_name: null
-    };
-  }
-
-  register_trait(identifier : string) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "trait",
-      identifier,
-      class_data: null,
-      type_name: null
-    };
-  }
-
-  register_type(identifier : string) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "type",
-      identifier,
-      class_data: null,
-      type_name: null
-    };
-  }
-
-  register_variable(identifier : string, t : string | null) {
-    this.current_context()!.symbols[identifier] = {
-      module: this.module,
-      type: "variable",
-      type_name: t,
-      identifier,
-      class_data: null,
-    };
+  // Register a variable into the block or static variable list
+  register_variable(identifier : string, t : symbl_type) {
+    if (this.blocks.length > 0) {
+      this.blocks[this.blocks.length - 1].variables[identifier] = t;
+    } else {
+      throw "Trying to register variable, but no block to register it too!";
+    }
   }
 }
 
 class VSCompiler {
   // Global Context
-  modules : any = {};
-  loaded_modules : any = {};
+  modules : Record<string, module> = {};
+  loaded_modules : Record<string, bool> = {};
   compiling_module : string | null = null;
-  // This variable will be used in place of voxelscript underscores in lambda expressions
-  unused_variable_name : string = "UNUSED_";
   compiler_context : VSContext | null = null;
 
-  private get_current_context() : VSContext {
+  private get_context() {
     return this.compiler_context!;
-  }
-
-  private get_keyword() {
-
   }
 
   // Rendering Context
   tabs = 0;
-  output = "";
+  output = prelude;
   mapping = "";
 
   // Compilation Context
@@ -161,19 +365,7 @@ class VSCompiler {
   missing_dependency : dependency | null = null;
   error_reason : string = "";
   // Keep track of modules that failed to parse
-  failed_modules : any = {};
-
-  // Reset the variable in every module, so that the underscores don't grow too long
-  private reset_unused_variable_name() {
-    this.unused_variable_name = "UNUSED_";
-  }
-
-  // In order to make sure that every "unused" variable is unique, add an underscore
-  private get_unused_variable_name() {
-    let var_name = this.unused_variable_name;
-    this.unused_variable_name += "_";
-    return var_name;
-  }
+  failed_modules : Record<string, bool> = {};
 
   // Return the module, given the module name
   private get_module(module_name : string) : module | null {
@@ -190,10 +382,13 @@ class VSCompiler {
     let m : module = {
       name: module_name,
       voxelscript_ast: voxelscript_ast,
-      compiled: "",
-      mapping: "",
       dependencies: [],
-      imports: [],
+
+      imports: {},
+      typedefs: {},
+      static_variables: {},
+      classes: {},
+      traits: {},
       exports: {},
     };
 
@@ -231,15 +426,8 @@ class VSCompiler {
       this.output += c;
     }
   }
-
-  // Track mapping
-  map_point(location : any) {
-    if (location) {
-      this.mapping += this.output.length + ":" + location.end.offset + ";";
-    }
-  }
   
-  // Render typed_args as (Obj1 : Type1, Obj2 : Type2, _, _, Obj3 : Type 3)
+  // Render typed_args as (Type1 Arg1, Type2 Arg2, Type3, Type4 Arg4)
   render_typed_args(typed_args : any[]) {
     this.write_output("(");
     let first = true;
@@ -248,9 +436,9 @@ class VSCompiler {
         this.write_output(", ");
       }
       if (arg.type == "typed_arg") {
-        this.write_output(this.parse_identifier(arg.arg_identifier) + " : " + this.parse_type(arg.arg_type));
+        this.write_output(this.render_type(this.get_context().resolve_type(arg.arg_type)) + " " + this.parse_identifier(arg.arg_identifier));
       } else if (arg.type == "underscore") {
-        this.write_output(this.get_unused_variable_name());
+        this.write_output("_");
       } else {
         // SHOULD BE UNREACHABLE
         throw new Error("Invalid arg type: " + arg.type);
@@ -277,110 +465,52 @@ class VSCompiler {
   }
 
   // Verify that the given identifier has not yet been registered as a class or trait in the context yet
-  verify_not_registered(id : any) {
-    let unparsed_name = id.value;
-    let parsed_name = this.get_current_context().get_symbol(unparsed_name);
-    if (parsed_name) {
-      throw new Error("identifier <" + unparsed_name + "> is already registered to <" + parsed_name + ">! ");
+  verify_not_registered(id : string) {
+    let symbol_possibility = this.get_context().resolve_symbol_type(id);
+    let class_possibility = this.get_context().resolve_class_type(id);
+    let trait_possibility = this.get_context().resolve_trait_type(id);
+    if (symbol_possibility || class_possibility || trait_possibility) {
+      throw new Error("identifier <" + id + "> is already used!");
     }
   }
 
-  register_variable(variable_identifier : string, t : any | null) {
-    this.verify_not_registered(variable_identifier);
+  register_variable(identifier : string, t : symbl_type) {
+    this.verify_not_registered(identifier);
 
-    this.get_current_context().register_variable(variable_identifier, this.parse_type(t));
+    if (this.get_context().blocks.length == 0) {
+      this.modules[this.compiling_module!].static_variables[identifier] = t;
+    } else {
+      // Register into the block context
+      this.get_context().register_variable(identifier, t);
+    }
+  }
+
+  register_class(identifier: string, t: class_type) {
+    console.log("Registering class: " + identifier);
+    this.verify_not_registered(identifier);
+    this.modules[this.compiling_module!].classes[identifier] = t;
+  }
+
+  register_trait(identifier: string, t: trait_type) {
+    console.log("Registering trait: " + identifier);
+    this.verify_not_registered(identifier);
+    this.modules[this.compiling_module!].traits[identifier] = t;
+  }
+
+  register_typedef_function(identifier: string, t: function_type) {
+    console.log("Registering typedef: " + identifier);
+    this.verify_not_registered(identifier);
+    this.modules[this.compiling_module!].typedefs[identifier] = make_lambda_type(t);
   }
 
   register_export(export_identifier : string) {
-    let sym = this.get_current_context().get_symbol(export_identifier);
-    if (!sym) {
-      throw new Error("Export identifier " + export_identifier);
-    }
     let m : module = this.modules[this.compiling_module!];
-    m.exports[export_identifier] = sym;
-  }
-  
-  // Register the trait identifier in the current context,
-  // so that we know that this identifier refers to a trait
-  register_trait(trait_identifier : any) {
-    // Don't register twice
-    this.verify_not_registered(trait_identifier);
-
-    this.get_current_context().register_trait(trait_identifier.value);
-  }
-
-  // Register the class trait in the current context,
-  // so that we know that this identifier refers to a class
-  register_class(class_identifier : any) {
-    this.verify_not_registered(class_identifier);
-
-    this.get_current_context().register_class(class_identifier.value);
-  }
-  
-  // Parse type into a typescript string
-  parse_type(type : any) {
-    let val;
-    if (type.value.type == "identifier") {
-      // If type is an identifier, we should parse it as such
-      val = this.parse_identifier(type.value);
-    } else {
-      // Otherwise type.value already contains the type name
-      val = type.value;
-    }
-    let suffix = "";
-    if (type.type == "array_type") {
-      suffix += "[]";
-    }
-    return val + suffix;
-  }
-
-  parse_symbl(sym : symbl) : string {
-    if (sym.type == 'trait') {
-      return 'TRAIT_' + sym.identifier;
-    }
-    if (sym.type == 'class') {
-      return 'CLASS_' + sym.identifier;
-    }
-    return sym.identifier;
+    m.exports[export_identifier] = true;
   }
   
   // Parse identifier into a typescript string (Checking for trait/class status)
-  parse_identifier(id : any) {
-    let sym = this.get_current_context().get_symbol(id.value);
-    if (!sym) {
-      return id.value;
-    } else {
-      return this.parse_symbl(sym);
-    }
-  }
-  
-  // Create is_TRAIT__VS_MyTrait function,
-  // so that cast<> can verify if a given object has implemented that trait
-  create_is_trait_function(trait_name : string) {
-    return {
-      type: "function_implementation",
-      arguments: [],
-      identifier: {
-        type: "identifier",
-        value: "is_" + trait_name,
-      },
-      return_type: {
-        type: "type",
-        value: "bool"
-      },
-      body: [
-        {
-          type: "return",
-          value: {
-            type: "expression",
-            value: {
-              type: "identifier",
-              value: "true"
-            }
-          }
-        }
-      ]
-    }
+  parse_identifier(id : any): string {
+    return id.value;
   }
 
   // Render expression by unwrapping the subexpression
@@ -504,10 +634,10 @@ class VSCompiler {
       this.write_output("++");
       break;
     case "cast":
-      let type_name = this.parse_type(e.lhs);
-      this.write_output("cast<" + type_name + ">(");
+      let type_name = this.get_context().resolve_type(e.lhs);
+      this.write_output("cast<" + this.render_type(type_name) + ">(");
       this.render_subexpression(e.rhs);
-      this.write_output(", " + "\"is_" + type_name + "\")");
+      this.write_output(")");
       break;
     case "new":
       this.write_output("new ");
@@ -529,7 +659,6 @@ class VSCompiler {
     if (with_parens) {
       this.write_output(")");
     }
-    this.map_point(e.location);
   }
 
   // Render function bodies as sets of variable definitions / declarations / statements
@@ -542,19 +671,42 @@ class VSCompiler {
     }
   }
 
-  // Keep track of trait context
-  set_trait_implementing_on(trait : string, cls : string) {
-    this.is_currently_implementing = trait;
-    this.is_currently_implementing_on = cls;
+  render_type(t: symbl_type): string {
+    if(t.is_primitive) {
+      if (t.primitive_type == primitive_type.BOOL) {
+        return "bool";
+      }
+      if (t.primitive_type == primitive_type.CHAR) {
+        return "char";
+      }
+      if (t.primitive_type == primitive_type.INT) {
+        return "int";
+      }
+      if (t.primitive_type == primitive_type.FLOAT) {
+        return "float";
+      }
+      if (t.primitive_type == primitive_type.STRING) {
+        return "string";
+      }
+    }
+    if (t.is_class) {
+      return "_Class_" + t.class_name!;
+    }
+    if (t.is_trait) {
+      return "_Trait_" + t.trait_name! + "::_Instance";
+    }
+    throw "Type cannot be rendered!";
   }
 
-  unset_trait_implementing_on() {
-    this.is_currently_implementing = null;
-    this.is_currently_implementing_on = null;
+  render_module(module_name: string): string {
+    return "_" + module_name + "_VS_";
   }
+
+  class_id: number = 0;
+  trait_id: number = 0;
   
   // Render a statement to typescript
-  render_statement(data : any) {
+  render_statement(data : any): void {
     // Help find bugs in render_statement calls
     if (!data.type) {
       // THIS CODE SHOULD NOT BE REACHED!
@@ -562,233 +714,246 @@ class VSCompiler {
       throw new Error("data does not have type!");
     }
   
+    console.log("Type: " + data.type);
     switch (data.type) {
     case "module":
-      this.write_output("import {int, double, bool, applyMixins, cast, _VS_console} from \"./Base\";\n");
       for(let top_level of data.body) {
-        if (top_level.type == "variable_definition" || top_level.type == "variable_declaration") {
-          this.write_output("let ");
-        }
         this.render_statement(top_level);
       }
       break;
-    case "import":
-      let raw_import_id = data.identifier.value;
-      let module : module = this.modules[raw_import_id];
+    case "import": {
+      let import_name = data.identifier.value;
+      let module : module = this.modules[import_name];
       if (!module) {
         // SHOULD BE UNREACHABLE!
-        throw new Error("Bad Import!" + raw_import_id);
+        throw new Error("Bad Import!" + import_name);
       }
-      this.modules[this.compiling_module!].imports.push(module);
+      this.modules[this.compiling_module!].imports[import_name] = true;
 
       let import_location = "";
 
       // Get path to import, and get list of exports so that we know what to import explicitly
       //import_location = module.url;
-      let export_arr = [];
-      for(let export_name in module.exports) {
-        let e = module.exports[export_name];
-        export_arr.push(this.parse_symbl(e));
-      }
-      this.write_output("import {" + export_arr.join(",") + "} from \"./" + raw_import_id + "\";\n");
-      break;
+      this.write_output("using namespace " + this.render_module(import_name) + "::Exports;\n");
+    } break;
     case "const":
-      this.write_output("const " + this.parse_identifier(data.identifier) + " = ");
+      console.log(JSON.stringify(data.var_type));
+      this.write_output("const " + this.render_type(this.get_context().resolve_type(data.var_type)) + " " + this.parse_identifier(data.identifier) + " = ");
       this.render_subexpression(data.value);
       this.write_output(";\n");
       break;
-    case "typedef_function":
-      var typedef_name = this.parse_type(data.identifier);
+    case "typedef_function": {
+      var typedef_name = this.parse_identifier(data.identifier);
+      let arg_types = [];
+      for(let arg of data.args) {
+        arg_types.push(this.get_context().resolve_type(arg.arg_type));
+      }
+      let return_type = null;
+      if (data.return_type) {
+        return_type = this.get_context().resolve_type(data.return_type);
+      }
+      this.register_typedef_function(typedef_name, {arg_types, return_type});
+      /*
       let function_args = data.args;
       this.write_output("type " + typedef_name + " = ");
       this.render_typed_args(function_args);
       this.write_output(" => " + this.parse_type(data.return_type) + ";\n");
-      break;
+      */
+    } break;
     case "typedef_statement":
+      /*
       var typedef_name = this.parse_type(data.lhs);
       var typedef_value = this.parse_identifier(data.rhs);
       this.write_output("type " + typedef_name + " = " + typedef_value + ";\n");
+      */
       break;
     case "export":
-      this.write_output("export {");
-      let export_args = "";
+      this.write_output("namespace Exports {\n");
+      this.tab(1);
+      
       let first = true;
       for(let arg of data.args) {
-        if (!first) {
-          export_args += ", ";
-        }
         // Keep track of which module has exported a given argument, for later usage
         this.register_export(arg.value);
-        let export_arg = this.parse_identifier(arg);
-        export_args += export_arg;
-        first = false;
+        let export_name = this.parse_identifier(arg);
+
+        let potential_trait = this.get_context().resolve_trait_type(export_name);
+        if (potential_trait) {
+          this.write_output("namespace _Trait_" + export_name + " = " + this.render_module(this.compiling_module!) + "::_Trait_" + export_name + ";\n");
+        } else if (this.get_context().resolve_class_type(export_name)) {
+          this.write_output("using " + this.render_module(this.compiling_module!) + "::_Class_" + export_name + ";\n");
+        } else {
+          this.write_output("using " + this.render_module(this.compiling_module!) + "::_VS_" + export_name + ";\n");
+        }
       }
 
       // Save exports = export_args;
-      this.write_output(export_args);
-      this.write_output("};\n");
+
+      this.tab(-1);
+      this.write_output("}\n");
       break;
-    case "trait":
+    case "trait": {
       // Register trait name
-      this.register_trait(data.identifier);
-  
-      this.write_output("abstract class " + this.parse_identifier(data.identifier) + " {\n");
-      this.tab(1);
+      let trait_name: string = data.identifier.value;
+
+      let t: trait_type = {
+        public_functions: {},
+      };
+
+      this.register_trait(trait_name, t);
   
       // Render is_trait_function, and all trait implementation functions
-      data.body = [this.create_is_trait_function(this.parse_identifier(data.identifier))].concat(data.body);
       for(let statement of data.body) {
-        this.render_statement(statement);
+        t.public_functions[statement.identifier.value] = this.get_context().resolve_function_type(statement);
       }
+
+      // Render the trait
+
+      this.write_output("namespace _Trait_" + trait_name + " {\n");
+      this.tab(1);
+
+      this.write_output("static const id_type trait_id = " + this.trait_id + ";\n");
+      this.trait_id++;
+      this.write_output("TRAIT_HEADER\n");
+      this.tab(1);
+
+      // Vtable Typedefs
+      for(let func_name in t.public_functions) {
+        let func = t.public_functions[func_name];
+        this.write_output("typedef " + (func.return_type == null ? "void" : this.render_type(func.return_type)) + " (*");
+        this.write_output("_Function_" + func_name + "_type");
+        this.write_output(")(Object*");
+        for(let arg_type of func.arg_types) {
+          this.write_output(", ");
+          this.write_output(this.render_type(arg_type));
+        }
+        this.write_output(");\n");
+      }
+
+      // VTable Constructor
+      this.write_output("_Vtable(\n");
+      this.tab(1);
+      // VTable Constructor Parameters
+      let funcs_thusfar = 0;
+      let total_funcs = Object.keys(t.public_functions).length;
+      for(let func_name in t.public_functions) {
+        this.write_output("_Function_" + func_name + "_type _Function_" + func_name);
+        funcs_thusfar++;
+        if (funcs_thusfar != total_funcs) {
+          this.write_output(",");
+        }
+        this.write_output("\n");
+      }
+      this.tab(-1);
+      this.write_output(") :\n");
+      this.tab(1);
+      // VTable Constructor List-Initializer
+      funcs_thusfar = 0;
+      for(let func_name in t.public_functions) {
+        this.write_output("_Function_" + func_name + "(" + "_Function_" + func_name + ")");
+        funcs_thusfar++;
+        if (funcs_thusfar != total_funcs) {
+          this.write_output(",");
+        }
+        this.write_output("\n");
+      }
+      this.tab(-1);
+      this.write_output("{};\n");
+      // VTable Members
+      for(let func_name in t.public_functions) {
+        this.write_output("_Function_" + func_name + "_type _Function_" + func_name + ";\n");
+      }
+      this.tab(-1);
+      this.write_output("TRAIT_FOOTER\n");
   
+      // Close namespace
       this.tab(-1);
       this.write_output("}\n");
-      break;
-    case "class":
+    } break;
+    case "class": {
+      console.log("CLASS!!!!!");
       // Register class name
-      this.register_class(data.identifier);
-  
-      this.write_output("abstract class ABSTRACT_" + this.parse_identifier(data.identifier) + " {\n");
-      this.tab(1);
+      let t: class_type = {
+        public_functions: {},
+        public_members: {},
+        private_functions: {},
+        private_members: {},
+        traits: {},
+      };
 
-      this.get_current_context().push_context_class(data.identifier.value);
-  
+      let class_name = data.identifier.value;
+
+      this.register_class(class_name, t);
+
       for(let statement of data.body) {
-        this.render_statement(statement);
+        if (statement.type == "variable_declaration") {
+          t.public_members[statement.var_identifier.value] = this.get_context().resolve_type(statement.var_type);
+        } else if (statement.type == "init_declaration") {
+          t.public_functions["init"] = this.get_context().resolve_function_type(statement);
+        } else {
+          //console.log("TYPE! " + statement.type);
+          t.public_functions[statement.identifier.value] = this.get_context().resolve_function_type(statement);
+        }
       }
-
-      this.get_current_context().pop_context();
-      
-      this.tab(-1);
-      this.write_output("}\n");
-      break;
+    } break;
     case "function_implementation":
-      if (data.private) {
-        this.write_output("private ");
-      }
-      this.write_output(this.parse_identifier(data.identifier));
-      this.render_typed_args(data.arguments);
-      this.write_output(" : " + this.parse_type(data.return_type) + " {\n");
-      this.tab(1);
-  
-      this.render_function_body(data.body);
-  
-      this.tab(-1);
-      this.write_output("}\n");
+      // Nope
       break;
-    case "init_implementation":
-      this.write_output("constructor");
-      this.render_typed_args(data.arguments);
-      this.write_output(" {\n");
-      this.tab(1);
-  
-      this.write_output("super();\n");
-      this.render_function_body(data.body);
-  
-      this.tab(-1);
-      this.write_output("}\n");
-      
-      this.write_output("_VS_init");
-      this.render_typed_args(data.arguments);
-      this.write_output(" : void {\n");
-      this.tab(1);
-      this.write_output("throw new Error(\"DO NOT CALL INIT DIRECTLY. SIMPLY USE \\\"new Class\\\"\");\n");
-      this.tab(-1);
-      this.write_output("}\n");
-      break;
-    case "init_declaration":
-      this.write_output("abstract _VS_init");
-      this.render_typed_args(data.arguments);
-      this.write_output(" : void;\n");
-      break;
-    case "function_declaration":
-      if (data.private) {
-        this.write_output("private ");
-      }
-      this.write_output("abstract " + this.parse_identifier(data.identifier));
-      this.render_typed_args(data.arguments);
-      this.write_output(" : " + this.parse_type(data.return_type) + ";\n");
-      break;
-    case "class_implementation":
+    case "class_implementation": {
       // implement MyClass {
       // }
 
-      var class_name = this.parse_identifier(data.identifier);
-      this.write_output("class " + class_name + " extends ABSTRACT_" + class_name + " {\n");
-      this.tab(1);
+      let class_name = data.identifier.value;
 
-      let cls = this.get_current_context().get_symbol(data.identifier.value)!;
-      for(let e in cls.class_data) {
-        let v = cls.class_data[e];
-        this.write_output(v.identifier + " : " + v.type_name + ";\n");
+      let cls = this.get_context().resolve_class_type(class_name);
+      if (cls == null) {
+        throw new Error("Error: implementing class " + class_name + " that has not yet been declared!");
       }
-  
       for(let statement of data.body) {
-        this.render_statement(statement);
+        if (statement.type == "variable_declaration" || statement.type == "variable_definition") {
+          cls.private_members[statement.var_identifier.value] = this.get_context().resolve_type(statement.var_type);
+        } else if (statement.type == "init_implementation") {
+          cls.public_functions["init"] = this.get_context().resolve_function_type(statement);
+        } else {
+          cls.private_functions[statement.identifier.value] = this.get_context().resolve_function_type(statement);
+        }
       }
   
+      this.write_output("class _Class_" + class_name + " : public Object {\n");
+      this.write_output("public:\n");
+      this.tab(1);
+      this.write_output("static const id_type object_id = " + this.class_id + ";\n");
+      this.class_id++;
+      
       this.tab(-1);
-      this.write_output("}\n");
-      break;
-    case "trait_implementation":
+      this.write_output("};\n"); 
+    } break;
+    case "trait_implementation": {
       // implement MyTrait on MyClass {
       //
       // }
 
       let trait_name = this.parse_identifier(data.trait);
       var class_name = this.parse_identifier(data["class"]);
+      let class_data = this.get_context().resolve_class_type(class_name)!;
+      class_data.traits[trait_name] = true;
       let trait_implementation_name = trait_name + "_ON_" + class_name;
   
-      this.write_output("class " + trait_implementation_name + " extends " + trait_name + " {\n");
+      this.write_output("namespace " + trait_implementation_name + " {\n");
       this.tab(1);
   
-      this.set_trait_implementing_on(trait_name, class_name);
-      for(let statement of data.body) {
-        this.render_statement(statement);
-      }
-      this.unset_trait_implementing_on();
+      // Implement Trait
   
       this.tab(-1);
       this.write_output("}\n");
-      
-      // Apply traits to already existing classes via:
-      //
-      // https://www.digitalocean.com/community/tutorials/typescript-module-augmentation
-      //
-      // declare module "./pet" {
-      //   interface Pet {
-      //     age: number;
-      //     walk(location: string);
-      //   }
-      // }
-
-      let class_symbl = this.get_current_context().get_symbol(data["class"].value);
-      if (!class_symbl) {
-        //console.log(JSON.stringify(this.modules[this.compiling_module!].imports));
-        for(let i of this.modules[this.compiling_module!].imports) {
-          for(let e in i.exports) {
-          }
-        }
-        throw new Error("Class " + data["class"].value + " not found!");
-      }
-      let origin_module = this.get_current_context().get_symbol(data["class"].value)!.module.name;
-      if (origin_module == this.compiling_module) {
-        this.write_output("interface " + class_name + " extends " + trait_implementation_name + " {};\n");
-      } else {
-        this.write_output("declare module \"./" + origin_module + "\" {\n");
-        this.tab(1);
-        this.write_output("interface " + class_name + " extends " + trait_implementation_name + " {}\n");
-        this.tab(-1);
-        this.write_output("}\n");
-      }
-      this.write_output("applyMixins(" + class_name + ", [" + trait_implementation_name + "]);\n");
-      break;
+    } break;
     // *************
     // Statements
     // *************
     case "null_statement":
       break;
     case "variable_declaration":
+      /*
       if (data.private) {
         this.write_output("private ");
       }
@@ -800,8 +965,10 @@ class VSCompiler {
         scope.class_data![var_name] = this.get_current_context().get_symbol(var_name)!; 
       }
       this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + ";\n");
+      */
       break;
     case "variable_definition":
+      /*
       if (data.private) {
         this.write_output("private ");
       }
@@ -812,6 +979,7 @@ class VSCompiler {
       this.write_output(" = ")
       this.render_expression(data.var_definition);
       this.write_output(";\n");
+      */
       break;
     case "block_statement":
       this.write_output("{\n");
@@ -860,12 +1028,10 @@ class VSCompiler {
     default:
       throw new Error("type did not match in render_statement: " + data.type);
     }
-    this.map_point(data.location);
   }
 
   public remove_module(module_name : string) {
-    // Remove an already parsed module 
-    module_name = "_VS_" + module_name;
+    // Remove an already parsed module
     if (!(module_name in this.modules)) {
       throw new Error("Cannot remove module that doesn't exist!");
     }
@@ -874,7 +1040,6 @@ class VSCompiler {
 
   public add_module(module_name : string, voxelscript_ast : any) {
     // Check that module hasn't been added twice, and then create that module based on the ast
-    module_name = "_VS_" + module_name;
     if (this.get_module(module_name)) {
       throw new Error("Module of name <" + module_name + "> has already been added to this compilation target!");
     }
@@ -889,24 +1054,19 @@ class VSCompiler {
     }
     try {
       // Init context
-      this.output = "";
-      this.mapping = "0:0;";
       this.compiling_module = module_name;
-      this.reset_unused_variable_name();
-      this.compiler_context = new VSContext(m);
-      this.get_current_context().push_context();
-      this.get_current_context().module = m;
+      this.compiler_context = new VSContext(this.modules, module_name);
 
       // Render the root of the abstract syntax tree
+      this.write_output("namespace " + this.render_module(module_name) + " {\n");
+      this.tab(1);
       this.render_statement(m.voxelscript_ast);
+      this.tab(-1);
+      this.write_output("}\n");
 
       // Close context, and save results
-      this.get_current_context().pop_context();
       this.compiler_context = null;
       this.compiling_module = null;
-      m.compiled = this.output;
-      this.map_point(m.voxelscript_ast.location);
-      m.mapping = this.mapping;
       this.loaded_modules[module_name] = true;
     } catch(e) {
       // Print any thrown errors
@@ -930,6 +1090,8 @@ class VSCompiler {
     return null;
   }
 
+  error_module: string = "";
+
   // Compile module
   private compile_internal_module(module_name : string) : boolean {
     // Return if the module has already been compiled
@@ -937,6 +1099,8 @@ class VSCompiler {
       return true;
     }
     this.missing_dependency = null;
+    // If there's an error, it will be in this module for now
+    this.error_module = module_name;
 
     // Here we will loop and compile all dependencies
     // Each iteration of this while loop will find a missing dependency and then try to compile it
@@ -1011,7 +1175,6 @@ class VSCompiler {
   }
 
   compile_single_module(module_name : string) {
-    module_name = "_VS_" + module_name;
     return this.compile_internal_module(module_name);
   }
 
@@ -1032,8 +1195,11 @@ class VSCompiler {
     return all_modules;
   }
 
+  get_compiled_code() : string {
+    return this.output;
+  }
+
   get_compiled_module(module_name : string) : module | null {
-    module_name = "_VS_" + module_name;
     let m = this.get_module(module_name);
     if (m) {
       return m;
@@ -1043,9 +1209,53 @@ class VSCompiler {
   }
 
   register_failed_module(module_name: string) : void {
-    module_name = "_VS_" + module_name;
     this.failed_modules[module_name] = true;
   }
 }
 
 export { VSCompiler };
+
+let prelude = `
+
+#define id_type unsigned short
+
+// All objects inherit from this
+class Object {
+public:
+    // Keep track of reference count for deallocations
+    unsigned int reference_count = 1;
+    // Keep track of object id
+    id_type object_id;
+
+    // Initialize a new object
+    Object(id_type object_id) : object_id(object_id) {};
+};
+
+// Trait instance
+class Trait {
+public:
+    Object* obj;
+    Trait(Object* obj) : obj(obj) {};
+};
+
+#define TRAIT_HEADER \\
+        class _Instance; \\
+        class _Vtable { \\
+        public:
+
+#define TRAIT_FOOTER \\
+        }; \\
+        class _Instance : public Trait { \\
+        public: \\
+            _Instance(Object* obj, void* vtbl) : Trait(obj), vtbl((_Vtable*)vtbl) { \\
+                if (vtbl == nullptr) { \\
+                    throw "Tried to cast to trait, when class X does not implement that trait!"; \\
+                } \\
+            }; \\
+            _Vtable* vtbl; \\
+        };
+
+// Array of all vtables
+static void* vtbls[1024][1024];
+
+`;

@@ -2,7 +2,7 @@ import Entity;
 import EntityContainer;
 import Fuels;
 
-const TICKS_PER_UNIT_ENERGY = 20;
+const int TICKS_PER_UNIT_ENERGY = 20;
 
 // An Entity is Crushable if it implements this trait
 trait Crushable {
@@ -159,7 +159,9 @@ typedef FnEntityToEntity = (Entity a) => Entity;
 // Implement Crushable on all the main ores
 implement Crushable on IronOre {
     EntityContainer crush() {
-        FnEntityToEntity ToDust = (Entity a) => {return a;};
+        FnEntityToEntity ToDust = (Entity a) => {
+            return a;
+        };
         Entity ret = ToDust(this);
         EntityContainer stack = new EntityContainer();
         stack.change(ret, 2);
