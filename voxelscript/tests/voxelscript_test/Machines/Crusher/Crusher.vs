@@ -31,25 +31,26 @@ class Crusher {
 
 // The Crucher object
 implement Crusher {
-    Entity to_crush_entity = NullEntity;
+    Entity to_crush_entity;
 
     // Initialize a crusher
     init() {
+        this.to_crush_entity = NullEntity;
         // The entity to be used as fuel
         this.fuel = new EntityContainer();
-        /*
-        this.fuel.register_can_change((_, _, Entity new_entity, _) => {
+        
+        this.fuel.register_can_change((Entity _, int __, Entity new_entity, int ___) => bool {
             // You can either take fuel out entirely, or put in Combustible fuel
             return !new_entity.exists() || new_entity is Combustible;
         });
 
         // The entity to be crushed
         this.crushing = new EntityContainer();
-        this.crushing.register_can_change((_, _, Entity new_entity, _) => {
+        this.crushing.register_can_change((Entity _, int __, Entity new_entity, int ___) => bool {
             // You can take stuff out of the crushing container, or you can put Crushable objects in
             return !new_entity.exists() || new_entity is Crushable;
         });
-        this.crushing.register_on_change((Entity old_entity, _, Entity new_entity, _) => {
+        this.crushing.register_on_change((Entity old_entity, int _, Entity new_entity, int __) => void {
             // Keep track of the to_crush_entity, and then reset the progress
             if (new_entity.same_entity_as(NullEntity)) {
                 this.to_crush_entity = NullEntity;
@@ -63,7 +64,7 @@ implement Crusher {
 
         // The entity resulted from crush
         this.crushed = new EntityContainer();
-        this.crushed.register_can_change((Entity old_entity, int old_qty, Entity new_entity, int new_qty) => {
+        this.crushed.register_can_change((Entity old_entity, int old_qty, Entity new_entity, int new_qty) => bool {
             // If it's the same entity, you must remove qty
             if (old_entity.same_entity_as(new_entity)) {
                 return new_qty < old_qty;
@@ -72,7 +73,6 @@ implement Crusher {
                 return !new_entity.exists();
             }
         });
-        */
 
         this.current_progress = 0;
         this.energy_in_crusher = 0;
@@ -118,7 +118,7 @@ implement Crusher {
             // If we've progressed enough to crush the Entity, then we crush it
             if (this.current_progress == (<Crushable>this.crushing.entity).ticks_needed_to_crush()) {
                 this.current_progress = 0;
-                Crushable to_crush = <Crushable>this.crushing.take(1);
+                Crushable to_crush = <Crushable>this.crushing.take(1).entity;
                 Entity newly_crushed = to_crush.crush().entity;
                 if (!this.crushed.can_give(newly_crushed, 1)) {
                     throw "Could not give recipe result with newly crushed object!";
@@ -137,7 +137,7 @@ implement Crusher {
 implement Entity on Crusher {
     // Crusher is itself an Entity
     int entity_id() {
-        return 4298398134;
+        return 429839134;
     }
 }
 
@@ -161,7 +161,7 @@ typedef FnEntityToEntity = (Entity a) => Entity;
 // Implement Crushable on all the main ores
 implement Crushable on IronOre {
     EntityContainer crush() {
-        FnEntityToEntity ToDust = (Entity a) => {
+        FnEntityToEntity ToDust = (Entity a) => Entity {
             return a;
         };
         Entity ret = ToDust(this);

@@ -141,7 +141,7 @@ precedence_15
   / precedence_14
 
 precedence_14
-  = args:typed_argument_list_with_underscore _ ARROW _ b:function_block { return {type:"lambda", args:args, body:b} }
+  = args:typed_argument_list _ ARROW _ t:voidable_type _ b:function_block { return {type:"lambda", arguments:args, return_type: t, body:b} }
   / precedence_13
 
 precedence_13

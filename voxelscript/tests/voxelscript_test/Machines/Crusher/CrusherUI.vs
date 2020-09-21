@@ -7,10 +7,10 @@ class CrusherUI {
 	EntityContainer hand;
 	
 	init(Crusher c);
-	//void right_click(EntityContainer c);
-	//void left_click(EntityContainer c);
-	//void on_right_click(int x, int y);
-	//void on_left_click(int x, int y);
+	void right_click(EntityContainer c);
+	void left_click(EntityContainer c);
+	void on_right_click(int x, int y);
+	void on_left_click(int x, int y);
 }
 
 implement CrusherUI {
@@ -19,7 +19,6 @@ implement CrusherUI {
 		this.hand = new EntityContainer();
 	}
 
-	/*
 	void right_click(EntityContainer c) {
 		EntityContainer hand = this.hand;
 
@@ -84,7 +83,7 @@ implement CrusherUI {
 	}
 	bool within_crushed_slot(int x, int y) {
 		return false;
-	}*/
+	}
 }
 
 export {CrusherUI};

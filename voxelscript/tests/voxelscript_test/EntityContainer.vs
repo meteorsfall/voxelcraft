@@ -48,10 +48,10 @@ class EntityContainer {
 }
 
 implement EntityContainer {
-    fn_can_change[] registered_can_change = [];
-    fn_on_change[] registered_on_change = [];
+    fn_can_change[] registered_can_change;
+    fn_on_change[] registered_on_change;
 
-    bool is_locked = true;
+    bool is_locked;
 
     init() {
         this.entity = NullEntity;
@@ -125,6 +125,7 @@ implement EntityContainer {
     EntityContainer take(int qty) {
         if (this.can_take(qty)) {
             EntityContainer ret = new EntityContainer();
+            ret.change(this.entity, qty);
             this.change(this.entity, this.qty - qty);
             return ret;
         } else {

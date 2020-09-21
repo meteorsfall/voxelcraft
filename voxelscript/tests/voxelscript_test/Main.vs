@@ -15,6 +15,11 @@ implement Tester {
 
         c.fuel.give(f, 1);
         c.crushing.give(io, 1);
+        int i = 0;
+        while(i < 200) {
+            c.iterate();
+            i++;
+        }
         //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
         c.iterate();
         //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");

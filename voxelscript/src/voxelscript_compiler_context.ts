@@ -2,6 +2,7 @@ import { stringify } from 'querystring';
 import { bool } from './base_ts';
 import _ from "lodash";
 import { type } from 'os';
+import { throws } from 'assert';
 
 //////////////////////////////////////////////////
 // A function type
@@ -32,6 +33,7 @@ interface symbl_type {
   is_trait: bool,
   is_array: bool,
   is_member_function?: bool,
+  is_member_trait_function?: bool,
 
   primitive_type: primitive_type | null,
   lambda_type: function_type | null,
@@ -128,6 +130,7 @@ interface class_type {
 
 interface trait_type {
   public_functions: Record<string, function_type>,
+  implementations: Record<string, any>,
 }
 
 interface dependency {
@@ -154,11 +157,6 @@ interface block {
   variables: Record<string, symbl_type>
 }
 
-interface member_of_info {
-  is_member_function: bool,
-  symbol_type: symbl_type,
-}
-
 class VSContext {
   // Modules
   modules: Record<string, module>;
@@ -169,6 +167,8 @@ class VSContext {
   is_in_class: bool = false;
   is_in_trait: bool = false;
   is_implementing_trait: bool = false;
+  implementing_function: string = "";
+  implementing_function_type: function_type | null = null;
   class: string | null = null;
   trait: string | null = null;
 
@@ -216,7 +216,23 @@ class VSContext {
     this.trait = trait;
   }
 
+  set_top_level_function(fn_name: string) {
+    if (this.implementing_function_type) {
+      throw new Error("Trying to set top level function, but haven't cleared top level function yet");
+    }
+    this.implementing_function = fn_name;
+    this.implementing_function_type = this.resolve_member_of(make_class_type(this.class!), fn_name)!.lambda_type;
+  }
+
+  clear_top_level_function() {
+    this.implementing_function = "";
+    this.implementing_function_type = null;
+  }
+
   clear_top_level() {
+    if (this.implementing_function_type) {
+      throw new Error("Trying to clear top level, but haven't cleared top level function yet");
+    }
     this.is_in_class = false;
     this.is_in_trait = false;
     this.is_implementing_trait = false;
@@ -282,6 +298,17 @@ class VSContext {
     return this.resolve_top_level_from_module(this.module, type_name, "typedefs");
   }
 
+  resolve_member_of_trait(trait: trait_type, member: string): symbl_type | null {
+    let ret = null;
+    if (member in trait.public_functions) {
+      ret = make_lambda_type(trait.public_functions[member]);
+      ret.is_member_function = true;
+    } else {
+      ret = null;
+    }
+    return ret;
+  }
+
   resolve_member_of(parent: symbl_type, member: string): symbl_type | null {
     if (parent.is_array) {
       if (member == "push") {
@@ -311,14 +338,18 @@ class VSContext {
       } else {
         ret = null;
       }
+      for(let trait_name in cls.traits) {
+        let trait = this.resolve_trait_type(trait_name)!;
+        let trait_member = this.resolve_member_of_trait(trait, member);
+        if (trait_member) {
+          ret = Object.assign({}, trait_member);
+          ret.is_member_trait_function = true;
+          return ret;
+        }
+      }
     } else if (parent.is_trait) {
       let trait = this.resolve_trait_type(parent.trait_name!)!;
-      if (member in trait.public_functions) {
-        ret = make_lambda_type(trait.public_functions[member]);
-        ret.is_member_function = true;
-      } else {
-        ret = null;
-      }
+      return this.resolve_member_of_trait(trait, member);
     } else {
       ret = null;
     }
@@ -344,7 +375,6 @@ class VSContext {
 
     if (t.value.type == "identifier") {
       type_name = t.value.value;
-      console.log("Looking for " + type_name);
       // Should not be a primitive
       type_value = this.resolve_typename(type_name);
     } else {
@@ -483,7 +513,6 @@ class VSCompiler {
   // Render typed_args as (Type1 Arg1, Type2 Arg2, Type3, Type4 Arg4)
   render_typed_args(typed_args : any[], show_type=true) {
     let ret = "";
-    ret += "(";
     let first = true;
     for(let arg of typed_args) {
       if (!first) {
@@ -502,15 +531,12 @@ class VSCompiler {
       }
       first = false;
     }
-    ret += (")");
     return ret;
   }
 
   // Render normal args as (arg1, arg2, arg3),
   // Rendering each expression accordingly
   render_args(arg_types: symbl_type[] | null, args : any[]) {
-    let ret = "";
-    this.write_output("(");
     let first = true;
     for(let i in args) {
       let arg = args[i];
@@ -525,7 +551,6 @@ class VSCompiler {
       }
       first = false;
     }
-    this.write_output(")");
   }
 
   // Verify that the given identifier has not yet been registered as a class or trait in the context yet
@@ -550,19 +575,19 @@ class VSCompiler {
   }
 
   register_class(identifier: string, t: class_type) {
-    console.log("Registering class: " + identifier);
+    //console.log("Registering class: " + identifier);
     this.verify_not_registered(identifier);
     this.modules[this.compiling_module!].classes[identifier] = t;
   }
 
   register_trait(identifier: string, t: trait_type) {
-    console.log("Registering trait: " + identifier);
+    //console.log("Registering trait: " + identifier);
     this.verify_not_registered(identifier);
     this.modules[this.compiling_module!].traits[identifier] = t;
   }
 
   register_typedef(identifier: string, t: symbl_type) {
-    console.log("Registering typedef: " + identifier);
+    //console.log("Registering typedef: " + identifier);
     this.verify_not_registered(identifier);
     this.modules[this.compiling_module!].typedefs[identifier] = t;
   }
@@ -621,12 +646,14 @@ class VSCompiler {
       this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
       this.write_output("static_cast<Object*>")
       this.render_subexpression(rhs);
+      this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
       this.write_output(")");
     } else if (t.is_trait && right.is_trait && !_.isEqual(right, t)) {
       let cast_type = t;
       this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
       this.render_subexpression(rhs);
       this.write_output(".obj");
+      this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
       this.write_output(")");
     } else if (t.is_array && right.array_type == null) {
       this.write_output("(");
@@ -699,8 +726,16 @@ class VSCompiler {
     let t: symbl_type | null = null;
     switch(expression_type) {
     case "lambda":
-      this.type_subexpression(e.body);
-      // Lambdas will be null for now
+      let arg_types = [];
+      for(let arg of e.arguments) {
+        arg_types.push(this.get_context().resolve_type(arg.arg_type));
+      }
+      //this.type_subexpression(e.body);
+      let return_type = e.return_type ? this.get_context().resolve_type(e.return_type) : null;
+      t = make_lambda_type({
+        arg_types: arg_types,
+        return_type: return_type,
+      });
       break;
     case "ternary":
       let cond = this.type_subexpression(e.condition);
@@ -936,13 +971,22 @@ class VSCompiler {
     this.write_output("(");
     switch(expression_type) {
     case "lambda":
-      this.write_output(this.render_typed_args(e.args));
-      this.write_output(" => {\n");
+      this.write_output("[=](" + this.render_typed_args(e.arguments) + ")");
+      this.get_context().push_block();
+
+      for(let arg of e.arguments) {
+        this.register_variable(this.parse_identifier(arg.arg_identifier), this.get_context().resolve_type(arg.arg_type));
+      }
+
+      let return_type = e.calculated_type.lambda_type!.return_type;
+      this.write_output(" -> " + (return_type ? this.render_type(return_type) : "void") + " {\n");
       this.tab(1);
+
       this.render_function_body(e.body);
+
       this.tab(-1);
       this.write_output("}");
-      // Lambdas will be null for now
+      this.get_context().pop_block();
       break;
     case "ternary":
       this.render_subexpression(e.condition);
@@ -952,15 +996,20 @@ class VSCompiler {
       this.render_subexpression(e.if_false);
       break;
     case "member_of":
-      this.render_subexpression(e.lhs);
       let is_class = e.lhs.calculated_type.is_class;
       let is_trait = e.lhs.calculated_type.is_trait;
       let is_array = e.lhs.calculated_type.is_array;
-      if (is_class || is_array) {
-        this.write_output("->");
-      } else {  
-        // Traits use "."
-        this.write_output(".");
+      let is_member_trait_function = e.calculated_type.is_member_trait_function;
+      if (is_member_trait_function) {
+        // TODO: Render as namespace
+      } else {
+        this.render_subexpression(e.lhs);
+        if (is_class || is_array) {
+          this.write_output("->");
+        } else {  
+          // Traits use "."
+          this.write_output(".");
+        }
       }
 
       let prefix = "";
@@ -1037,17 +1086,26 @@ class VSCompiler {
       if (e.rhs.calculated_type.is_trait) {
         this.write_output(".obj");
       }
+      this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
       this.write_output(")");
       break;
     case "new": {
       let type_name = e.new_type.calculated_type;
-      this.write_output(this.render_type(type_name).slice(0, -1) + "::_create_class");
+      this.write_output(this.render_type(type_name).slice(0, -1) + "::_create_class(");
       this.render_args(null, e.args);
+      this.write_output(")");
       // Pass onto function call for the rest of the new
     } break;
     case "function_call":
-      let fn = this.render_subexpression(e.lhs);
-      this.render_args(e.lhs.calculated_type.lambda_type!.arg_types, e.args);
+      let fn_type = this.type_subexpression(e.lhs)!;
+      this.render_subexpression(e.lhs);
+      this.write_output("(");
+      let arg_types = e.lhs.calculated_type.lambda_type!.arg_types;
+      if (fn_type.is_member_trait_function) {
+        this.write_output("self" + (arg_types.length > 0 ? ", " : ""));
+      }
+      this.render_args(arg_types, e.args);
+      this.write_output(")");
       break;
     case "this":
       this.write_output("self");
@@ -1106,7 +1164,6 @@ class VSCompiler {
       ret += ")>";
       return ret;
     }
-    console.log(JSON.stringify(t, null, 4));
     throw new Error("FATAL ERROR: Type cannot be rendered!");
   }
 
@@ -1126,7 +1183,6 @@ class VSCompiler {
       throw new Error("data does not have type!");
     }
   
-    console.log("Type: " + data.type);
     switch (data.type) {
     case "module":
       for(let top_level of data.body) {
@@ -1149,7 +1205,6 @@ class VSCompiler {
       this.write_output("using namespace " + this.render_module(import_name) + "::Exports;\n");
     } break;
     case "const":
-      console.log(JSON.stringify(data.var_type));
       let const_type = this.get_context().resolve_type(data.var_type);
       let const_name = this.parse_identifier(data.identifier);
       this.register_variable(const_name, const_type);
@@ -1212,6 +1267,7 @@ class VSCompiler {
 
       let t: trait_type = {
         public_functions: {},
+        implementations: {},
       };
 
       this.register_trait(trait_name, t);
@@ -1219,6 +1275,9 @@ class VSCompiler {
       // Render is_trait_function, and all trait implementation functions
       for(let statement of data.body) {
         t.public_functions[statement.identifier.value] = this.get_context().resolve_function_type(statement);
+        if (statement.type == "function_implementation") {
+          t.implementations[statement.identifier.value] = statement;
+        }
       }
 
       // Render the trait
@@ -1353,7 +1412,6 @@ class VSCompiler {
           this.parse_identifier(arg.arg_identifier),
           this.get_context().resolve_type(arg.arg_type),
         );
-        console.log(JSON.stringify(arg));
       }
       for(let statement of data.body) {
         this.render_statement(statement);
@@ -1378,6 +1436,12 @@ class VSCompiler {
       let member_map: Record<string, any> = {};
       for(let statement of data.body) {
         if (statement.type == "variable_declaration" || statement.type == "variable_definition") {
+          if (statement.type == "variable_definition") {
+            throw {
+              message: "Variable definitions not implemented yet! Please define the variable in the init() function",
+              location: statement.var_identifier.location,
+            };
+          }
           let key = statement.var_identifier.value;
           cls.private_members[key] = this.get_context().resolve_type(statement.var_type);
           if (member_map[key]) {
@@ -1429,24 +1493,22 @@ class VSCompiler {
       if (member_map["init"]) {
         constructor_args = member_map["init"].arguments;
       }
-      let rendered_typed_args = constructor_args ? this.render_typed_args(constructor_args) : "()";
+      let rendered_typed_args = constructor_args ? this.render_typed_args(constructor_args) : "";
 
       // Function to create a new class
-      this.write_output("static " + referenced_class_name + " _create_class" + rendered_typed_args + " {\n");
+      this.write_output("static " + referenced_class_name + " _create_class(" + rendered_typed_args + ") {\n");
       this.tab(1);
-      this.write_output("return new " + value_class_name);
+      this.write_output("return new " + value_class_name + "(");
       if (constructor_args) {
         this.write_output(this.render_typed_args(constructor_args, false));
-      } else {
-        this.write_output("()");
       }
-      this.write_output(";\n");
+      this.write_output(");\n");
       this.tab(-1);
       this.write_output("}\n");
       
       // Constructor
       this.write_output(value_class_name);
-      this.write_output(rendered_typed_args);
+      this.write_output("(" + rendered_typed_args + ")");
       this.write_output(" : Object(object_id) {\n");
       this.tab(1);
       this.write_output(referenced_class_name + " self = this;\n");
@@ -1475,7 +1537,7 @@ class VSCompiler {
 
         let return_type = member_map[func].return_type ? this.get_context().resolve_type(member_map[func].return_type) : null;
         this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
-        this.write_output(this.render_typed_args(member_map[func].arguments));
+        this.write_output("(" + this.render_typed_args(member_map[func].arguments) + ")");
         this.write_output(" {\n");
         this.tab(1);
         this.write_output(referenced_class_name + " self = this;\n");
@@ -1505,13 +1567,79 @@ class VSCompiler {
       let trait_name = this.parse_identifier(data.trait);
       var class_name = this.parse_identifier(data["class"]);
       let class_data = this.get_context().resolve_class_type(class_name)!;
+      let trait_data = this.get_context().resolve_trait_type(trait_name)!;
       class_data.traits[trait_name] = true;
-      let trait_implementation_name = trait_name + "_ON_" + class_name;
+
+      let member_map: Record<string, any> = {};
+      for(let statement of data.body) {
+        if (statement.type == "function_implementation") {
+          if (statement.identifier.value in trait_data) {
+            // Public
+            member_map[statement.identifier.value] = statement;
+          } else {
+            // Private
+            member_map[statement.identifier.value] = statement;
+          }
+        } else {
+          throw {
+            message: "Not implemented yet",
+            location: statement.identifier.location,
+          };
+        }
+      }
+
+      for(let fn_name in trait_data.public_functions) {
+        if (!(fn_name in member_map)) {
+          if (fn_name in trait_data.implementations) {
+            member_map[fn_name] = trait_data.implementations[fn_name];
+          } else {
+            throw {
+              message: "Trait implementation missing public function \"" + fn_name + "\"",
+              location: data.trait.location,
+            }
+          }
+        }
+      }
   
+      let trait_implementation_name = "_Implement_" + trait_name + "_On_" + class_name;
       this.write_output("namespace " + trait_implementation_name + " {\n");
       this.tab(1);
+
+      this.get_context().set_top_level_implementing_trait(class_name, trait_name);
   
       // Implement Trait
+      for(let func in member_map) {
+        let return_type = member_map[func].return_type ? this.get_context().resolve_type(member_map[func].return_type) : null;
+        this.get_context().set_top_level_function(func);
+        this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
+        let rendered_type_args = this.render_typed_args(member_map[func].arguments);
+        this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ")");
+        this.write_output(" {\n");
+        this.tab(1);
+        let rendered_class = this.render_type(make_class_type(class_name));
+        this.write_output(rendered_class + " const self = static_cast<" + rendered_class + ">(self_void);\n")
+        //this.write_output(referenced_class_name + " self = this;\n");
+        // Render function implementation body
+        this.render_statement(member_map[func]);
+        this.tab(-1);
+        this.write_output("}\n");
+        this.get_context().clear_top_level_function();
+      }
+
+      let vtable_type_name = "_Trait_" + trait_name + "::_Instance::_Vtable";
+      this.write_output("static " + vtable_type_name + " _Vtable = " + vtable_type_name + "(");
+      let first = true;
+      for(let fn_name in trait_data.public_functions) {
+        if (!first) {
+          this.write_output(", ");
+        }
+        first = false;
+        this.write_output("_Function_" + fn_name);
+      }
+      this.write_output(");\n");
+      this.write_output("static bool dummy = (vtbls[_Class_" + class_name + "::object_id][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
+
+      this.get_context().clear_top_level();
   
       this.tab(-1);
       this.write_output("}\n");
@@ -1521,7 +1649,12 @@ class VSCompiler {
     // *************
     case "null_statement":
       break;
+    // Static variable declaration
     case "variable_declaration":
+      throw {
+        message: "Static variable declarations not implemented yet. Please provide a default value.",
+        location: data.var_identifier.location,
+      };
       /*
       if (data.private) {
         this.write_output("private ");
@@ -1536,6 +1669,7 @@ class VSCompiler {
       this.write_output(this.parse_identifier(data.var_identifier) + " : " + this.parse_type(data.var_type) + ";\n");
       */
       break;
+    // Static variable definition
     case "variable_definition": {
       let var_type = this.get_context().resolve_type(data.var_type);
       this.register_variable(data.var_identifier.value, var_type);
@@ -1548,9 +1682,11 @@ class VSCompiler {
     } break;
     case "block_statement":
       this.write_output("{\n");
+      this.get_context().push_block();
       this.tab(1);
       this.render_function_body(data.body);
       this.tab(-1);
+      this.get_context().pop_block();
       this.write_output("}\n");
       break;
     case "simple_statement":
@@ -1558,13 +1694,23 @@ class VSCompiler {
       this.write_output(";\n");
       break;
     case "throw":
-      this.write_output("throw ");
+      this.write_output("abort(");
       this.render_expression(data.value);
-      this.write_output(";\n");
+      this.write_output(", \"" + this.compiling_module + ".vs\", " + data.location.start.line + ", " + data.location.start.column + ", " + data.location.end.line + ", " + data.location.end.column);
+      this.write_output("); throw \"\";\n");
       break;
     case "return":
       this.write_output("return ");
-      this.render_expression(data.value);
+      let return_type = null;
+      if (this.get_context().implementing_function_type) {
+        // Should always be true, technically
+        return_type = this.get_context().implementing_function_type!.return_type!;
+      }
+      if (return_type) {
+        this.render_coalesced(data.value.value, return_type);
+      } else {
+        this.render_expression(data.value);
+      }
       this.write_output(";\n");
       break;
     case "if":
@@ -1578,6 +1724,15 @@ class VSCompiler {
         this.write_output(" else ");
         this.render_statement(data.otherwise);
       }
+
+      this.write_output("\n");
+      break;
+    case "while":
+      this.write_output("while ");
+      this.render_expression(data.condition);
+      this.write_output(" ");
+
+      this.render_statement(data.body);
 
       this.write_output("\n");
       break;
@@ -1646,7 +1801,7 @@ class VSCompiler {
       this.write_output("}\n");
 
       if (module_name == "Main") {
-        this.write_output("int main() {return 0;}");
+        this.write_output("int main() {return 0;}\n");
       }
 
       // Close context, and save results
@@ -1814,8 +1969,15 @@ let prelude = `
 
 #include <vector>
 #include <functional>
+#include <iostream>
+
 using std::vector;
 using std::function;
+
+void abort(const char* message, const char* file, int start_line, int start_char, int end_line, int end_char) {
+    std::cout << file << ":" << start_line << ":" << start_char << " -> " << end_line << ":" << end_char << " " << message << std::endl;
+    exit(-1);
+}
 
 #define id_type unsigned short
 
@@ -1873,17 +2035,17 @@ bool is_trait(Object* obj) {
 }
 
 template<typename T>
-T cast_to_trait(Object* obj) {
+T cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
     if (!is_trait<T>(obj)) {
-        throw "Fail to cast!";
+        abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return T(obj, vtbls[obj->object_id][T::trait_id]);
 }
 
 template<typename T>
-T* cast_to_class(Object* obj) {
+T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
     if (!is_object<T>(obj)) {
-        throw "Fail to cast!";
+        abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);
 }
