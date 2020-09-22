@@ -155,14 +155,14 @@ main : context {
    
    // Color all "(typedef CUSTOM_TYPE = args) => KEYWORD;"
    : pattern {
-      regex          \= (=>)(\s*)$${__KEYWORDS}(;)
-      styles []       = .keyword, .white, .keyword, .white;
+      regex          \= (=>)(\s*)$${__KEYWORDS}
+      styles []       = .keyword, .white, .keyword;
    }
    
    // Color all "(typedef CUSTOM_TYPE = args) => CUSTOM_TYPE;"
    : pattern {
-      regex          \= (=>)(\s*)$${__IDENTIFIER}(;)
-      styles []       = .keyword, .white, .type, .white;
+      regex          \= (=>)(\s*)$${__IDENTIFIER}
+      styles []       = .keyword, .white, .type;
    }
    
    // Color all "VARIABLE is (not)? CUSTOM_TYPE;"

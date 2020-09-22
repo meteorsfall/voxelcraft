@@ -26,7 +26,6 @@ class Crusher {
     init();
 
     void iterate();
-    
 }
 
 // The Crucher object
