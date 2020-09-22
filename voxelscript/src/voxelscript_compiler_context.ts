@@ -1939,8 +1939,24 @@ class VSCompiler {
   }
 
   compile_all_modules(): bool {
-    for(let module_name in this.modules) {
-      if (!this.compile_internal_module(module_name)) {
+    // While there are still modules to compile,
+    while(Object.keys(this.modules).length != Object.keys(this.loaded_modules).length) {
+      // Find an unloaded module with no missing dependencies
+      let module_with_no_dependencies = null;
+      for(let module_name in this.modules) {
+        if (!this.loaded_modules[module_name] && !this.find_missing_dependency(module_name)) {
+          module_with_no_dependencies = module_name;
+          break;
+        }
+      }
+
+      // Check that such a module was found
+      if (!module_with_no_dependencies) {
+        return false;
+      }
+
+      // Compile that module
+      if (!this.compile_internal_module(module_with_no_dependencies)) {
         return false;
       }
     }
