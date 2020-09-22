@@ -3,6 +3,7 @@ import { bool } from './base_ts';
 import _ from "lodash";
 import { type } from 'os';
 import { throws } from 'assert';
+import { exit } from 'process';
 
 //////////////////////////////////////////////////
 // A function type
@@ -356,44 +357,6 @@ class VSContext {
     return ret;
   }
 
-  resolve_function_type(t: any): function_type {
-    let return_type = t.return_type == null ? null : this.resolve_type(t.return_type);
-    let args = [];
-    for(let arg of t.arguments) {
-      args.push(this.resolve_type(arg.arg_type));
-    }
-    return {
-      return_type: return_type,
-      arg_types: args,
-    };
-  }
-
-  // For a pegjs type, get the type
-  resolve_type(t: any): symbl_type {
-    let type_name: string;
-    let type_value: symbl_type | null = null;
-
-    if (t.value.type == "identifier") {
-      type_name = t.value.value;
-      // Should not be a primitive
-      type_value = this.resolve_typename(type_name);
-    } else {
-      type_name = t.value;
-      // Must be a primitive
-      type_value = this.resolve_typename(type_name);
-    }
-
-    if (type_value == null) {
-      throw new Error("No such symbol type " + type_name + "!");
-    } else {
-      if (t.type == "array_type") {
-        type_value = make_array_type(type_value);
-      }
-      t.calculated_type = type_value;
-      return type_value;
-    }
-  }
-
   resolve_typename(type_name: string): symbl_type | null {
     let type_value: symbl_type | null = null;
     if (type_name == 'int') {
@@ -520,7 +483,7 @@ class VSCompiler {
       }
       if (arg.type == "typed_arg") {
         if (show_type) {
-          ret += this.render_type(this.get_context().resolve_type(arg.arg_type)) + " ";
+          ret += this.render_type(this.resolve_type(arg.arg_type)) + " ";
         }
         ret += "_VS_" + this.parse_identifier(arg.arg_identifier);
       } else if (arg.type == "underscore") {
@@ -619,6 +582,47 @@ class VSCompiler {
       return "array of " + this.readable_type(t.array_type!);
     }
     throw new Error("FATAL ERROR: Incorrect type!");
+  }
+
+  // For a pegjs type, get the type
+  resolve_type(t: any): symbl_type {
+    let type_name: string;
+    let type_value: symbl_type | null = null;
+
+    if (t.value.type == "identifier") {
+      type_name = t.value.value;
+      // Should not be a primitive
+      type_value = this.get_context().resolve_typename(type_name);
+    } else {
+      type_name = t.value;
+      // Must be a primitive
+      type_value = this.get_context().resolve_typename(type_name);
+    }
+
+    if (type_value == null) {
+      throw {
+        message: "No such symbol type " + type_name + "!",
+        location: t.location,
+      };
+    } else {
+      if (t.type == "array_type") {
+        type_value = make_array_type(type_value);
+      }
+      t.calculated_type = type_value;
+      return type_value;
+    }
+  }
+
+  resolve_function_type(t: any): function_type {
+    let return_type = t.return_type == null ? null : this.resolve_type(t.return_type);
+    let args = [];
+    for(let arg of t.arguments) {
+      args.push(this.resolve_type(arg.arg_type));
+    }
+    return {
+      return_type: return_type,
+      arg_types: args,
+    };
   }
 
   coalesce_to(lhs: symbl_type, rhs: symbl_type): symbl_type | null {
@@ -728,10 +732,10 @@ class VSCompiler {
     case "lambda":
       let arg_types = [];
       for(let arg of e.arguments) {
-        arg_types.push(this.get_context().resolve_type(arg.arg_type));
+        arg_types.push(this.resolve_type(arg.arg_type));
       }
       //this.type_subexpression(e.body);
-      let return_type = e.return_type ? this.get_context().resolve_type(e.return_type) : null;
+      let return_type = e.return_type ? this.resolve_type(e.return_type) : null;
       t = make_lambda_type({
         arg_types: arg_types,
         return_type: return_type,
@@ -786,7 +790,7 @@ class VSCompiler {
       // Pass onto "is"
     case "is":
       this.type_subexpression(e.lhs);
-      e.rhs.calculated_type = this.get_context().resolve_type(e.rhs);
+      e.rhs.calculated_type = this.resolve_type(e.rhs);
       t = make_primitive_type(primitive_type.BOOL);
       break;
     case "array": {
@@ -843,12 +847,12 @@ class VSCompiler {
       //this.write_output("++");
       break;
     case "cast":
-      let cast_type = this.get_context().resolve_type(e.lhs);
+      let cast_type = this.resolve_type(e.lhs);
       this.type_subexpression(e.rhs);
       t = cast_type;
       break;
     case "new": {
-      let type_name = this.get_context().resolve_type(e.new_type);
+      let type_name = this.resolve_type(e.new_type);
       if (!type_name) {
         throw {
           message: "Type not found",
@@ -975,7 +979,7 @@ class VSCompiler {
       this.get_context().push_block();
 
       for(let arg of e.arguments) {
-        this.register_variable(this.parse_identifier(arg.arg_identifier), this.get_context().resolve_type(arg.arg_type));
+        this.register_variable(this.parse_identifier(arg.arg_identifier), this.resolve_type(arg.arg_type));
       }
 
       let return_type = e.calculated_type.lambda_type!.return_type;
@@ -1205,7 +1209,7 @@ class VSCompiler {
       this.write_output("using namespace " + this.render_module(import_name) + "::Exports;\n");
     } break;
     case "const":
-      let const_type = this.get_context().resolve_type(data.var_type);
+      let const_type = this.resolve_type(data.var_type);
       let const_name = this.parse_identifier(data.identifier);
       this.register_variable(const_name, const_type);
       this.write_output("const " + this.render_type(const_type) + " _VS_" + const_name + " = ");
@@ -1216,11 +1220,11 @@ class VSCompiler {
       var typedef_name = this.parse_identifier(data.identifier);
       let arg_types = [];
       for(let arg of data.args) {
-        arg_types.push(this.get_context().resolve_type(arg.arg_type));
+        arg_types.push(this.resolve_type(arg.arg_type));
       }
       let return_type = null;
       if (data.return_type) {
-        return_type = this.get_context().resolve_type(data.return_type);
+        return_type = this.resolve_type(data.return_type);
       }
       this.register_typedef(typedef_name, make_lambda_type({arg_types, return_type}));
       
@@ -1232,7 +1236,7 @@ class VSCompiler {
     } break;
     case "typedef_statement": {
       var typedef_name = this.parse_identifier(data.lhs);
-      var typedef_type = this.get_context().resolve_type(data.rhs);
+      var typedef_type = this.resolve_type(data.rhs);
       this.write_output("typedef " + this.render_type(typedef_type) + " _VS_" + typedef_name + ";\n");
       this.register_typedef(typedef_name, typedef_type);
     } break;
@@ -1274,7 +1278,7 @@ class VSCompiler {
   
       // Render is_trait_function, and all trait implementation functions
       for(let statement of data.body) {
-        t.public_functions[statement.identifier.value] = this.get_context().resolve_function_type(statement);
+        t.public_functions[statement.identifier.value] = this.resolve_function_type(statement);
         if (statement.type == "function_implementation") {
           t.implementations[statement.identifier.value] = statement;
         }
@@ -1392,12 +1396,12 @@ class VSCompiler {
 
       for(let statement of data.body) {
         if (statement.type == "variable_declaration") {
-          t.public_members[statement.var_identifier.value] = this.get_context().resolve_type(statement.var_type);
+          t.public_members[statement.var_identifier.value] = this.resolve_type(statement.var_type);
         } else if (statement.type == "init_declaration") {
-          t.public_functions["init"] = this.get_context().resolve_function_type(statement);
+          t.public_functions["init"] = this.resolve_function_type(statement);
         } else {
           //console.log("TYPE! " + statement.type);
-          t.public_functions[statement.identifier.value] = this.get_context().resolve_function_type(statement);
+          t.public_functions[statement.identifier.value] = this.resolve_function_type(statement);
         }
       }
 
@@ -1410,7 +1414,7 @@ class VSCompiler {
       for(let arg of data.arguments) {
         this.get_context().register_variable(
           this.parse_identifier(arg.arg_identifier),
-          this.get_context().resolve_type(arg.arg_type),
+          this.resolve_type(arg.arg_type),
         );
       }
       for(let statement of data.body) {
@@ -1443,7 +1447,7 @@ class VSCompiler {
             };
           }
           let key = statement.var_identifier.value;
-          cls.private_members[key] = this.get_context().resolve_type(statement.var_type);
+          cls.private_members[key] = this.resolve_type(statement.var_type);
           if (member_map[key]) {
             throw {
               message: "Member \"" + key + "\" defined twice in class \"" + class_name + "\"",
@@ -1458,11 +1462,11 @@ class VSCompiler {
               location: statement.init.location,
             };
           }
-          cls.public_functions["init"] = this.get_context().resolve_function_type(statement);
+          cls.public_functions["init"] = this.resolve_function_type(statement);
           member_map["init"] = statement;
         } else if (statement.type == "function_implementation") {
           let key = statement.identifier.value;
-          cls.private_functions[key] = this.get_context().resolve_function_type(statement);
+          cls.private_functions[key] = this.resolve_function_type(statement);
           if (member_map[key]) {
             throw {
               message: "Member \"" + key + "\" defined twice in class \"" + class_name + "\"",
@@ -1535,7 +1539,7 @@ class VSCompiler {
           };
         }
 
-        let return_type = member_map[func].return_type ? this.get_context().resolve_type(member_map[func].return_type) : null;
+        let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
         this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
         this.write_output("(" + this.render_typed_args(member_map[func].arguments) + ")");
         this.write_output(" {\n");
@@ -1609,7 +1613,7 @@ class VSCompiler {
   
       // Implement Trait
       for(let func in member_map) {
-        let return_type = member_map[func].return_type ? this.get_context().resolve_type(member_map[func].return_type) : null;
+        let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
         this.get_context().set_top_level_function(func);
         this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
         let rendered_type_args = this.render_typed_args(member_map[func].arguments);
@@ -1671,7 +1675,7 @@ class VSCompiler {
       break;
     // Static variable definition
     case "variable_definition": {
-      let var_type = this.get_context().resolve_type(data.var_type);
+      let var_type = this.resolve_type(data.var_type);
       this.register_variable(data.var_identifier.value, var_type);
       this.write_output(this.render_type(var_type));
       this.write_output(" ")
@@ -1820,7 +1824,8 @@ class VSCompiler {
         //console.log(JSON.stringify(m.voxelscript_ast, null, 4));
         // THIS CODE SHOULD NOT BE REACHED
         console.log(e);
-        throw new Error("FATAL ERROR: IN MODULE " + module_name);
+        console.log("Fatal Parsing Error in Module " + module_name);
+        process.exit(2);
       }
     }
   }
@@ -1871,7 +1876,7 @@ class VSCompiler {
           // Then we have a dependency that failed to parse, and need to
           // Mark an error from the import that caused it
           this.missing_dependency = {
-            module_name: import_being_explored!.module_name.slice(4),
+            module_name: import_being_explored!.module_name,
             location: import_being_explored!.location,
           };
           if (dependency_being_explored.module_name in this.failed_modules) {
@@ -1887,7 +1892,7 @@ class VSCompiler {
         if (visited_modules[dependency_being_explored.module_name]) {
           // Mark an error from the import that caused it
           this.missing_dependency = {
-            module_name: import_being_explored!.module_name.slice(4),
+            module_name: import_being_explored!.module_name,
             location: import_being_explored!.location,
           };
           this.error_reason = "Recursive Dependency Found";
@@ -1910,6 +1915,11 @@ class VSCompiler {
       // Compile the discovered dependency
       console.log("Compiling " + dependency_being_explored!.module_name);
       if (!this.compile_module(dependency_being_explored!.module_name)) {
+        this.missing_dependency = {
+          module_name: dependency_being_explored!.module_name,
+          location: dependency_being_explored!.location,
+        };
+        this.error_reason = "Dependency failed to compile";
         return false;
       }
     }
@@ -1940,7 +1950,7 @@ class VSCompiler {
   get_modules() : string[] {
     let all_modules = [];
     for (let m in this.modules) {
-      all_modules.push(m.slice(4));
+      all_modules.push(m);
     }
     return all_modules;
   }

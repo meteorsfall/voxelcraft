@@ -285,7 +285,7 @@ function error_to_string(module_name : string, file_path : string, code : string
   if (err.missing_dependency) {
     // Print the missing dependency error message
     output += 'Missing Dependency: ' + err.missing_dependency.module_name + " (" + err.message + ")";
-    output += "\n";;
+    output += "\n";
   } else if (err.typescript_error) {
       // Print the missing dependency error message
       output += err.message;
@@ -325,6 +325,7 @@ function error_to_string(module_name : string, file_path : string, code : string
     }
   } else {
     output += err.message;
+    output += "\n";
   }
 
   // Return generated error message
