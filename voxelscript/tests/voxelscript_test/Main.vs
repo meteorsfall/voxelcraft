@@ -17,19 +17,10 @@ implement Tester {
         c.crushing.give(io, 1);
         int i = 0;
         while(i < 200) {
-            // console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
             print("<progress=", c.current_progress, ",energy_in_crusher=", c.energy_in_crusher, ">");
             c.iterate();
             i++;
         }
-        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
-        c.iterate();
-        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
-        c.iterate();
-        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
-        c.iterate();
-        //console.log("<progress=" + c.current_progress + ",energy_in_crusher=" + c.energy_in_crusher + ">");
-        c.iterate();
     }
 }
 
