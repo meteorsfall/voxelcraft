@@ -9,6 +9,7 @@ import { exit } from 'process';
 // A function type
 interface function_type {
   arg_types: symbl_type[],
+  is_variadic?: true,
   return_type: symbl_type | null,
 }
 
@@ -270,6 +271,14 @@ class VSContext {
 
   // For a given variable, check what symbl_type it has (Check blocks and static variables)
   resolve_symbol_type(identifier : string): symbl_type | null {
+    if (identifier == "print") {
+      return make_lambda_type({
+        arg_types: [],
+        return_type: null,
+        is_variadic: true,
+      });
+    }
+
     // Check any code blocks for this symbol
     let cur = this.blocks.length - 1;
     while(cur >= 0) {
@@ -517,17 +526,33 @@ class VSCompiler {
   }
 
   // Verify that the given identifier has not yet been registered as a class or trait in the context yet
-  verify_not_registered(id : string) {
+  verify_not_registered(id : string, location?: any) {
     let symbol_possibility = this.get_context().resolve_symbol_type(id);
     let class_possibility = this.get_context().resolve_class_type(id);
     let trait_possibility = this.get_context().resolve_trait_type(id);
     if (symbol_possibility || class_possibility || trait_possibility) {
-      throw new Error("identifier <" + id + "> is already used!");
+      throw {
+        message: "identifier \"" + id + "\" has already been declared!",
+        location: location.location,
+      };
     }
   }
 
-  register_variable(identifier : string, t : symbl_type) {
-    this.verify_not_registered(identifier);
+  verify_registered(id : string, location?: any) {
+    let symbol_possibility = this.get_context().resolve_symbol_type(id);
+    let class_possibility = this.get_context().resolve_class_type(id);
+    let trait_possibility = this.get_context().resolve_trait_type(id);
+    if (!symbol_possibility && !class_possibility && !trait_possibility) {
+      throw {
+        message: "identifier \"" + id + "\" not found in module",
+        location: location.location,
+      };
+    }
+  }
+
+  register_variable(identifier_ast : any, t : symbl_type) {
+    let identifier = this.parse_identifier(identifier_ast);
+    this.verify_not_registered(identifier, identifier_ast);
 
     if (this.get_context().blocks.length == 0) {
       this.modules[this.compiling_module!].static_variables[identifier] = t;
@@ -537,27 +562,32 @@ class VSCompiler {
     }
   }
 
-  register_class(identifier: string, t: class_type) {
+  register_class(identifier_ast: any, t: class_type) {
     //console.log("Registering class: " + identifier);
-    this.verify_not_registered(identifier);
+    let identifier = this.parse_identifier(identifier_ast);
+    this.verify_not_registered(identifier, identifier_ast);
     this.modules[this.compiling_module!].classes[identifier] = t;
   }
 
-  register_trait(identifier: string, t: trait_type) {
+  register_trait(identifier_ast: any, t: trait_type) {
     //console.log("Registering trait: " + identifier);
-    this.verify_not_registered(identifier);
+    let identifier = this.parse_identifier(identifier_ast);
+    this.verify_not_registered(identifier, identifier_ast);
     this.modules[this.compiling_module!].traits[identifier] = t;
   }
 
-  register_typedef(identifier: string, t: symbl_type) {
+  register_typedef(identifier_ast: any, t: symbl_type) {
     //console.log("Registering typedef: " + identifier);
-    this.verify_not_registered(identifier);
+    let identifier = this.parse_identifier(identifier_ast);
+    this.verify_not_registered(identifier, identifier_ast);
     this.modules[this.compiling_module!].typedefs[identifier] = t;
   }
 
-  register_export(export_identifier : string) {
+  register_export(identifier_ast : any) {
+    let identifier = this.parse_identifier(identifier_ast);
+    this.verify_registered(identifier, identifier_ast);
     let m : module = this.modules[this.compiling_module!];
-    m.exports[export_identifier] = true;
+    m.exports[identifier] = true;
   }
   
   // Parse identifier into a typescript string (Checking for trait/class status)
@@ -565,7 +595,10 @@ class VSCompiler {
     return id.value;
   }
 
-  readable_type(t: symbl_type): string {
+  readable_type(t: symbl_type | null): string {
+    if (!t) {
+      return "void";
+    }
     if (t.is_class) {
       return "class " + t.class_name;
     }
@@ -719,6 +752,8 @@ class VSCompiler {
       "modulus": "%",
     }
 
+    let comparison_operators = {"<": true, "<=": true, ">=": true, ">": true, "==": true, "!=": true};
+
     let expression_type = "" + e.type;
 
     let op : string = "";
@@ -783,7 +818,11 @@ class VSCompiler {
       //this.write_output(" " + op + " ");
       this.type_subexpression(e.rhs);
       // TODO: Implement proper coalescing of types
-      t = e.lhs.calculated_type;
+      if (op in comparison_operators) {
+        t = make_primitive_type(primitive_type.BOOL);
+      } else {
+        t = e.lhs.calculated_type;
+      }
       break;
     case "is_not":
       // this.write_output("!");
@@ -837,6 +876,13 @@ class VSCompiler {
     case "logical_not":
       //this.write_output("!");
       this.type_subexpression(e.rhs);
+      if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.BOOL))) {
+        throw {
+          message: "Argument to logical not \"!\" must be a boolean!",
+          location: e.rhs,
+        };
+      }
+      t = make_primitive_type(primitive_type.BOOL);
       break;
     case "postfix_minus":
       this.type_subexpression(e.lhs);
@@ -877,19 +923,22 @@ class VSCompiler {
           location: e.lhs.location,
         };
       }
-      if (fn.lambda_type!.arg_types.length != e.args.length) {
-        throw {
-          message: "Function expected " + fn.lambda_type!.arg_types.length + " arguments, but only received " + e.args.length,
-          location: e.lhs.location,
-        };
-      }
-      for(let i = 0; i < fn.lambda_type!.arg_types.length; i++) {
-        let expected_type = fn.lambda_type!.arg_types[i];
-        let actual_type = this.type_expression(e.args[i])!;
-        if (!this.coalesce_to(expected_type, actual_type)) {
+      if (!fn.lambda_type!.is_variadic) {
+        // If the lambda type isn't variadic, type-check each parameter
+        if (fn.lambda_type!.arg_types.length != e.args.length) {
           throw {
-            message: "Could not cast type " + this.readable_type(actual_type) + " to " + this.readable_type(expected_type),
-            location: e.args[i].location,
+            message: "Function expected " + fn.lambda_type!.arg_types.length + " arguments, but only received " + e.args.length,
+            location: e.lhs.location,
+          };
+        }
+        for(let i = 0; i < fn.lambda_type!.arg_types.length; i++) {
+          let expected_type = fn.lambda_type!.arg_types[i];
+          let actual_type = this.type_expression(e.args[i])!;
+          if (!this.coalesce_to(expected_type, actual_type)) {
+            throw {
+              message: "Could not cast type " + this.readable_type(actual_type) + " to " + this.readable_type(expected_type),
+              location: e.args[i].location,
+            }
           }
         }
       }
@@ -979,7 +1028,7 @@ class VSCompiler {
       this.get_context().push_block();
 
       for(let arg of e.arguments) {
-        this.register_variable(this.parse_identifier(arg.arg_identifier), this.resolve_type(arg.arg_type));
+        this.register_variable(arg.arg_identifier, this.resolve_type(arg.arg_type));
       }
 
       let return_type = e.calculated_type.lambda_type!.return_type;
@@ -1108,7 +1157,12 @@ class VSCompiler {
       if (fn_type.is_member_trait_function) {
         this.write_output("self" + (arg_types.length > 0 ? ", " : ""));
       }
-      this.render_args(arg_types, e.args);
+      if (fn_type.lambda_type!.is_variadic) {
+        this.render_args(null, e.args);
+      } else {
+        // If the function isn't variadic, coelesce the args to the parameter types
+        this.render_args(arg_types, e.args);
+      }
       this.write_output(")");
       break;
     case "this":
@@ -1211,7 +1265,7 @@ class VSCompiler {
     case "const":
       let const_type = this.resolve_type(data.var_type);
       let const_name = this.parse_identifier(data.identifier);
-      this.register_variable(const_name, const_type);
+      this.register_variable(data.identifier, const_type);
       this.write_output("const " + this.render_type(const_type) + " _VS_" + const_name + " = ");
       this.render_subexpression(data.value);
       this.write_output(";\n");
@@ -1226,7 +1280,7 @@ class VSCompiler {
       if (data.return_type) {
         return_type = this.resolve_type(data.return_type);
       }
-      this.register_typedef(typedef_name, make_lambda_type({arg_types, return_type}));
+      this.register_typedef(data.identifier, make_lambda_type({arg_types, return_type}));
       
       let function_args = data.args;
       //this.write_output("typedef " + (return_type == null ? "void" : this.render_type(return_type)));
@@ -1238,7 +1292,7 @@ class VSCompiler {
       var typedef_name = this.parse_identifier(data.lhs);
       var typedef_type = this.resolve_type(data.rhs);
       this.write_output("typedef " + this.render_type(typedef_type) + " _VS_" + typedef_name + ";\n");
-      this.register_typedef(typedef_name, typedef_type);
+      this.register_typedef(data.lhs, typedef_type);
     } break;
     case "export":
       this.write_output("namespace Exports {\n");
@@ -1247,7 +1301,7 @@ class VSCompiler {
       let first = true;
       for(let arg of data.args) {
         // Keep track of which module has exported a given argument, for later usage
-        this.register_export(arg.value);
+        this.register_export(arg);
         let export_name = this.parse_identifier(arg);
 
         let potential_trait = this.get_context().resolve_trait_type(export_name);
@@ -1274,7 +1328,7 @@ class VSCompiler {
         implementations: {},
       };
 
-      this.register_trait(trait_name, t);
+      this.register_trait(data.identifier, t);
   
       // Render is_trait_function, and all trait implementation functions
       for(let statement of data.body) {
@@ -1392,7 +1446,7 @@ class VSCompiler {
 
       let class_name = data.identifier.value;
 
-      this.register_class(class_name, t);
+      this.register_class(data.identifier, t);
 
       for(let statement of data.body) {
         if (statement.type == "variable_declaration") {
@@ -1656,7 +1710,7 @@ class VSCompiler {
     // Static variable declaration
     case "variable_declaration":
       throw {
-        message: "Static variable declarations not implemented yet. Please provide a default value.",
+        message: "Variable declarations not implemented yet. Please provide a default value.",
         location: data.var_identifier.location,
       };
       /*
@@ -1676,11 +1730,18 @@ class VSCompiler {
     // Static variable definition
     case "variable_definition": {
       let var_type = this.resolve_type(data.var_type);
-      this.register_variable(data.var_identifier.value, var_type);
+      this.register_variable(data.var_identifier, var_type);
       this.write_output(this.render_type(var_type));
       this.write_output(" ")
       this.write_output("_VS_" + this.parse_identifier(data.var_identifier));
-      this.write_output(" = ")
+      this.write_output(" = ");
+      let definition_type = this.type_expression(data.var_definition);
+      if (!definition_type || !this.coalesce_to(var_type, definition_type)) {
+        throw {
+          message: "Cannot cast " + this.readable_type(definition_type) + " to " + this.readable_type(var_type),
+          location: data.location,
+        };
+      }
       this.render_coalesced(data.var_definition.value, var_type);
       this.write_output(";\n");
     } break;
@@ -1699,6 +1760,13 @@ class VSCompiler {
       break;
     case "throw":
       this.write_output("abort(");
+      let expression_type = this.type_expression(data.value);
+      if (!expression_type || !expression_type.is_primitive || expression_type.primitive_type != primitive_type.STRING) {
+        throw {
+          message: "Argument to throw must be a string!",
+          location: data.value.location
+        };
+      }
       this.render_expression(data.value);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + data.location.start.line + ", " + data.location.start.column + ", " + data.location.end.line + ", " + data.location.end.column);
       this.write_output("); throw \"\";\n");
@@ -1706,6 +1774,7 @@ class VSCompiler {
     case "return":
       this.write_output("return ");
       let return_type = null;
+      // TODO: Correctly handle return statements when inside of lambda
       if (this.get_context().implementing_function_type) {
         // Should always be true, technically
         return_type = this.get_context().implementing_function_type!.return_type!;
@@ -1719,6 +1788,12 @@ class VSCompiler {
       break;
     case "if":
       this.write_output("if ");
+      if (!_.isEqual(this.type_expression(data.condition), make_primitive_type(primitive_type.BOOL))) {
+        throw {
+          message: "Argument to if statement must be a boolean!",
+          location: data.condition.location,
+        };
+      }
       this.render_expression(data.condition);
       this.write_output(" ");
 
@@ -1733,6 +1808,12 @@ class VSCompiler {
       break;
     case "while":
       this.write_output("while ");
+      if (!_.isEqual(this.type_expression(data.condition), make_primitive_type(primitive_type.BOOL))) {
+        throw {
+          message: "Argument to while loop must be a boolean!",
+          location: data.condition.location,
+        };
+      }
       this.render_expression(data.condition);
       this.write_output(" ");
 
@@ -2046,6 +2127,16 @@ public:
 #define TRAIT_FOOTER \\
           _Vtable* vtbl; \\
       };
+
+// Variadic print statement
+template<typename Value, typename... Values>
+void _VS_print( Value v, Values... vs )
+{
+    using expander = int[];
+    std::cout << v; // first
+    (void) expander{ 0, (std::cout << " " << vs, void(), 0)... };
+    std::cout << std::endl;
+}
 
 // Array of all vtables
 static void* vtbls[1024][1024];
