@@ -3,7 +3,7 @@ import { bool } from './base_ts';
 import _ from "lodash";
 import { type } from 'os';
 import { throws } from 'assert';
-import { exit } from 'process';
+import { exit, off } from 'process';
 
 //////////////////////////////////////////////////
 // A function type
@@ -37,6 +37,7 @@ interface symbl_type {
   is_member_function?: bool,
   is_member_trait_function?: bool,
 
+  member_trait?: string,
   primitive_type: primitive_type | null,
   lambda_type: function_type | null,
   class_name: string | null,
@@ -352,8 +353,9 @@ class VSContext {
         let trait = this.resolve_trait_type(trait_name)!;
         let trait_member = this.resolve_member_of_trait(trait, member);
         if (trait_member) {
-          ret = Object.assign({}, trait_member);
+          let ret: symbl_type = Object.assign({}, trait_member);
           ret.is_member_trait_function = true;
+          ret.member_trait = trait_name;
           return ret;
         }
       }
@@ -702,6 +704,15 @@ class VSCompiler {
     }
   }
 
+  get_operation_result(lhs: symbl_type, rhs: symbl_type, op: string): symbl_type | null {
+    let comparison_operators = {"<": true, "<=": true, ">=": true, ">": true, "==": true, "!=": true};
+    if (op in comparison_operators) {
+      return make_primitive_type(primitive_type.BOOL);
+    } else {
+      return lhs;
+    }
+  }
+
   type_subexpression(e: any): symbl_type | null {
     switch(e.type) {
     case "assignment":
@@ -721,10 +732,24 @@ class VSCompiler {
         // Okay
       }
       return null;
-    case "operator_assignment":
-      this.type_subexpression(e.lhs);
-      this.type_subexpression(e.rhs);
-      return null;
+    case "operator_assignment": {
+      let left = this.type_subexpression(e.lhs)!;
+      let right = this.type_subexpression(e.rhs)!;
+      let t = this.get_operation_result(left, right, e.operator);
+      if (!t) {
+        throw {
+          message: e.operator + " does not accept types " + this.readable_type(left) + " and " + this.readable_type(right),
+          location: e.location,
+        };
+      }
+      if (!_.isEqual(e.lhs.calculated_type, t)) {
+        throw {
+          message: "Cannot cast " + this.readable_type(t) + " to " + this.readable_type(left),
+          location: e.location,
+        };
+      }
+      return t;
+    }
     }
 
     if (e.calculated_type) {
@@ -1055,6 +1080,8 @@ class VSCompiler {
       let is_member_trait_function = e.calculated_type.is_member_trait_function;
       if (is_member_trait_function) {
         // TODO: Render as namespace
+        this.write_output("_Class_" + e.lhs.calculated_type.class_name! + "::");
+        this.write_output("_Implement_" + e.calculated_type.member_trait + "_On_" + e.lhs.calculated_type.class_name! + "::");
       } else {
         this.render_subexpression(e.lhs);
         if (is_class || is_array) {
@@ -1167,7 +1194,6 @@ class VSCompiler {
       break;
     case "this":
       this.write_output("self");
-      this.get_context().resolve_typename(this.get_context().class!)!;
       break;
     default:
       throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
@@ -1201,7 +1227,7 @@ class VSCompiler {
       }
     }
     if (t.is_class) {
-      return "_Class_" + t.class_name! + "*";
+      return "_Class_" + t.class_name! + "::_Instance*";
     }
     if (t.is_trait) {
       return "_Trait_" + t.trait_name! + "::_Instance";
@@ -1227,6 +1253,17 @@ class VSCompiler {
 
   render_module(module_name: string): string {
     return "_" + module_name + "_VS_";
+  }
+
+  refresh_types(ast: any): void {
+    if (ast.calculated_type) {
+      delete ast.calculated_type;
+    }
+    for(let prop in ast) {
+      if (_.isArray(ast[prop]) || _.isObject(ast[prop])) {
+        this.refresh_types(ast[prop]);
+      }
+    }
   }
 
   class_id: number = 0;
@@ -1260,7 +1297,7 @@ class VSCompiler {
 
       // Get path to import, and get list of exports so that we know what to import explicitly
       //import_location = module.url;
-      this.write_output("using namespace " + this.render_module(import_name) + "::Exports;\n");
+      //this.write_output("using namespace " + this.render_module(import_name) + "::Exports;\n");
     } break;
     case "const":
       let const_type = this.resolve_type(data.var_type);
@@ -1295,7 +1332,7 @@ class VSCompiler {
       this.register_typedef(data.lhs, typedef_type);
     } break;
     case "export":
-      this.write_output("namespace Exports {\n");
+      //this.write_output("namespace Exports {\n");
       this.tab(1);
       
       let first = true;
@@ -1306,18 +1343,18 @@ class VSCompiler {
 
         let potential_trait = this.get_context().resolve_trait_type(export_name);
         if (potential_trait) {
-          this.write_output("namespace _Trait_" + export_name + " = " + this.render_module(this.compiling_module!) + "::_Trait_" + export_name + ";\n");
+          //this.write_output("namespace _Trait_" + export_name + " = " + this.render_module(this.compiling_module!) + "::_Trait_" + export_name + ";\n");
         } else if (this.get_context().resolve_class_type(export_name)) {
-          this.write_output("using " + this.render_module(this.compiling_module!) + "::_Class_" + export_name + ";\n");
+          //this.write_output("namespace _Class_" + export_name + " = " + this.render_module(this.compiling_module!) + "::_Class_" + export_name + ";\n");
         } else {
-          this.write_output("using " + this.render_module(this.compiling_module!) + "::_VS_" + export_name + ";\n");
+          //this.write_output("using " + this.render_module(this.compiling_module!) + "::_VS_" + export_name + ";\n");
         }
       }
 
       // Save exports = export_args;
 
       this.tab(-1);
-      this.write_output("}\n");
+      //this.write_output("}\n");
       break;
     case "trait": {
       // Register trait name
@@ -1454,13 +1491,9 @@ class VSCompiler {
         } else if (statement.type == "init_declaration") {
           t.public_functions["init"] = this.resolve_function_type(statement);
         } else {
-          //console.log("TYPE! " + statement.type);
           t.public_functions[statement.identifier.value] = this.resolve_function_type(statement);
         }
       }
-
-      this.write_output("// class " + class_name + " {};\n");
-      this.write_output("class _Class_" + class_name + ";\n");
     } break;
     case "init_implementation":
     case "function_implementation":
@@ -1538,8 +1571,10 @@ class VSCompiler {
       let value_class_name = referenced_class_name.slice(0, -1);
 
       // Start Class
+      this.write_output("namespace _Class_" + class_name + " {\n");
+      this.tab(1);
       this.get_context().set_top_level_class(class_name);
-      this.write_output("class " + value_class_name + " : public Object {\n");
+      this.write_output("class _Instance : public Object {\n");
       this.write_output("public:\n");
       this.tab(1);
 
@@ -1565,8 +1600,7 @@ class VSCompiler {
       this.write_output("}\n");
       
       // Constructor
-      this.write_output(value_class_name);
-      this.write_output("(" + rendered_typed_args + ")");
+      this.write_output("_Instance(" + rendered_typed_args + ")");
       this.write_output(" : Object(object_id) {\n");
       this.tab(1);
       this.write_output(referenced_class_name + " self = this;\n");
@@ -1615,6 +1649,8 @@ class VSCompiler {
       this.tab(-1);
       this.write_output("};\n");
       this.get_context().clear_top_level();
+      this.tab(-1);
+      this.write_output("}\n");
 
     } break;
     case "trait_implementation": {
@@ -1624,8 +1660,20 @@ class VSCompiler {
 
       let trait_name = this.parse_identifier(data.trait);
       var class_name = this.parse_identifier(data["class"]);
-      let class_data = this.get_context().resolve_class_type(class_name)!;
-      let trait_data = this.get_context().resolve_trait_type(trait_name)!;
+      let class_data = this.get_context().resolve_class_type(class_name);
+      if (!class_data) {
+        throw {
+          message: "Class \"" + class_name + "\" not found",
+          location: data["class"].location,
+        };
+      }
+      let trait_data = this.get_context().resolve_trait_type(trait_name);
+      if (!trait_data) {
+        throw {
+          message: "Trait \"" + trait_name + "\" not found",
+          location: data.trait.location,
+        };
+      }
       class_data.traits[trait_name] = true;
 
       let member_map: Record<string, any> = {};
@@ -1650,6 +1698,8 @@ class VSCompiler {
         if (!(fn_name in member_map)) {
           if (fn_name in trait_data.implementations) {
             member_map[fn_name] = trait_data.implementations[fn_name];
+            // Refresh types from the default implementation, so that they occur within the new context
+            this.refresh_types(member_map[fn_name]);
           } else {
             throw {
               message: "Trait implementation missing public function \"" + fn_name + "\"",
@@ -1660,6 +1710,8 @@ class VSCompiler {
       }
   
       let trait_implementation_name = "_Implement_" + trait_name + "_On_" + class_name;
+      this.write_output("namespace _Class_" + class_name + " {\n");
+      this.tab(1);
       this.write_output("namespace " + trait_implementation_name + " {\n");
       this.tab(1);
 
@@ -1676,7 +1728,6 @@ class VSCompiler {
         this.tab(1);
         let rendered_class = this.render_type(make_class_type(class_name));
         this.write_output(rendered_class + " const self = static_cast<" + rendered_class + ">(self_void);\n")
-        //this.write_output(referenced_class_name + " self = this;\n");
         // Render function implementation body
         this.render_statement(member_map[func]);
         this.tab(-1);
@@ -1695,10 +1746,12 @@ class VSCompiler {
         this.write_output("_Function_" + fn_name);
       }
       this.write_output(");\n");
-      this.write_output("static bool dummy = (vtbls[_Class_" + class_name + "::object_id][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
+      this.write_output("static bool dummy = (vtbls[_Class_" + class_name + "::_Instance::object_id][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
 
       this.get_context().clear_top_level();
   
+      this.tab(-1);
+      this.write_output("}\n");
       this.tab(-1);
       this.write_output("}\n");
     } break;
@@ -1878,12 +1931,13 @@ class VSCompiler {
       this.compiler_context = new VSContext(this.modules, module_name);
 
       // Render the root of the abstract syntax tree
-      this.write_output("// " + module_name + ".vs\n");
-      this.write_output("namespace " + this.render_module(module_name) + " {\n");
+      this.write_output("// Start Module " + module_name + ".vs\n");
+      //this.write_output("namespace " + this.render_module(module_name) + " {\n");
       this.tab(1);
       this.render_statement(m.voxelscript_ast);
       this.tab(-1);
-      this.write_output("}\n");
+      this.write_output("// End Module " + module_name + ".vs\n");
+      //this.write_output("}\n");
 
       if (module_name == "Main") {
         this.write_output("int main() {return 0;}\n");

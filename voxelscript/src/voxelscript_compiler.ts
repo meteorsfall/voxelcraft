@@ -166,6 +166,7 @@ if (options.build_target) {
   // Run gcc to compile the resulting c++
   const child_argv = [
       '--std=c++17',
+      '-Wfatal-errors', // Stop at first error
       '-xc++',
       '-',
   ];

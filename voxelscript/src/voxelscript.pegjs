@@ -137,7 +137,7 @@ expression
 
 precedence_15
   = lhs:precedence_14 _ e:EQUAL_LOC _ rhs:precedence_15 { return {type: "assignment", lhs: lhs, equal: e /* for loc */, rhs: rhs, location:location()}; }
-  / lhs:precedence_14 _ s:ARITHMETIC_SYMBOL EQUAL _ rhs:precedence_15 { return {type: "operator_assignment", operator: s, lhs: lhs, rhs: rhs, location:location()}; }
+  / lhs:precedence_14 _ s:ARITHMETIC_SYMBOL_EQUALS _ rhs:precedence_15 { return {type: "operator_assignment", operator: s, lhs: lhs, rhs: rhs, location:location()}; }
   / precedence_14
 
 precedence_14
@@ -437,6 +437,9 @@ VOID = "void"
 
 ARITHMETIC_SYMBOL
  = PLUS / MINUS / ASTERISK / DIVIDE / MODULUS / LEFT_SHIFT / RIGHT_SHIFT / BITWISE_AND / BITWISE_XOR / BITWISE_OR
+
+ARITHMETIC_SYMBOL_EQUALS "operator assignment"
+ = op:("+" / "-" / "*" / "/" / "%") "=" {return op;}
 
 IS_NOT "binary operator" = IS __ NOT
 PLUS "binary operator" = "+"(!"=") {return "+"}
