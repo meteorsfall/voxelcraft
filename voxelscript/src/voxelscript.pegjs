@@ -42,9 +42,12 @@ top_level
 comma_identifier
   = _ "," _ i:identifier { return i; }
 
+identifier_list
+  = identifiers:(identifier comma_identifier*)? { return flatten_comma(identifiers); }
+
 // Export statement lists the public-facing objects of the module
 export
-  = EXPORT __ "{" _ args:(identifier comma_identifier*)? _"}" ENDSTATEMENT { return {type:"export", args:flatten_comma(args), location:location()}; }
+  = EXPORT __ "{" _ args:identifier_list _ "}" ENDSTATEMENT { return {type:"export", args, location:location()}; }
 
 // *************************
 // Top-Level named blocks
@@ -56,11 +59,11 @@ trait
 
 // A class is a set of function and variable declarations, with an optional init declaration
 class
-  = CLASS __ id:identifier _ b:class_block { return {type:"class", identifier:id, body:b, location:location()}; }
+  = CLASS __ id:identifier _ template:(template_parameter_list)? _ b:class_block { return {type:"class", identifier:id, template, body:b, location:location()}; }
 
 // A class implementation is a set of variable declarations / definition, and function implementations
 class_implementation
-  = IMPLEMENT __ id:identifier _ b:class_implementation_block { return {type:"class_implementation", identifier:id, body:b}} 
+  = IMPLEMENT __ id:identifier _ template:(untyped_template_parameter_list)? _ b:class_implementation_block { return {type:"class_implementation", template, identifier:id, body:b}} 
 
 // A trait implementation consists of a set of function implementations
 trait_implementation
@@ -391,24 +394,40 @@ type_list
   = types:(type type_comma*)? { return {types: flatten_comma(types), location:location()}; }
 
 template_list "template list <...>"
-  = _ "<" _ types:type_list _ ">" _ { return types; }
+  // For use in "type", consume whitespace from the left, but don't overconsume on the right, so that we can still check for mandatory whitespace
+  = _ "<" _ types:type_list _ ">" { return types; }
 
 // Template parameter
 
-type_and
-  = _ "+" _ t:type { return t; }
+template_type
+  = identifier:general_identifier { return {identifier: identifier, location: location()}; }
 
-type_composition
-  = composition:(type type_and*) { return flatten_comma(composition); }
+template_type_and
+  = _ "+" _ t:template_type { return t; }
+
+template_type_contracts
+  = contracts:(template_type template_type_and*) { return flatten_comma(contracts); }
 
 template_parameter
-  = _ id:identifier _ ":" _ composition:type_composition { return {id: id, composition: composition}; }
+  = id:general_identifier _ ":" _ ANY { return {identifier: id}; }
+  / id:general_identifier _ ":" _ contracts:template_type_contracts { return {identifier: id, contracts: contracts, location: location()}; }
 
 template_parameter_comma
   = _ "," _ param:template_parameter { return param; }
 
-template_parameter_list
-  = parameters:(template_parameter template_parameter_comma*) { return flatten_comma(parameters); }
+template_parameter_list "template parameter list <...>"
+  = "<" _ parameters:(template_parameter template_parameter_comma*) _ ">" { return flatten_comma(parameters); }
+
+// Untyped Template parameter
+
+untyped_template_parameter
+  = id:general_identifier { return {identifier: id}; }
+
+untyped_template_parameter_comma
+  = _ "," _ param:untyped_template_parameter { return param; }
+
+untyped_template_parameter_list "untyped template parameter list <...>"
+  = "<" _ parameters:(untyped_template_parameter untyped_template_parameter_comma*) _ ">" { return flatten_comma(parameters); }
 
 // *************************
 // Comments
