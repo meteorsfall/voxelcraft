@@ -287,8 +287,8 @@ init_implementation
 // All Statements
 // *************************
 
-statement
-  = simple_statement / variable_declaration / variable_definition / if / for / while / return / block_statement / throw / null_statement
+statement // Must check variable definition before checking simple_statement, or else template parameters will be treated as \le or \ge
+  = variable_declaration / variable_definition / if / for / while / return / block_statement / throw / null_statement / simple_statement
 
 null_statement
   = ENDSTATEMENT { return {type:"null_statement"} }
@@ -372,11 +372,43 @@ value "value"
   / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
 
 type "type"
-  = t:(INT / CHAR / DOUBLE / BOOL / STRING / identifier) arr:("[]")? { return {type: arr ? "array_type" : "type", value: t, location:location()}; }
+  = t:(INT / CHAR / DOUBLE / BOOL / STRING / identifier) template:(template_list)? arr:("[]")? { return {type: arr ? "array_type" : "type", value: t, template: template, location:location()}; }
 
 voidable_type "type or void"
   = VOID { return null; }
   / t:type { return t; }
+
+// *************************
+// Templates
+// *************************
+
+// Template list
+
+type_comma
+  = _ "," _ t:type { return t; }
+
+type_list
+  = types:(type type_comma*)? { return {types: flatten_comma(types), location:location()}; }
+
+template_list "template list <...>"
+  = _ "<" _ types:type_list _ ">" _ { return types; }
+
+// Template parameter
+
+type_and
+  = _ "+" _ t:type { return t; }
+
+type_composition
+  = composition:(type type_and*) { return flatten_comma(composition); }
+
+template_parameter
+  = _ id:identifier _ ":" _ composition:type_composition { return {id: id, composition: composition}; }
+
+template_parameter_comma
+  = _ "," _ param:template_parameter { return param; }
+
+template_parameter_list
+  = parameters:(template_parameter template_parameter_comma*) { return flatten_comma(parameters); }
 
 // *************************
 // Comments
@@ -404,8 +436,9 @@ __ "whitespace"
 // Constants
 // *************************
 
-KEYWORDS = THIS / INT / CHAR / DOUBLE / BOOL / TRUE / FALSE / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
+KEYWORDS = ANY / THIS / INT / CHAR / DOUBLE / BOOL / TRUE / FALSE / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
 
+ANY = "any"
 THIS = "this"
 INT = "int"
 CHAR = "char"

@@ -34,8 +34,12 @@ interface symbl_type {
   is_class: bool,
   is_trait: bool,
   is_array: bool,
+  // Is member function of class
   is_member_function?: bool,
+  // Is trait member function of class
   is_member_trait_function?: bool,
+  // Is trait function
+  is_trait_function?: bool,
 
   member_trait?: string,
   primitive_type: primitive_type | null,
@@ -361,7 +365,11 @@ class VSContext {
       }
     } else if (parent.is_trait) {
       let trait = this.resolve_trait_type(parent.trait_name!)!;
-      return this.resolve_member_of_trait(trait, member);
+      let ret = this.resolve_member_of_trait(trait, member);
+      if (ret) {
+        ret.is_trait_function = true;
+      }
+      return ret;
     } else {
       ret = null;
     }
@@ -682,16 +690,15 @@ class VSCompiler {
 
     if (t.is_trait && right.is_class) {
       let cast_type = t;
-      this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
+      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
       this.write_output("static_cast<Object*>")
       this.render_subexpression(rhs);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
       this.write_output(")");
     } else if (t.is_trait && right.is_trait && !_.isEqual(right, t)) {
       let cast_type = t;
-      this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
+      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
       this.render_subexpression(rhs);
-      this.write_output(".obj");
       this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
       this.write_output(")");
     } else if (t.is_array && right.array_type == null) {
@@ -1078,10 +1085,14 @@ class VSCompiler {
       let is_trait = e.lhs.calculated_type.is_trait;
       let is_array = e.lhs.calculated_type.is_array;
       let is_member_trait_function = e.calculated_type.is_member_trait_function;
+      let is_trait_function = e.calculated_type.is_trait_function;
       if (is_member_trait_function) {
         // TODO: Render as namespace
         this.write_output("_Class_" + e.lhs.calculated_type.class_name! + "::");
         this.write_output("_Implement_" + e.calculated_type.member_trait + "_On_" + e.lhs.calculated_type.class_name! + "::");
+      } else if (is_trait_function) {
+        // All members of traits are functions
+        this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
       } else {
         this.render_subexpression(e.lhs);
         if (is_class || is_array) {
@@ -1118,12 +1129,13 @@ class VSCompiler {
       // Pass onto "is"
     case "is":
       let rhs_type = e.rhs.calculated_type;
+      let rendered_type = rhs_type.is_class ? this.render_type(rhs_type) : this.render_trait(rhs_type);
       this.write_output(
         "is_" + (rhs_type.is_class ? "class" : "trait") +
-        "<" + this.render_type(rhs_type) + ">("
+        "<" + rendered_type  + ">("
       );
       this.render_subexpression(e.lhs);
-      this.write_output(".obj)");
+      this.write_output(")");
       break;
     case "array":
       this.write_output("{");
@@ -1161,11 +1173,8 @@ class VSCompiler {
       break;
     case "cast":
       let cast_type = e.lhs.calculated_type;
-      this.write_output("cast_to_trait<" + this.render_type(cast_type) + ">(");
+      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
       this.render_subexpression(e.rhs);
-      if (e.rhs.calculated_type.is_trait) {
-        this.write_output(".obj");
-      }
       this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
       this.write_output(")");
       break;
@@ -1183,6 +1192,10 @@ class VSCompiler {
       let arg_types = e.lhs.calculated_type.lambda_type!.arg_types;
       if (fn_type.is_member_trait_function) {
         this.write_output("self" + (arg_types.length > 0 ? ", " : ""));
+      }
+      if (fn_type.is_trait_function) {
+        this.render_subexpression(e.lhs.lhs);
+        this.write_output((arg_types.length > 0 ? ", " : ""));
       }
       if (fn_type.lambda_type!.is_variadic) {
         this.render_args(null, e.args);
@@ -1230,7 +1243,7 @@ class VSCompiler {
       return "_Class_" + t.class_name! + "::_Instance*";
     }
     if (t.is_trait) {
-      return "_Trait_" + t.trait_name! + "::_Instance";
+      return "Object*";
     }
     if (t.is_array) {
       return "vector<" + this.render_type(t.array_type!) + ">*";
@@ -1249,6 +1262,10 @@ class VSCompiler {
       return ret;
     }
     throw new Error("FATAL ERROR: Type cannot be rendered!");
+  }
+
+  render_trait(t: symbl_type): string {
+    return "_Trait_" + t.trait_name! + "::_Instance";
   }
 
   render_module(module_name: string): string {
@@ -1435,15 +1452,15 @@ class VSCompiler {
       this.tab(-1);
       this.write_output("TRAIT_MID\n");
       this.tab(1);
+      this.write_output("// Dynamic dispatch of trait function calls\n");
       for(let func_name in t.public_functions) {
         let func = t.public_functions[func_name];
+        this.write_output("static ");
         this.write_output((func.return_type == null ? "void" : this.render_type(func.return_type)) + " ");
-        this.write_output("_Function_" + func_name + "(");
+        this.write_output("_Function_" + func_name + "(Object* object");
         let arg_name = "a";
         for(let arg_type of func.arg_types) {
-          if (arg_name != "a") {
-            this.write_output(", ");
-          }
+          this.write_output(", ");
           this.write_output(this.render_type(arg_type) + " ");
           this.write_output(arg_name);
           arg_name = String.fromCharCode(arg_name.charCodeAt(0) + 1);
@@ -1453,7 +1470,7 @@ class VSCompiler {
         if (func.return_type) {
           this.write_output("return ");
         }
-        this.write_output("vtbl->_Function_" + func_name + "(this->obj");
+        this.write_output("((_Vtable*)vtbls[object->object_id][trait_id])->_Function_" + func_name + "(object");
         arg_name = "a";
         for(let arg_type of func.arg_types) {
           this.write_output(", ");
@@ -2148,7 +2165,7 @@ public:
     // Keep track of reference count for deallocations
     unsigned int reference_count = 1;
     // Keep track of object id
-    id_type object_id;
+    const id_type object_id;
 
     // Initialize a new object
     Object(id_type object_id) : object_id(object_id) {};
@@ -2161,6 +2178,9 @@ public:
     Trait(Object* obj) : obj(obj) {};
 };
 
+// Object Instance
+typedef Object* ObjectInstance;
+
 #define TRAIT_HEADER \\
       class _Instance : public Trait { \\
       public: \\
@@ -2171,15 +2191,11 @@ public:
 
 #define TRAIT_MID \\
           }; \\
-          _Instance() : Trait(NULL), vtbl(NULL) {} \\
-          _Instance(Object* obj, void* vtbl) : Trait(obj), vtbl((_Vtable*)vtbl) { \\
-              if (vtbl == nullptr) { \\
-                  throw "Tried to cast to trait, when class X does not implement that trait!"; \\
-              } \\
+          _Instance() : Trait(NULL) {} \\
+          _Instance(Object* obj) : Trait(obj) { \\
           };
 
 #define TRAIT_FOOTER \\
-          _Vtable* vtbl; \\
       };
 
 // Variadic print statement
@@ -2206,11 +2222,11 @@ bool is_trait(Object* obj) {
 }
 
 template<typename T>
-T cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
     if (!is_trait<T>(obj)) {
         abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
-    return T(obj, vtbls[obj->object_id][T::trait_id]);
+    return obj;
 }
 
 template<typename T>
