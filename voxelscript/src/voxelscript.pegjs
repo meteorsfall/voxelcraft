@@ -324,7 +324,8 @@ variable_definition
   = t:type __ id:identifier _ EQUAL _ e:expression ENDSTATEMENT { return {type:"variable_definition", "var_identifier":id, "var_type":t, "var_definition": e, location:location()}; }
 
 return
-  = RETURN __ e:expression ENDSTATEMENT { return {type:"return", value:e, location:location()}; }
+  = RETURN _ ENDSTATEMENT { return {type:"return", location:location()}; }
+  / RETURN __ e:expression ENDSTATEMENT { return {type:"return", value:e, location:location()}; }
 
 throw
   = THROW __ e:expression ENDSTATEMENT { return {type:"throw", value:e, location:location()}; }
@@ -377,8 +378,11 @@ value "value"
   = v:(bool / float / integer / char / string / identifier) { return v; }
   / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
 
+basic_type
+  = t:(INT / CHAR / FLOAT / BOOL / STRING / identifier) template:(template_list)? { return {type: "type", value: t, template: template, location:location()}; }
+
 type "type"
-  = t:(INT / CHAR / FLOAT / BOOL / STRING / identifier) template:(template_list)? arr:("[]")? { return {type: arr ? "array_type" : "type", value: t, template: template, location:location()}; }
+  = t:basic_type arr:(_ "[" _ "]")* { return arr.reduce((prev, _) => { return {type: "array_type", value: prev, location:location()}; }, t); }
 
 voidable_type "type or void"
   = VOID { return null; }

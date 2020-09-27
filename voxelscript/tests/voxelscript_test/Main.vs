@@ -84,7 +84,8 @@ class HashMap<Key: Hash + Eq, Value: any> {
 
 implement HashMap<Key, Value> {
     // Set of values
-    Option<Value>[] vals;
+    Value[][] vals;
+    Key[][] keys;
     // Refers to vals.size()
     int capacity;
     // Refers to # of elements in HashMap
@@ -94,30 +95,73 @@ implement HashMap<Key, Value> {
         this.size = 0;
         this.capacity = 25;
         this.vals = [];
+        this.keys = [];
         this.vals.resize(25);
+        this.keys.resize(25);
         for(int i = 0; i < 25; i++) {
-            this.vals[i] = new Option<Value>();
+            this.vals[i] = [];
+            this.keys[i] = [];
         }
     }
 
     Value get(Key k) {
         int hash = k.hash();
-        return this.vals[hash % this.capacity].get();
+        Key[] keys = this.keys[hash % this.capacity];
+        int found = 0-1;
+        for(int i = 0; i < keys.size(); i++) {
+            if (keys[i].is_equal(k)) {
+                found = i;
+            }
+        }
+        if (found >= 0) {
+            return this.vals[hash % this.capacity][found];
+        } else {
+            throw "Key not found!";
+        }
     }
 
     bool is_set(Key k) {
         int hash = k.hash();
-        return this.vals[hash % this.capacity].is_set();
+        Key[] keys = this.keys[hash % this.capacity];
+        for(int i = 0; i < keys.size(); i++) {
+            if (keys[i].is_equal(k)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     void set(Key k, Value v) {
         int hash = k.hash();
-        this.vals[hash % this.capacity].set(v);
+        Key[] keys = this.keys[hash % this.capacity];
+        int found = 0-1;
+        for(int i = 0; i < keys.size(); i++) {
+            if (keys[i].is_equal(k)) {
+                found = i;
+            }
+        }
+        if (found != -1) {
+            // Set the value at that location
+            this.vals[hash % this.capacity][found] = v;
+        } else {
+            // Add to the linked list
+            this.keys[hash % this.capacity].push(k);
+            this.vals[hash % this.capacity].push(v);
+        }
     }
 
     void unset(Key k) {
         int hash = k.hash();
-        this.vals[hash % this.capacity].unset();
+        Key[] keys = this.keys[hash % this.capacity];
+        int found = -1;
+        for(int i = 0; i < keys.size(); i++) {
+            if (keys[i].is_equal(k)) {
+                // Remove the discovered key/value pair
+                keys.remove(i);
+                this.vals[hash % this.capacity].remove(i);
+                return;
+            }
+        }
     }
 }
 
@@ -135,6 +179,10 @@ implement Holder<T> {
         return this.test;
     }
 }
+
+// *****************
+// Begin Tester
+// *****************
 
 class Tester {
     init();

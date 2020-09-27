@@ -428,6 +428,8 @@ class VSContext {
         ret = make_lambda_type({return_type: null, arg_types: [parent.array_type!]});
       } else if (member == "pop") {
         ret = make_lambda_type({return_type: parent.array_type, arg_types: []});
+      } else if (member == "remove") {
+        ret = make_lambda_type({return_type: parent.array_type, arg_types: [make_primitive_type(primitive_type.INT)]});
       } else if (member == "size") {
         ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: []});
       } else if (member == "resize") {
@@ -792,7 +794,9 @@ class VSCompiler {
 
     if (t.value.type == "identifier") {
       type_name = t.value.value;
-      // Should not be a primitive
+      // Should be either a class or trait
+
+      // Get template parameters
       let template = [];
       if (t.template) {
         for(let type of t.template) {
@@ -849,6 +853,10 @@ class VSCompiler {
         }
         type_value = this.get_context().resolve_typename(type_name, template);
       } // Otherwise, we say no such symbol type
+    } else if (t.type == "array_type") {
+      // Must be a primitive
+      type_name = "Won't need it";
+      type_value = make_array_type(this.resolve_type(t.value));
     } else {
       type_name = t.value;
       // Must be a primitive
@@ -862,9 +870,6 @@ class VSCompiler {
         location: t.location,
       };
     } else {
-      if (t.type == "array_type") {
-        type_value = make_array_type(type_value);
-      }
       t.calculated_type = type_value;
       return type_value;
     }
@@ -890,6 +895,9 @@ class VSCompiler {
       return lhs;
     }
     if (lhs.is_trait && rhs.is_trait) {
+      return lhs;
+    }
+    if (lhs.is_trait && rhs.is_template) {
       return lhs;
     }
     if (_.isEqual(lhs, rhs)) {
@@ -1143,15 +1151,24 @@ class VSCompiler {
     // Unary Operators
     // ****
     case "logical_not":
-      //this.write_output("!");
       this.type_subexpression(e.rhs);
       if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.BOOL))) {
         throw {
-          message: "Argument to logical not \"!\" must be a boolean!",
+          message: "Argument to logical not \"!\" must be a boolean",
           location: e.rhs,
         };
       }
       t = make_primitive_type(primitive_type.BOOL);
+      break;
+    case "minus":
+      this.type_subexpression(e.rhs);
+      if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.INT))) {
+        throw {
+          message: "Argument to unary minus \"-\" must be an integer",
+          location: e.rhs,
+        };
+      }
+      t = make_primitive_type(primitive_type.INT);
       break;
     case "postfix_minus":
       this.type_subexpression(e.lhs);
@@ -1421,6 +1438,10 @@ class VSCompiler {
     // ****
     case "logical_not":
       this.write_output("!");
+      this.render_subexpression(e.rhs);
+      break;
+    case "minus":
+      this.write_output("-");
       this.render_subexpression(e.rhs);
       break;
     case "postfix_minus":
@@ -2231,7 +2252,12 @@ class VSCompiler {
         }
         this.render_coalesced(data.value.value, return_type);
       } else {
-        this.render_expression(data.value);
+        if (data.value) {
+          throw {
+            message: 'Cannot cast from ' + this.readable_type(null) + ' to ' + this.readable_type(return_type),
+            location: data.value.location,
+          };
+        }
       }
       this.write_output(";\n");
       break;
@@ -2652,6 +2678,12 @@ namespace _Array_ {
   T pop(std::vector<T>* arr, T val) {
       T ret = arr->back();
       arr->pop_back();
+      return ret;
+  }
+  template<typename T>
+  T remove(std::vector<T>* arr, int index) {
+      T ret = arr.at(index);
+      arr->erase(arr->begin() + index);
       return ret;
   }
   template<typename T>
