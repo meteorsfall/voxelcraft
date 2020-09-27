@@ -41,6 +41,8 @@ interface symbl_type {
   is_member_function?: bool,
   // Is trait member function of class
   is_member_trait_function?: bool,
+  // Is member of array
+  is_member_array_function?: bool,
   // Is trait function
   is_trait_function?: bool,
 
@@ -421,13 +423,26 @@ class VSContext {
 
   resolve_member_of(parent: symbl_type, member: string): symbl_type | null {
     if (parent.is_array) {
+      let ret = null;
       if (member == "push") {
-        return make_lambda_type({return_type: null, arg_types: [parent.array_type!]});
+        ret = make_lambda_type({return_type: null, arg_types: [parent.array_type!]});
       } else if (member == "pop") {
-        return make_lambda_type({return_type: parent.array_type, arg_types: []});
+        ret = make_lambda_type({return_type: parent.array_type, arg_types: []});
+      } else if (member == "size") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: []});
+      } else if (member == "resize") {
+        ret = make_lambda_type({return_type: null, arg_types: [make_primitive_type(primitive_type.INT)]});
+      } else if (member == "get_capacity") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: []});
+      } else if (member == "set_capacity") {
+        ret = make_lambda_type({return_type: null, arg_types: [make_primitive_type(primitive_type.INT)]});
+      } else if (member == "clone") {
+        ret = make_lambda_type({return_type: parent, arg_types: []});
       } else {
         return null;
       }
+      ret.is_member_array_function = true;
+      return ret;
     }
 
     let ret: any = {
@@ -487,11 +502,7 @@ class VSContext {
 
     let cls = this.resolve_class_type(class_name);
     if (cls) {
-      if (cls.template.length != template.length) {
-        return null;
-      }
-      let ret = make_class_type(class_name, template);
-      return ret;
+      return make_class_type(class_name, template);
     }
     return null;
   }
@@ -672,7 +683,7 @@ class VSCompiler {
     let trait_possibility = this.get_context().resolve_trait_type(id);
     if (symbol_possibility || class_possibility || trait_possibility) {
       throw {
-        message: "identifier \"" + id + "\" has already been declared!",
+        message: "identifier \"" + id + "\" has already been declared",
         location: location.location,
       };
     }
@@ -789,7 +800,55 @@ class VSCompiler {
         }
       }
 
-      type_value = this.get_context().resolve_typename(type_name, template);
+      let base_value = this.get_context().resolve_typename(type_name);
+
+      if (base_value) {
+        // If a base value was found, we must typecheck the template
+        if (template.length > 0) {
+          if (!base_value || !base_value.is_class) {
+            throw {
+              message: "Template parameters can only be applied to classes, not " + this.readable_type(type_value),
+              location: t.location,
+            };
+          }
+          let cls_value = this.get_context().resolve_class_type(type_name)!;
+          if (cls_value.template!.length != template.length) {
+            throw {
+              message: this.readable_type(base_value) + " was given " + template.length + " template parameter" + (template.length != 1 ? "s" : "") + ", but it needs " + cls_value.template!.length,
+              location: t.location,
+            };
+          }
+          for(let i in template) {
+            if (cls_value.template[i].length != 0) {
+              // If the length is not zero, we should check the constraints
+              let val = template[i];
+              // Constraints only work if the template given is a class
+              if (!val.is_class) {
+                throw {
+                  message: 'Template parameter #' + i + ' of ' + this.readable_type(base_value) + ' has constraints, constrained template parameters must be instantiated with a class. ' + this.readable_type(val) + ' is not a class',
+                  location: t.template[i].location,
+                };
+              }
+              // If it's a class, we should check that it implements all of the traits that we want it to implement
+              let cls_val = this.get_context().resolve_class_type(val.class_name!)!;
+              for(let required_trait of cls_value.template[i]) {
+                if (!(required_trait.trait_name! in cls_val.traits)) {
+                  throw {
+                    message: this.readable_type(val) + ' does not implement ' + this.readable_type(required_trait) + ', but template parameter #' + i + ' of ' + this.readable_type(base_value) + ' requires it',
+                    location: t.template[i].location,  
+                  }
+                }
+              }
+            }
+          }
+        } else if (base_value.template && base_value.template.length > 0) {
+          throw {
+            message: this.readable_type(base_value) + " expected a template list, but none was found",
+            location: t.location,
+          };
+        }
+        type_value = this.get_context().resolve_typename(type_name, template);
+      } // Otherwise, we say no such symbol type
     } else {
       type_name = t.value;
       // Must be a primitive
@@ -1287,6 +1346,7 @@ class VSCompiler {
       let is_array = e.lhs.calculated_type.is_array;
       let is_template = e.lhs.calculated_type.is_template;
       let is_member_trait_function = e.calculated_type.is_member_trait_function;
+      let is_member_array_function = e.calculated_type.is_member_array_function;
       let is_trait_function = e.calculated_type.is_trait_function;
       if (is_member_trait_function) {
         // TODO: Render as namespace
@@ -1295,6 +1355,8 @@ class VSCompiler {
       } else if (is_trait_function || is_template) {
         // All members of traits / template params, are functions
         this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
+      } else if (is_member_array_function) {
+        this.write_output("_Array_::");
       } else {
         this.render_subexpression(e.lhs);
         if (is_class || is_array) {
@@ -1308,11 +1370,7 @@ class VSCompiler {
       let prefix = "";
       let member_name = this.parse_identifier(e.rhs);
 
-      if (is_array) {
-        if (member_name == "push") {
-          member_name = "push_back";
-        }
-      } else {
+      if (!is_array) {
         let member_result_type = e.calculated_type;
         prefix = "_VS_";
         if (member_result_type.is_member_function) {
@@ -1400,6 +1458,10 @@ class VSCompiler {
         this.write_output("self" + (arg_types.length > 0 ? ", " : ""));
       }
       if (fn_type.is_trait_function) {
+        this.render_subexpression(e.lhs.lhs);
+        this.write_output((arg_types.length > 0 ? ", " : ""));
+      }
+      if (fn_type.is_member_array_function) {
         this.render_subexpression(e.lhs.lhs);
         this.write_output((arg_types.length > 0 ? ", " : ""));
       }
@@ -2575,6 +2637,40 @@ T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int 
         abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);
+}
+
+namespace _Array_ {
+  template<typename T>
+  void push(std::vector<T>* arr, T val) {
+      arr->push_back(val);
+  }
+  template<typename T>
+  T pop(std::vector<T>* arr, T val) {
+      T ret = arr->back();
+      arr->pop_back();
+      return ret;
+  }
+  template<typename T>
+  int size(std::vector<T>* arr) {
+      return arr->size();
+  }
+  template<typename T>
+  void resize(std::vector<T>* arr, int size) {
+      arr->resize(size);
+  }
+  template<typename T>
+  int get_capacity(std::vector<T>* arr) {
+      return arr->capacity();
+  }
+  template<typename T>
+  void set_capacity(std::vector<T>* arr, int size) {
+      arr->reserve(size);
+  }
+  template<typename T>
+  std::vector<T>* clone(std::vector<T>* arr) {
+      std::vector<T>* ret = new std::vector<T>(*arr);
+      return ret;
+  }
 }
 
 `;

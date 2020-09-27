@@ -56,17 +56,18 @@ class HashMap<Key: Hash + Eq, Value: any> {
 }
 
 implement HashMap<Key, Value> {
+    // Set of values
     Option<Value>[] vals;
-    int size;
+    // Refers to vals.size()
     int capacity;
+    // Refers to # of elements in HashMap
+    int size;
 
     init() {
         this.size = 0;
         this.capacity = 25;
         this.vals = [];
-        for(int i = 0; i < 25; i++) {
-            this.vals.push(new Option<Value>());
-        }
+        this.vals.resize(25);
     }
 
     Value get(Key k) {
@@ -78,16 +79,6 @@ implement HashMap<Key, Value> {
         int hash = k.hash();
         this.vals[hash % this.capacity].val = v;
     }
-}
-
-class Array<T: any> {
-    T[] arr;
-    int size;
-    int capacity;
-}
-
-implement Array<T> {
-
 }
 
 class Holder<T: any> {
