@@ -1,6 +1,6 @@
 import { stringify } from 'querystring';
 import { bool, int } from './base_ts';
-import _, { toInteger } from "lodash";
+import _, { cond, toInteger } from "lodash";
 import { type } from 'os';
 import { throws } from 'assert';
 import { exit, off } from 'process';
@@ -153,7 +153,7 @@ function make_template_type(class_name: string, i: int): symbl_type {
 
 // Classes have pub/priv members/functions
 interface class_type {
-  template: string[][],
+  template: symbl_type[][],
   public_members: Record<string, symbl_type>
   public_functions: Record<string, function_type>,
   private_members: Record<string, symbl_type>,
@@ -205,6 +205,7 @@ class VSContext {
   class: string | null = null;
   trait: string | null = null;
   template: string[] = [];
+  return_type: symbl_type[] = [];
 
   // Blocks
   blocks: block[] = [];
@@ -365,7 +366,15 @@ class VSContext {
     return ret;
   }
 
-  template_instance(obj: any, template: symbl_type[]): void {
+  template_instance(obj: any, template: symbl_type[]): any {
+    if (_.isObject(obj)) {
+      if (_.isInteger((<any>obj).template_num)) {
+        // If this object is a template itself, simply replace and return
+        obj = template[(<any>obj).template_num];
+        return obj;
+      }
+    }
+
     if (_.isObject(obj) || _.isArray(obj)) {
       obj = <any>obj;
       for(let key in obj) {
@@ -384,7 +393,31 @@ class VSContext {
         }
       }
     }
+
+    return obj;
   }
+
+  resolve_return_type(): symbl_type {
+    if (this.return_type.length == 0) {
+      return this.implementing_function_type!.return_type!;
+    } else {
+      return this.return_type[this.return_type.length - 1];
+    }
+  }
+/*
+  resolve_arraytype_of(parent: symbl_type): symbl_type {
+    if (!parent.is_array) throw "err";
+    let ret = parent.array_type;
+    if (parent.template!.length) {
+      if (parent.template!.length != cls.template.length) {
+        throw "Wrong length!";
+      }
+      ret = _.cloneDeep(ret);
+      // Replaces all template instances with the template values
+      this.template_instance(ret, parent.template!);
+    }
+
+  }*/
 
   resolve_member_of(parent: symbl_type, member: string): symbl_type | null {
     if (parent.is_array) {
@@ -428,9 +461,12 @@ class VSContext {
         }
       }
       if (parent.template!.length) {
+        if (parent.template!.length != cls.template.length) {
+          throw "Wrong length!";
+        }
         ret = _.cloneDeep(ret);
         // Replaces all template instances with the template values
-        this.template_instance(ret, parent.template!);
+        ret = this.template_instance(ret, parent.template!);
       }
     } else if (parent.is_trait) {
       let trait = this.resolve_trait_type(parent.trait_name!)!;
@@ -491,6 +527,14 @@ class VSContext {
     } else {
       throw "Trying to register variable, but no block to register it too!";
     }
+  }
+
+  register_return_type(return_type: symbl_type) {
+    this.return_type.push(return_type);
+  }
+
+  pop_return_type() {
+    this.return_type.pop();
   }
 }
 
@@ -744,6 +788,7 @@ class VSCompiler {
           template.push(this.resolve_type(type));
         }
       }
+
       type_value = this.get_context().resolve_typename(type_name, template);
     } else {
       type_name = t.value;
@@ -841,7 +886,7 @@ class VSCompiler {
       e.calculated_type = this.coalesce_to(left, right);
       if (!e.calculated_type) {
         throw {
-          message: "Cannot assign " + this.readable_type(left) + " to " + this.readable_type(right),
+          message: "Cannot assign " + this.readable_type(right) + " to " + this.readable_type(left),
           location: e.equal.location,
         };
       }
@@ -938,22 +983,45 @@ class VSCompiler {
       break;
     case "member_of":
       let cls = this.type_subexpression(e.lhs);
-      if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array)) {
+      if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array && !cls.is_template)) {
         throw {
-          message: "Member-of operator \".\" must have a class or trait on the left-hand-side.",
+          message: "Member-of operator \".\" must have a class or trait on the left-hand side.",
           location: e.location,
         };
       }
+      
       let member_name = this.parse_identifier(e.rhs);
-      let resulting_type = this.get_context().resolve_member_of(cls, member_name);
-      if (!resulting_type) {
-        let lhs_type = cls.is_class ? "class" : "trait";
-        throw {
-          message: "\"" + member_name + "\" is not a member of " + lhs_type + " \"" + (cls.class_name || cls.trait_name) + "\"",
-          location: e.location,
-        };
+
+      if (cls.is_template) {
+        let template_name = this.get_context().template[cls.template_num!];
+        let top_class = this.get_context().resolve_class_type(this.get_context().class!)!;
+        let constraints = top_class.template[cls.template_num!];
+        for(let constraint of constraints) {
+          t = this.get_context().resolve_member_of(constraint, member_name);
+          if (t) {
+            // Mark trait_name for the LHS
+            e.lhs.calculated_type = _.cloneDeep(e.lhs.calculated_type);
+            e.lhs.calculated_type.trait_name = constraint.trait_name;
+            break;
+          }
+        }
+        if (!t) {
+          throw {
+            message: "\"" + member_name + "\" is not a member of template parameter \"" + template_name + "\"",
+            location: e.location,
+          };
+        }
+      } else {
+        let resulting_type = this.get_context().resolve_member_of(cls, member_name);
+        if (!resulting_type) {
+          throw {
+            message: "\"" + member_name + "\" is not a member of " + this.readable_type(cls),
+            location: e.location,
+          };
+        }
+        t = resulting_type;
       }
-      t = resulting_type;
+
       break;
     case "binary_operator":
       this.type_subexpression(e.lhs);
@@ -1093,6 +1161,23 @@ class VSCompiler {
       }
       t = this.get_context().resolve_typename(this.get_context().class!, template)!;
       break;
+    case "subscript": {
+      let lhs = this.type_subexpression(e.lhs)!;
+      if (!lhs.is_array) {
+        throw {
+          message: "Subscript operator can only be called on arrays",
+          location: e.lhs.location,
+        };
+      }
+      let rhs = this.type_subexpression(e.rhs)!;
+      if (!this.coalesce_to(make_primitive_type(primitive_type.INT), rhs)) {
+        throw {
+          message: "Could not cast type " + this.readable_type(rhs) + " to int",
+          location: e.rhs.location,
+        }
+      }
+      t = lhs.array_type;
+    } break;
     default:
       throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
     }
@@ -1178,6 +1263,7 @@ class VSCompiler {
       }
 
       let return_type = e.calculated_type.lambda_type!.return_type;
+      this.get_context().register_return_type(return_type);
       this.write_output(" -> " + (return_type ? this.render_type(return_type) : "void") + " {\n");
       this.tab(1);
 
@@ -1185,6 +1271,7 @@ class VSCompiler {
 
       this.tab(-1);
       this.write_output("}");
+      this.get_context().pop_return_type();
       this.get_context().pop_block();
       break;
     case "ternary":
@@ -1198,14 +1285,15 @@ class VSCompiler {
       let is_class = e.lhs.calculated_type.is_class;
       let is_trait = e.lhs.calculated_type.is_trait;
       let is_array = e.lhs.calculated_type.is_array;
+      let is_template = e.lhs.calculated_type.is_template;
       let is_member_trait_function = e.calculated_type.is_member_trait_function;
       let is_trait_function = e.calculated_type.is_trait_function;
       if (is_member_trait_function) {
         // TODO: Render as namespace
         this.write_output("_Class_" + e.lhs.calculated_type.class_name! + "::");
         this.write_output("_Implement_" + e.calculated_type.member_trait + "_On_" + e.lhs.calculated_type.class_name! + "::");
-      } else if (is_trait_function) {
-        // All members of traits are functions
+      } else if (is_trait_function || is_template) {
+        // All members of traits / template params, are functions
         this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
       } else {
         this.render_subexpression(e.lhs);
@@ -1243,7 +1331,7 @@ class VSCompiler {
       // Pass onto "is"
     case "is":
       let rhs_type = e.rhs.calculated_type;
-      let rendered_type = rhs_type.is_class ? this.render_type(rhs_type) : this.render_trait(rhs_type);
+      let rendered_type = rhs_type.is_class ? this.render_class(rhs_type) : this.render_trait(rhs_type);
       this.write_output(
         "is_" + (rhs_type.is_class ? "class" : "trait") +
         "<" + rendered_type  + ">("
@@ -1286,8 +1374,12 @@ class VSCompiler {
       this.write_output("++");
       break;
     case "cast":
-      let cast_type = e.lhs.calculated_type;
-      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+      let cast_type: symbl_type = e.lhs.calculated_type;
+      if (cast_type.is_trait) {
+        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+      } else {
+        this.write_output("cast_to_class<" + this.render_class(cast_type) + ">(");
+      }
       this.render_subexpression(e.rhs);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
       this.write_output(")");
@@ -1322,6 +1414,12 @@ class VSCompiler {
     case "this":
       this.write_output("self");
       break;
+    case "subscript": {
+      this.render_subexpression(e.lhs);
+      this.write_output(".at(");
+      this.render_subexpression(e.rhs);
+      this.write_output(")");
+    } break;
     default:
       throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
     }
@@ -1400,6 +1498,10 @@ class VSCompiler {
 
   render_trait(t: symbl_type): string {
     return "_Trait_" + t.trait_name! + "::_Instance";
+  }
+
+  render_class(t: symbl_type): string {
+    return "_Class_" + t.class_name! + "::_Instance";
   }
 
   render_module(module_name: string): string {
@@ -1644,11 +1746,30 @@ class VSCompiler {
           //let template_parameter = data.template[template_name];
 
           // Get template constraints
-          let constraits: string[] = [];
+          let constraints: symbl_type[] = [];
+          if (template.constraints) {
+            for(let constraint_ast of template.constraints) {
+              let constraint: string = constraint_ast.identifier;
+              let ty = this.get_context().resolve_typename(constraint);
+              if (!ty) {
+                throw {
+                  message: "Cannot find trait \"" + constraint + "\"",
+                  location: constraint_ast.location,
+                };
+              }
+              if (!ty.is_trait) {
+                throw {
+                  message: "Symbol \"" + constraint + "\" is of type " + this.readable_type(ty) + ", but template constaints must be traits",
+                  location: constraint_ast.location,
+                };
+              }
+              constraints.push(ty);
+            }
+          }
 
           // Add to template names list, and to class template
           template_names.push(template.identifier);
-          t.template.push(constraits);
+          t.template.push(constraints);
         }
       }
 
@@ -1829,6 +1950,8 @@ class VSCompiler {
           };
         }
 
+        this.get_context().set_top_level_function(func);
+
         let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
         this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
         this.write_output("(" + this.render_typed_args(member_map[func].arguments) + ")");
@@ -1839,6 +1962,8 @@ class VSCompiler {
         this.render_statement(member_map[func]);
         this.tab(-1);
         this.write_output("}\n");
+
+        this.get_context().clear_top_level_function();
       }
 
       // All member variables
@@ -2029,13 +2154,15 @@ class VSCompiler {
       break;
     case "return":
       this.write_output("return ");
-      let return_type = null;
-      // TODO: Correctly handle return statements when inside of lambda
-      if (this.get_context().implementing_function_type) {
-        // Should always be true, technically
-        return_type = this.get_context().implementing_function_type!.return_type!;
-      }
+      let return_type = this.get_context().resolve_return_type();
       if (return_type) {
+        let given_return_type = this.type_expression(data.value);
+        if (!given_return_type || !this.coalesce_to(return_type, given_return_type)) {
+          throw {
+            message: 'Cannot cast from ' + this.readable_type(given_return_type) + ' to ' + this.readable_type(return_type),
+            location: data.value.location,
+          };
+        }
         this.render_coalesced(data.value.value, return_type);
       } else {
         this.render_expression(data.value);
@@ -2077,6 +2204,33 @@ class VSCompiler {
 
       this.write_output("\n");
       break;
+    case "for": {
+      this.get_context().push_block();
+
+      this.write_output("for(");
+
+      this.render_statement(data.init); // with ";"
+
+      let condition_type = this.type_expression(data.condition);
+
+      if (!_.isEqual(condition_type, make_primitive_type(primitive_type.BOOL))) {
+        throw {
+          message: "Condition statement of for-loop must be of type boolean, not " + this.readable_type(condition_type),
+          location: data.condition.location,
+        };
+      }
+
+      this.write_output(" ");
+      this.render_expression(data.condition);
+      this.write_output("; ");
+      this.render_expression(data.iterate);
+      this.write_output(") ");
+
+      this.render_statement(data.body);
+      this.write_output("\n");
+
+      this.get_context().pop_block();
+    } break;
     case "for_each":
       this.get_context().push_block();
 
@@ -2398,7 +2552,7 @@ void _VS_print( Value v, Values... vs )
 static void* vtbls[1024][1024];
 
 template<typename T>
-bool is_object(Object* obj) {
+bool is_class(Object* obj) {
     return obj->object_id == T::object_id;
 }
 
@@ -2417,7 +2571,7 @@ Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line,
 
 template<typename T>
 T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    if (!is_object<T>(obj)) {
+    if (!is_class<T>(obj)) {
         abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);

@@ -247,7 +247,7 @@ POSTFIX_MINUSMINUS "postfix operator"
 
 precedence_1_extensions
   = _ "." _ rhs:identifier { return {type: "member_of", capture_lhs: "lhs", rhs: rhs, location:location()}; }
-  / _ "[" _ rhs:precedence_0 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / _ "[" _ rhs:precedence_15 _ "]" { return {type: "subscript", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ args:argument_list { return {type: "function_call", capture_lhs: "lhs", args: args, location:location()}; }
   / _ POSTFIX_PLUSPLUS { return {type: "postfix_plus", capture_lhs: "lhs", location:location()}; }
   / _ POSTFIX_MINUSMINUS { return {type: "postfix_minus", capture_lhs: "lhs", location:location()}; }
@@ -302,13 +302,16 @@ block_statement
 simple_statement
   = e:expression ENDSTATEMENT { return {type:"simple_statement", value:e, location:location()}; }
 
+new_variable_statement
+  = variable_declaration / variable_definition / simple_statement
+
 if
   = IF _ "(" _ c:expression _ ")" _ b:statement otherwise:(_ ELSE _ statement)? _ {
     return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[3] : null, location:location()};
   }
   
 for
-  = FOR _ "("  _ e1:expression _ ";"  _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b, location:location()}; }
+  = FOR _ "("  _ e1:new_variable_statement /* includes ";" */ _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b, location:location()}; }
   / FOR _ "("  _ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_identifier":id, "collection":e, body:b, location:location()}; }
 
 while
@@ -405,12 +408,12 @@ template_type
 template_type_and
   = _ "+" _ t:template_type { return t; }
 
-template_type_contracts
-  = contracts:(template_type template_type_and*) { return flatten_comma(contracts); }
+template_type_constraints
+  = constraints:(template_type template_type_and*) { return flatten_comma(constraints); }
 
 template_parameter
   = id:general_identifier _ ":" _ ANY { return {identifier: id}; }
-  / id:general_identifier _ ":" _ contracts:template_type_contracts { return {identifier: id, contracts: contracts, location: location()}; }
+  / id:general_identifier _ ":" _ constraints:template_type_constraints { return {identifier: id, constraints: constraints, location: location()}; }
 
 template_parameter_comma
   = _ "," _ param:template_parameter { return param; }

@@ -110,8 +110,8 @@ contexts [] {
 main : context {
    // Color control flow and import/export statements vibrantly
    : pattern {
-      regex          \= $${__CONTROL_FLOW}
-      styles []       = .special;
+      regex          \= (\s*)$${__CONTROL_FLOW}
+      styles []       = .white, .special;
    }
    
    // Color all _ white, ie underscore parameters
