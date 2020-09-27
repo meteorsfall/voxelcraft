@@ -1,5 +1,5 @@
 import { stringify } from 'querystring';
-import { bool, int } from './base_ts';
+import { bool, cast, int } from './base_ts';
 import _, { cond, toInteger } from "lodash";
 import { type } from 'os';
 import { throws } from 'assert';
@@ -1133,7 +1133,7 @@ class VSCompiler {
     case "bool":
       t = make_primitive_type(primitive_type.BOOL);
       break;
-    case "double":
+    case "float":
       t = make_primitive_type(primitive_type.FLOAT);
       break;
     case "string":
@@ -1410,7 +1410,7 @@ class VSCompiler {
       break;
     case "integer":
     case "bool":
-    case "double":
+    case "float":
       this.write_output(e.value);
       break;
     case "string":
@@ -1435,12 +1435,16 @@ class VSCompiler {
       let cast_type: symbl_type = e.lhs.calculated_type;
       if (cast_type.is_trait) {
         this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
-      } else {
+      } else if (cast_type.is_class) {
         this.write_output("cast_to_class<" + this.render_class(cast_type) + ">(");
+      } else {
+        this.write_output("(" + this.render_type(cast_type) + ")");
       }
       this.render_subexpression(e.rhs);
-      this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
-      this.write_output(")");
+      if (cast_type.is_trait || cast_type.is_class) {
+        this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
+        this.write_output(")");
+      }
       break;
     case "new": {
       let type_name = e.new_type.calculated_type;

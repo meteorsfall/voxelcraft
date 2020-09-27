@@ -24,7 +24,7 @@
     "compile_extension": "echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd .. && mkdir -p ./voxelscript_extension/server/build/voxelscript_compiler && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
     "compile_all": "npm run compile_compiler && npm run compile_extension",
     "test_compiler": "npm run compile_compiler && node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build",
-    "build_compiler": "npm run compile_compiler && pkg ./src/build/voxelscript_compiler.js --out-path=./build",
+    "package_compiler": "npm run compile_compiler && pkg ./src/build/voxelscript_compiler.js --out-path=./build",
     "test": "npm run compile_compiler && node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
   },
   "author": "VoxelCraft",

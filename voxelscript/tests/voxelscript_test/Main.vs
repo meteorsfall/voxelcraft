@@ -44,10 +44,37 @@ implement Hash on Vec3 {
 }
 
 class Option<T: any> {
-    T val;
+    init();
+    T get();
+    bool is_set();
+    void set(T val);
+    void unset();
 }
 
-implement Option<T> {}
+implement Option<T> {
+    T val;
+    bool _is_set;
+
+    init() {
+        this._is_set = false;
+    }
+    T get() {
+        if (!this._is_set) {
+            throw "Tried to unwrap unset option";
+        }
+        return this.val;
+    }
+    bool is_set() {
+        return this._is_set;
+    }
+    void set(T val) {
+        this.val = val;
+        this._is_set = true;
+    }
+    void unset() {
+        this._is_set = false;
+    }
+}
 
 class HashMap<Key: Hash + Eq, Value: any> {
     init();
@@ -68,16 +95,29 @@ implement HashMap<Key, Value> {
         this.capacity = 25;
         this.vals = [];
         this.vals.resize(25);
+        for(int i = 0; i < 25; i++) {
+            this.vals[i] = new Option<Value>();
+        }
     }
 
     Value get(Key k) {
         int hash = k.hash();
-        return this.vals[hash % this.capacity].val;
+        return this.vals[hash % this.capacity].get();
+    }
+
+    bool is_set(Key k) {
+        int hash = k.hash();
+        return this.vals[hash % this.capacity].is_set();
     }
 
     void set(Key k, Value v) {
         int hash = k.hash();
-        this.vals[hash % this.capacity].val = v;
+        this.vals[hash % this.capacity].set(v);
+    }
+
+    void unset(Key k) {
+        int hash = k.hash();
+        this.vals[hash % this.capacity].unset();
     }
 }
 
@@ -107,9 +147,9 @@ implement Tester {
 
         Holder<Coal> h = new Holder<Coal>(f);
 
-        HashMap<Vec3, int> m = new HashMap<Vec3, int>();
-        m.set(new Vec3(2, 3, 4), 5);
-        int v = m.get(new Vec3(2, 3, 4));
+        HashMap<Vec3, float> m = new HashMap<Vec3, float>();
+        m.set(new Vec3(2, 3, 4), <float>5);
+        float v = m.get(new Vec3(2, 3, 4));
         print("Integer: ", v);
 
         Holder<int> hh = new Holder<int>(5);

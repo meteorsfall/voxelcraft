@@ -358,8 +358,8 @@ integer
   = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join(""), location:location()}; }
 
 // Double
-double
-  = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"double", value: num.join(""), location:location()}; }
+float
+  = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"float", value: num.join(""), location:location()}; }
 
 // String
 char
@@ -374,11 +374,11 @@ value_comma
 
 // Values can be constants, identifiers, or arrays of identifiers
 value "value"
-  = v:(bool / double / integer / char / string / identifier) { return v; }
+  = v:(bool / float / integer / char / string / identifier) { return v; }
   / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
 
 type "type"
-  = t:(INT / CHAR / DOUBLE / BOOL / STRING / identifier) template:(template_list)? arr:("[]")? { return {type: arr ? "array_type" : "type", value: t, template: template, location:location()}; }
+  = t:(INT / CHAR / FLOAT / BOOL / STRING / identifier) template:(template_list)? arr:("[]")? { return {type: arr ? "array_type" : "type", value: t, template: template, location:location()}; }
 
 voidable_type "type or void"
   = VOID { return null; }
@@ -458,13 +458,13 @@ __ "whitespace"
 // Constants
 // *************************
 
-KEYWORDS = TRUE / FALSE / VOID / ANY / THIS / INT / CHAR / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
+KEYWORDS = TRUE / FALSE / VOID / ANY / THIS / INT / CHAR / FLOAT / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
 
 ANY = "any"
 THIS = "this"
 INT = "int"
 CHAR = "char"
-DOUBLE = "double"
+FLOAT = "float"
 BOOL = "bool"
 TRUE = "true"
 FALSE = "false"
