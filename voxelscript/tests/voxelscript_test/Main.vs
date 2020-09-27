@@ -61,17 +61,17 @@ implement HashMap<Key, Value> {
     int capacity;
 
     init() {
-        this.size = 25;
+        this.size = 0;
         this.capacity = 25;
+        this.vals = [];
         for(int i = 0; i < 25; i++) {
             this.vals.push(new Option<Value>());
-            i++;
         }
     }
 
     Value get(Key k) {
         int hash = k.hash();
-        return this.vals[0].val;
+        return this.vals[hash % this.capacity].val;
     }
 
     void set(Key k, Value v) {
@@ -115,6 +115,11 @@ implement Tester {
         Crusher c = new Crusher();
 
         Holder<Coal> h = new Holder<Coal>(f);
+
+        HashMap<Vec3, int> m = new HashMap<Vec3, int>();
+        m.set(new Vec3(2, 3, 4), 5);
+        int v = m.get(new Vec3(2, 3, 4));
+        print("Integer: ", v);
 
         Holder<int> hh = new Holder<int>(5);
         print("Held Int: ", hh.get_holder());

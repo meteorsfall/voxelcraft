@@ -1416,7 +1416,7 @@ class VSCompiler {
       break;
     case "subscript": {
       this.render_subexpression(e.lhs);
-      this.write_output(".at(");
+      this.write_output("->at(");
       this.render_subexpression(e.rhs);
       this.write_output(")");
     } break;
