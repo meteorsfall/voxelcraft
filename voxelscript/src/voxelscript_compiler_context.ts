@@ -1,9 +1,10 @@
 import { stringify } from 'querystring';
-import { bool } from './base_ts';
-import _ from "lodash";
+import { bool, int } from './base_ts';
+import _, { toInteger } from "lodash";
 import { type } from 'os';
 import { throws } from 'assert';
 import { exit, off } from 'process';
+import { textSpanContainsPosition } from 'typescript';
 
 //////////////////////////////////////////////////
 // A function type
@@ -34,6 +35,8 @@ interface symbl_type {
   is_class: bool,
   is_trait: bool,
   is_array: bool,
+  // Is a template type
+  is_template?: bool, // Uses class_name, and template_num
   // Is member function of class
   is_member_function?: bool,
   // Is trait member function of class
@@ -41,10 +44,14 @@ interface symbl_type {
   // Is trait function
   is_trait_function?: bool,
 
+  template_num?: int | null,
   member_trait?: string,
   primitive_type: primitive_type | null,
   lambda_type: function_type | null,
+
   class_name: string | null,
+  template?: symbl_type[],
+
   trait_name: string | null,
   array_type: symbl_type | null,
 }
@@ -64,7 +71,7 @@ function make_primitive_type(prim: primitive_type): symbl_type {
   };
 }
 
-function make_class_type(class_name: string) : symbl_type {
+function make_class_type(class_name: string, template?: symbl_type[]) : symbl_type {
   return {
     is_primitive: false,
     is_lambda: false,
@@ -74,6 +81,7 @@ function make_class_type(class_name: string) : symbl_type {
     primitive_type: null,
     lambda_type: null,
     class_name: class_name,
+    template: template ? template : [],
     trait_name: null,
     array_type: null,
   };
@@ -124,15 +132,33 @@ function make_array_type(sym_type: symbl_type): symbl_type {
   };
 }
 
+function make_template_type(class_name: string, i: int): symbl_type {
+  return {
+    is_primitive: false,
+    is_lambda: false,
+    is_class: false,
+    is_trait: false,
+    is_array: false,
+    is_template: true,
+    primitive_type: null,
+    lambda_type: null,
+    template_num: i,
+    class_name: class_name,
+    trait_name: null,
+    array_type: null,
+  };
+}
+
 //////////////////////////////////////////////////
 
 // Classes have pub/priv members/functions
 interface class_type {
+  template: string[][],
   public_members: Record<string, symbl_type>
   public_functions: Record<string, function_type>,
   private_members: Record<string, symbl_type>,
   private_functions: Record<string, function_type>,
-  traits: Record<string, bool>
+  traits: Record<string, bool>,
 }
 
 interface trait_type {
@@ -178,6 +204,7 @@ class VSContext {
   implementing_function_type: function_type | null = null;
   class: string | null = null;
   trait: string | null = null;
+  template: string[] = [];
 
   // Blocks
   blocks: block[] = [];
@@ -231,6 +258,10 @@ class VSContext {
     this.implementing_function_type = this.resolve_member_of(make_class_type(this.class!), fn_name)!.lambda_type;
   }
 
+  set_top_level_template(template: string[]) {
+    this.template = template;
+  }
+
   clear_top_level_function() {
     this.implementing_function = "";
     this.implementing_function_type = null;
@@ -245,6 +276,7 @@ class VSContext {
     this.is_implementing_trait = false;
     this.class = null;
     this.trait = null;
+    this.template = [];
   }
 
   // Resolves a static variable, or a class, or a trait
@@ -313,6 +345,15 @@ class VSContext {
     return this.resolve_top_level_from_module(this.module, type_name, "typedefs");
   }
 
+  resolve_template_type(template_name: string): symbl_type | null {
+    for (let i in this.template) {
+      if (this.template[i] == template_name) {
+        return make_template_type(this.class!, toInteger(i));
+      }
+    }
+    return null;
+  }
+
   resolve_member_of_trait(trait: trait_type, member: string): symbl_type | null {
     let ret = null;
     if (member in trait.public_functions) {
@@ -322,6 +363,27 @@ class VSContext {
       ret = null;
     }
     return ret;
+  }
+
+  template_instance(obj: any, template: symbl_type[]): void {
+    if (_.isObject(obj) || _.isArray(obj)) {
+      obj = <any>obj;
+      for(let key in obj) {
+        let elem = obj[key];
+
+        let found = false;
+        if (_.isObject(elem)) {
+          if (_.isInteger((<any>elem).template_num)) {
+            obj[key] = template[(<any>elem).template_num];
+            found = true;
+          }
+        }
+        
+        if (!found) {
+          this.template_instance(elem, template);
+        }
+      }
+    }
   }
 
   resolve_member_of(parent: symbl_type, member: string): symbl_type | null {
@@ -351,32 +413,54 @@ class VSContext {
         ret = make_lambda_type(cls.private_functions[member]);
         ret.is_member_function = true;
       } else {
+        // No such member thusfar
         ret = null;
-      }
-      for(let trait_name in cls.traits) {
-        let trait = this.resolve_trait_type(trait_name)!;
-        let trait_member = this.resolve_member_of_trait(trait, member);
-        if (trait_member) {
-          let ret: symbl_type = Object.assign({}, trait_member);
-          ret.is_member_trait_function = true;
-          ret.member_trait = trait_name;
-          return ret;
+        // Let's check traits first
+        for(let trait_name in cls.traits) {
+          let trait = this.resolve_trait_type(trait_name)!;
+          let trait_member = this.resolve_member_of_trait(trait, member);
+          if (trait_member) {
+            ret = Object.assign({}, trait_member);
+            ret.is_member_trait_function = true;
+            ret.member_trait = trait_name;
+            break;
+          }
         }
+      }
+      if (parent.template!.length) {
+        ret = _.cloneDeep(ret);
+        // Replaces all template instances with the template values
+        this.template_instance(ret, parent.template!);
       }
     } else if (parent.is_trait) {
       let trait = this.resolve_trait_type(parent.trait_name!)!;
-      let ret = this.resolve_member_of_trait(trait, member);
+      ret = this.resolve_member_of_trait(trait, member);
       if (ret) {
         ret.is_trait_function = true;
       }
-      return ret;
     } else {
       ret = null;
     }
     return ret;
   }
 
-  resolve_typename(type_name: string): symbl_type | null {
+  resolve_templated_class_type(class_name: string, template?: symbl_type[]): symbl_type | null {
+    if (!template) {
+      template = [];
+    }
+
+    let cls = this.resolve_class_type(class_name);
+    if (cls) {
+      if (cls.template.length != template.length) {
+        return null;
+      }
+      let ret = make_class_type(class_name, template);
+      return ret;
+    }
+    return null;
+  }
+
+  resolve_typename(type_name: string, template?: symbl_type[]): symbl_type | null {
     let type_value: symbl_type | null = null;
     if (type_name == 'int') {
       type_value = make_primitive_type(primitive_type.INT);
@@ -388,12 +472,14 @@ class VSContext {
       type_value = make_primitive_type(primitive_type.CHAR);
     } else if (type_name == 'string') {
       type_value = make_primitive_type(primitive_type.STRING);
-    } else if (this.resolve_class_type(type_name)) {
-      type_value = make_class_type(type_name);
+    } else if (this.resolve_templated_class_type(type_name, template)) {
+      type_value = this.resolve_templated_class_type(type_name, template);
     } else if (this.resolve_trait_type(type_name)) {
       type_value = make_trait_type(type_name);
     } else if (this.resolve_typedef_type(type_name)) {
       type_value = this.resolve_typedef_type(type_name);
+    } else if (this.resolve_template_type(type_name)) {
+      type_value = this.resolve_template_type(type_name);
     }
     return type_value;
   }
@@ -605,15 +691,29 @@ class VSCompiler {
     return id.value;
   }
 
-  readable_type(t: symbl_type | null): string {
+  readable_type(t: symbl_type | null, short?: bool): string {
     if (!t) {
       return "void";
     }
     if (t.is_class) {
-      return "class " + t.class_name;
+      let template_vals = "";
+      if (t.template!.length > 0) {
+        template_vals += "<";
+        let first = true;
+        for(let temp of t.template!) {
+          short = true;
+          if (!first) {
+            template_vals += ", ";
+          }
+          first = false;
+          template_vals += this.readable_type(temp, true);
+        }
+        template_vals += ">";
+      }
+      return (short ? "" : "class ") + t.class_name + template_vals;
     }
     if (t.is_trait) {
-      return "trait " + t.trait_name;
+      return (short ? "" : "trait ") + t.trait_name;
     }
     if (t.is_lambda) {
       return "lambda";
@@ -622,7 +722,10 @@ class VSCompiler {
       return this.render_type(t);
     }
     if (t.is_array) {
-      return "array of " + this.readable_type(t.array_type!);
+      return (short ? "" : "array of ") + this.readable_type(t.array_type!) + (short ? "[]" : "");
+    }
+    if (t.is_template) {
+      return "template parameter #" + t.template_num + " of class " + t.class_name;
     }
     throw new Error("FATAL ERROR: Incorrect type!");
   }
@@ -635,7 +738,13 @@ class VSCompiler {
     if (t.value.type == "identifier") {
       type_name = t.value.value;
       // Should not be a primitive
-      type_value = this.get_context().resolve_typename(type_name);
+      let template = [];
+      if (t.template) {
+        for(let type of t.template) {
+          template.push(this.resolve_type(type));
+        }
+      }
+      type_value = this.get_context().resolve_typename(type_name, template);
     } else {
       type_name = t.value;
       // Must be a primitive
@@ -643,6 +752,7 @@ class VSCompiler {
     }
 
     if (type_value == null) {
+      console.log(this.get_context().template);
       throw {
         message: "No such symbol type " + type_name + "!",
         location: t.location,
@@ -977,7 +1087,11 @@ class VSCompiler {
       t = fn.lambda_type!.return_type;
       break;
     case "this":
-      t = this.get_context().resolve_typename(this.get_context().class!)!;
+      let template = [];
+      for(let i in this.get_context().template) {
+        template.push(make_template_type(this.get_context().class!, toInteger(i)));
+      }
+      t = this.get_context().resolve_typename(this.get_context().class!, template)!;
       break;
     default:
       throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
@@ -1221,7 +1335,7 @@ class VSCompiler {
     }
   }
 
-  render_type(t: symbl_type): string {
+  render_type(t: symbl_type, rendering_template?: bool): string {
     if(t.is_primitive) {
       if (t.primitive_type == primitive_type.BOOL) {
         return "bool";
@@ -1240,7 +1354,24 @@ class VSCompiler {
       }
     }
     if (t.is_class) {
-      return "_Class_" + t.class_name! + "::_Instance*";
+      if (rendering_template) {
+        return "Object*";
+      }
+
+      let tmp = "";
+      if (t.template!.length > 0) {
+        tmp += "<";
+        let first = true;
+        for(let temp_val of t.template!) {
+          if (!first) {
+            tmp += ", ";
+          }
+          first = false;
+          tmp += this.render_type(temp_val, true);
+        }
+        tmp += ">";
+      }
+      return "_Class_" + t.class_name! + "::_Instance" + tmp + "*";
     }
     if (t.is_trait) {
       return "Object*";
@@ -1260,6 +1391,9 @@ class VSCompiler {
       }
       ret += ")>";
       return ret;
+    }
+    if (t.is_template) {
+      return "T" + t.template_num;
     }
     throw new Error("FATAL ERROR: Type cannot be rendered!");
   }
@@ -1491,6 +1625,7 @@ class VSCompiler {
     case "class": {
       // Register class name
       let t: class_type = {
+        template: [],
         public_functions: {},
         public_members: {},
         private_functions: {},
@@ -1502,6 +1637,24 @@ class VSCompiler {
 
       this.register_class(data.identifier, t);
 
+      let template_names: string[] = [];
+
+      if (data.template) {
+        for(let template of data.template) {
+          //let template_parameter = data.template[template_name];
+
+          // Get template constraints
+          let constraits: string[] = [];
+
+          // Add to template names list, and to class template
+          template_names.push(template.identifier);
+          t.template.push(constraits);
+        }
+      }
+
+      this.get_context().set_top_level_class(class_name);
+      this.get_context().set_top_level_template(template_names);
+
       for(let statement of data.body) {
         if (statement.type == "variable_declaration") {
           t.public_members[statement.var_identifier.value] = this.resolve_type(statement.var_type);
@@ -1511,6 +1664,8 @@ class VSCompiler {
           t.public_functions[statement.identifier.value] = this.resolve_function_type(statement);
         }
       }
+
+      this.get_context().clear_top_level();
     } break;
     case "init_implementation":
     case "function_implementation":
@@ -1536,6 +1691,26 @@ class VSCompiler {
       if (cls == null) {
         throw {
           message: "implementing class " + class_name + " that has not yet been declared!",
+          location: data.identifier.location,
+        };
+      }
+
+      let template_names = [];
+      if (data.template) {
+        for(let i in data.template) {
+          template_names.push(data.template[i].identifier);
+        }
+      }
+
+      this.get_context().set_top_level_class(class_name);
+      this.get_context().set_top_level_template(template_names);
+
+      if (template_names.length != cls.template.length) {
+        // Say only if it's smaller and non-zero ("Only" sounds weird with zero parameters)
+        let left_only = template_names.length < cls.template.length && template_names.length > 0;
+        let right_only = template_names.length > cls.template.length && cls.template.length > 0;
+        throw {
+          message: "Class implementation " + (left_only ? "only " : "") + "has " + template_names.length + " template parameter" + (template_names.length == 1 ? "" : "s") + ", but class declaration " + (right_only ? "only " : " ") + "has " + cls.template.length + " template parameter" + (cls.template.length == 1 ? "" : "s"),
           location: data.identifier.location,
         };
       }
@@ -1586,11 +1761,21 @@ class VSCompiler {
   
       let referenced_class_name = this.render_type(make_class_type(class_name));
       let value_class_name = referenced_class_name.slice(0, -1);
+      if (template_names.length > 0) {
+        value_class_name += "<";
+        value_class_name += template_names.map((_, i) => "T" + i).join(", ");
+        value_class_name += ">";
+      }
+      referenced_class_name = value_class_name + "*";
 
       // Start Class
       this.write_output("namespace _Class_" + class_name + " {\n");
       this.tab(1);
-      this.get_context().set_top_level_class(class_name);
+      if(template_names.length > 0) {
+        this.write_output("template <");
+        this.write_output(template_names.map((_, i) => "typename T" + i).join(", "));
+        this.write_output(">\n");
+      }
       this.write_output("class _Instance : public Object {\n");
       this.write_output("public:\n");
       this.tab(1);
@@ -1649,7 +1834,8 @@ class VSCompiler {
         this.write_output("(" + this.render_typed_args(member_map[func].arguments) + ")");
         this.write_output(" {\n");
         this.tab(1);
-        this.write_output(referenced_class_name + " self = this;\n");
+        this.write_output(referenced_class_name);
+        this.write_output(" self = this;\n");
         this.render_statement(member_map[func]);
         this.tab(-1);
         this.write_output("}\n");

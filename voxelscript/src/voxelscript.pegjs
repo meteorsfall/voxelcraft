@@ -391,7 +391,7 @@ type_comma
   = _ "," _ t:type { return t; }
 
 type_list
-  = types:(type type_comma*)? { return {types: flatten_comma(types), location:location()}; }
+  = types:(type type_comma*)? { return flatten_comma(types); }
 
 template_list "template list <...>"
   // For use in "type", consume whitespace from the left, but don't overconsume on the right, so that we can still check for mandatory whitespace
@@ -455,7 +455,7 @@ __ "whitespace"
 // Constants
 // *************************
 
-KEYWORDS = ANY / THIS / INT / CHAR / DOUBLE / BOOL / TRUE / FALSE / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF / VOID
+KEYWORDS = TRUE / FALSE / VOID / ANY / THIS / INT / CHAR / DOUBLE / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
 
 ANY = "any"
 THIS = "this"

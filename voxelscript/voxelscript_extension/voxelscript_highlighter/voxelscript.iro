@@ -28,8 +28,10 @@ file_extensions []     = vs;
 ################################################################
 
 __CONTROL_FLOW \= (return|import|if|else|for|while|export)(?!\w)
-__KEYWORDS \= (true|false|void|this|int|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|=>)(?!\w)
+__KEYWORDS \= (true|false|void|any|this|int|char|double|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|=>)(?!\w)
 __IDENTIFIER \= (\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
+__NONCAPTURE_IDENTIFIER \= (?:\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
+__NONCAPTURE_TYPE \= (?:$${__NONCAPTURE_IDENTIFIER}(?:\s*<[\s\w<>\[\],]+>)?(?:\s*[\[\]])*)
 __NUMERIC \= (\b\d+(\.\d+)?)(?!\w)
 
 ################################################################
@@ -88,6 +90,11 @@ styles [] {
    textmate_scope        = constant.character.escape
 }
 
+.null : style {
+   color                 = #F44747
+   textmate_scope        = token.error-token
+}
+
 }
 
 #################################################
@@ -101,7 +108,6 @@ contexts [] {
 ##############################################
 
 main : context {
-
    // Color control flow and import/export statements vibrantly
    : pattern {
       regex          \= $${__CONTROL_FLOW}
@@ -123,52 +129,80 @@ main : context {
          styles []    = .white;
       }
       : pattern {
-         regex       \= (on)
-         styles []    = .keyword;
-      }
-      : pattern {
          regex       \= (::)
          styles []    = .white;
+      }
+      : pattern {
+         regex       \= $${__KEYWORDS}
+         styles []    = .keyword;
       }
       : pattern {
          regex       \= $${__IDENTIFIER}
          styles []    = .type;
       }
-   }
-   // Color all "typedef CUSTOM_TYPE = CUSTOM_TYPE;"
-   : pattern {
-      regex          \= (\btypedef)(\s+)$${__IDENTIFIER}(\s*=\s*)$${__KEYWORDS}(\s*)(\[\])*(\s*;)
-      styles []       = .keyword, .white, .type, .white, .keyword, .white, .white, .white;
-   }
-   
-   // Color all "typedef CUSTOM_TYPE = CUSTOM_TYPE;"
-   : pattern {
-      regex          \= (\btypedef)(\s+)$${__IDENTIFIER}(\s*=\s*)$${__IDENTIFIER}(\s*(\[\])*\s*;)
-      styles []       = .keyword, .white, .type, .white, .type, .white, .white;
+      : include "comments";
+      : pattern {
+         regex       \= (.)
+         styles []    = .white;
+      }
    }
    
-   // Color all "new CUSTOM_TYPE" and "typdef CUSTOM_TYPE" (The latter to cover lambdas)
-   : pattern {
-      regex          \= (\bnew|\btypedef)(\s+)$${__IDENTIFIER}
-      styles []       = .keyword, .white, .type;
+   // Color all "typedef NEW_CUSTOM_TYPE = CUSTOM_TYPE;"
+   : inline_push {
+      regex          \= (\btypedef\s+)$${__IDENTIFIER}(\s*=)(?=\s*$${__NONCAPTURE_TYPE}\s*;)
+      styles []       = .keyword, .type, .white;
+      : pop {
+         regex       \= (?=\s*;)
+         styles []    = .null;
+      }
+      : include "type";
    }
    
-   // Color all "(typedef CUSTOM_TYPE = args) => KEYWORD;"
+   // Color beginning of "(typedef NEW_CUSTOM_TYPE) = args => CUSTOM_TYPE;"
    : pattern {
-      regex          \= (=>)(\s*)$${__KEYWORDS}
-      styles []       = .keyword, .white, .keyword;
+      regex          \= (\btypedef\s+)$${__IDENTIFIER}
+      styles []       = .keyword, .type;
    }
    
-   // Color all "(typedef CUSTOM_TYPE = args) => CUSTOM_TYPE;"
-   : pattern {
-      regex          \= (=>)(\s*)$${__IDENTIFIER}
-      styles []       = .keyword, .white, .type;
+   // Color end of "typedef NEW_CUSTOM_TYPE = args (=> CUSTOM_TYPE);", along with the custom return type of lambdas (=> CUSTOM_TYPE)
+   : inline_push {
+      // Check for variable declaration in this line
+      regex          \= (=>)(?=\s*$${__NONCAPTURE_TYPE}\s*[;{])
+      styles []       = .keyword;
+      : pop {
+         regex       \= (?=\s*[;{])
+         styles []    = .null;
+      }
+      : include "type";
    }
    
-   // Color all "VARIABLE is (not)? CUSTOM_TYPE;"
+   // Color all "new CUSTOM_TYPE"
+   : inline_push {
+      regex          \= (\bnew)(\s+)(?=$${__NONCAPTURE_TYPE}(?:\s*\())
+      styles []       = .keyword, .white;
+      : pop {
+         regex       \= (\s*\()
+         styles []    = .white;
+      }
+      : include "type";
+   }
+   
+   // Color all "is (not)? TYPE;"
    : pattern {
-      regex          \= $${__IDENTIFIER}(\s*is\s*)(not\s*)?$${__IDENTIFIER}
-      styles []       = .variable, .keyword, .keyword, .type;
+      regex          \= (is\s*)(not\s*)?(?:$${__KEYWORDS}|$${__IDENTIFIER})
+      styles []       = .keyword, .keyword, .keyword, .type;
+   }
+   
+   // Color "CUSTOM_TYPE VARIABLE" accordingly
+   : inline_push {
+      // Check for variable declaration in this line
+      regex          \= (^|[\(,])(?=\s*$${__NONCAPTURE_TYPE}(\s*)$${__IDENTIFIER}(\s*[,);=]))
+      styles []       = .white;
+      : pop {
+         regex       \= (\s*)$${__IDENTIFIER}(?=\s*[,);=])
+         styles []    = .white, .variable;
+      }
+      : include "type";
    }
    
    // Color all special keywords with the keyword color
@@ -177,28 +211,27 @@ main : context {
       styles []       = .keyword;
    }
    
-   // Color "CUSTOM_TYPE VARIABLE" accordingly
-   : pattern {
-      regex          \= $${__IDENTIFIER}(\[\])*(\s+)$${__IDENTIFIER}(\s*[,);=])
-      styles []       = .type, .white, .white, .variable, .white;
-   }
-   
    // Color "CUSTOM_TYPE func(" accordingly
    : pattern {
-      regex          \= $${__IDENTIFIER}(\s+)$${__IDENTIFIER}(\s*[(])
-      styles []       = .type, .white, .func, .white;
+      regex          \= $${__IDENTIFIER}(\s+)$${__IDENTIFIER}(?=\s*[(])
+      styles []       = .type, .white, .func;
    }
    
    // Color "func(" accordingly
    : pattern {
-      regex          \= $${__IDENTIFIER}(\s*[(])
-      styles []       = .func, .white;
+      regex          \= $${__IDENTIFIER}(?=\s*[(])
+      styles []       = .func;
    }
    
-   // Color cast operation "<CUSTOM_TYPE> VARIABLE"
-   : pattern {
-      regex          \= (\<)$${__IDENTIFIER}(\s*\>\s*)(?=\w)
-      styles []       = .white, .type, .white;
+   // Color cast operation "<CUSTOM_TYPE> EXPRESSION"
+   : inline_push {
+      regex          \= (<)\s*(?=$${__NONCAPTURE_TYPE}(?:\s*\>\s*))
+      styles []       = .white;
+      : pop {
+         regex       \= (\s*>)
+         styles []    = .white;
+      }
+      : include "type";
    }
    
    // Color namespaces as a type "ns::ns::"var
@@ -228,6 +261,32 @@ main : context {
          styles []    = .string;
       }
       : pattern {
+         regex       \= (\\x[0-9a-fA-F]{2})
+         styles []    = .escaped;
+      }
+      : pattern {
+         regex       \= (\\.)
+         styles []    = .escaped;
+      }
+      : pattern {
+         regex       \= (.)
+         styles []    = .string;
+      }
+   }
+   
+   // Color all chars
+   : inline_push {
+      regex          \= (\')
+      styles []       = .string;
+      : pop {
+         regex       \= (\')
+         styles []    = .string;
+      }
+      : pattern {
+         regex       \= (\\x[0-9a-fA-F]{2})
+         styles []    = .escaped;
+      }
+      : pattern {
          regex       \= (\\.)
          styles []    = .escaped;
       }
@@ -238,30 +297,24 @@ main : context {
    }
    
    // Color comments
-   : include "multi_line_comment" ;
-   
-   : pattern {
-      regex          \= (//.*)
-      styles []       = .comment;
-   }
+   : include "comments";
    
    // Color all other symbols white
    : pattern {
-      regex          \= ([^\s])
+      regex          \= (.)
       styles []       = .white;
    }
-   
 }
 
 #################################################
-## End of Contexts
+## End of Main Context
 #################################################
 
 ###########################################
 ## Multi Line Comment Context
 ###########################################
 
-multi_line_comment : context {
+comments : context {
    description        = multiline
    : inline_push {
       regex          \= (/\*)
@@ -271,6 +324,48 @@ multi_line_comment : context {
          regex       \= (\*/)
          styles []    = .comment;
       }
+   }
+   
+   : pattern {
+      regex          \= (//.*)
+      styles []       = .comment;
+   }
+}
+
+type : context {
+   : inline_push {
+      regex          \= (\s*)(?:$${__KEYWORDS}|$${__IDENTIFIER})
+      styles []      = .white, .keyword, .type;
+      : pop {
+         // Pop if there's no template parameter
+         regex          \= (?!\s*<)
+         styles []      = .white;
+      }
+      : include "template_list";
+   }
+}
+
+template_list : context {
+   : inline_push {
+      regex          \= (\s*<)
+      styles []      = .white;
+      : pop {
+         regex       \= (\s*(?:[^\s\w\[\],<])(?:\s*[\[\]])*)
+         styles []    = .white;
+      }
+      : pattern {
+         regex       \= (\s*)$${__KEYWORDS}
+         styles []    = .white, .keyword;
+      }
+      : pattern {
+         regex       \= (\s*)$${__IDENTIFIER}
+         styles []    = .white, .type;
+      }
+      : pattern {
+         regex       \= (\s*[\[\],])
+         styles []    = .white;
+      }
+      : include "template_list";
    }
 }
    
