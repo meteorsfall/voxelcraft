@@ -864,14 +864,17 @@ class VSCompiler {
     if (t.is_lambda) {
       return "lambda";
     }
-    if (t.is_primitive) {
-      return this.render_type(t);
-    }
     if (t.is_array) {
       return (short ? "" : "array of ") + this.readable_type(t.array_type!) + (short ? "[]" : "");
     }
     if (t.is_template) {
       return "template parameter #" + t.template_num + " of class " + t.class_name;
+    }
+    if (t.is_string) {
+      return "string";
+    }
+    if (t.is_primitive) {
+      return this.render_type(t);
     }
     throw new Error("FATAL ERROR: Incorrect type!");
   }
@@ -2392,8 +2395,9 @@ class VSCompiler {
         this.render_coalesced(data.value.value, return_type);
       } else {
         if (data.value) {
+          let given_return_type = this.type_expression(data.value);
           throw {
-            message: 'Cannot cast from ' + this.readable_type(null) + ' to ' + this.readable_type(return_type),
+            message: 'Cannot cast from ' + this.readable_type(given_return_type) + ' to ' + this.readable_type(return_type),
             location: data.value.location,
           };
         }
