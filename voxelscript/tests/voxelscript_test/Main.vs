@@ -227,9 +227,7 @@ implement Tester {
         c.fuel.give(h.get_holder(), 1);
         c.crushing.give(io, 1);
         int i = 0;
-        if (i && true) {
-            print("Test");
-        }
+        
         while(i < 250) {
             print("<progress=", c.current_progress, ",energy_in_crusher=", c.energy_in_crusher, ">");
             c.iterate();
