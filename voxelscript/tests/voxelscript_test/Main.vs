@@ -11,6 +11,24 @@ trait Hash {
     int hash();
 }
 
+class Vec4 {
+    int x;
+    int y;
+    int z;
+    init(int x, int y, int z);
+    void func();
+}
+
+implement Vec4 {
+    init(int x, int y, int m) {
+        this.x = x;
+        this.y = y;
+        this.z = m;
+    }
+    void func() {
+    }
+}
+
 class Vec3 {
     int x;
     int y;

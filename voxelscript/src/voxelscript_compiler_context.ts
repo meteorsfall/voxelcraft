@@ -2030,11 +2030,28 @@ class VSCompiler {
               location: statement.init.location,
             };
           }
-          cls.public_functions["init"] = this.resolve_function_type(statement);
+          let fn_type = this.resolve_function_type(statement);
+          if (!_.isEqual(cls.public_functions["init"], fn_type)) {
+            throw {
+              message: "init() implementation does not match init() declaration",
+              location: statement.init.location,
+            };
+          }
+          cls.public_functions["init"] = fn_type;
           member_map["init"] = statement;
         } else if (statement.type == "function_implementation") {
           let key = statement.identifier.value;
-          cls.private_functions[key] = this.resolve_function_type(statement);
+          let fn_type = this.resolve_function_type(statement);
+          if (cls.public_functions[key]) {
+            if (!_.isEqual(cls.public_functions[key], fn_type)) {
+              throw {
+                message: "Function implementation does not match function declaration",
+                location: statement.identifier.location,
+              };
+            }
+          } else {
+            cls.private_functions[key] = fn_type;
+          }
           if (member_map[key]) {
             throw {
               message: "Member \"" + key + "\" defined twice in class \"" + class_name + "\"",
@@ -2175,8 +2192,13 @@ class VSCompiler {
       let member_map: Record<string, any> = {};
       for(let statement of data.body) {
         if (statement.type == "function_implementation") {
-          if (statement.identifier.value in trait_data) {
-            // Public
+          if (statement.identifier.value in trait_data.public_functions) {
+            if (!_.isEqual(trait_data.public_functions[statement.identifier.value], this.resolve_function_type(statement))) {
+              throw {
+                message: "Trait function implementation does not match trait function declaration",
+                location: statement.identifier.location,
+              };
+            }
             member_map[statement.identifier.value] = statement;
           } else {
             // Private
@@ -2190,6 +2212,7 @@ class VSCompiler {
         }
       }
 
+      // Fill in any missing functions with their default implementation
       for(let fn_name in trait_data.public_functions) {
         if (!(fn_name in member_map)) {
           if (fn_name in trait_data.implementations) {
