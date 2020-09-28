@@ -5,6 +5,7 @@ import { type } from 'os';
 import { throws } from 'assert';
 import { exit, off } from 'process';
 import { textSpanContainsPosition } from 'typescript';
+import { access } from 'fs';
 
 //////////////////////////////////////////////////
 // A function type
@@ -1025,13 +1026,44 @@ class VSCompiler {
     }
   }
 
-  get_operation_result(lhs: symbl_type, rhs: symbl_type, op: string): symbl_type | null {
+  get_operation_result(left: symbl_type | null, right: symbl_type | null, op: string): symbl_type | null {
     let comparison_operators = {"<": true, "<=": true, ">=": true, ">": true, "==": true, "!=": true};
-    if (op in comparison_operators) {
-      return make_primitive_type(primitive_type.BOOL);
-    } else {
-      return lhs;
+    let boolean_operators = {"&&": true, "||": true};
+    let intereger_operators = ["|", "^", "&", "<<", ">>", "+", "-", "*", "/", "%"].reduce((acc: any, cur) => {acc[cur] = true; return acc;}, {});
+
+    if (!left || !right) {
+      return null;
     }
+
+    let ret = null;
+    if (op in comparison_operators) {
+      ret = make_primitive_type(primitive_type.BOOL);
+      if (!_.isEqual(left, make_primitive_type(primitive_type.INT))) {
+        return null;
+      }
+      if (!_.isEqual(right, make_primitive_type(primitive_type.INT))) {
+        return null;
+      }
+    } else if (op in boolean_operators) {
+      if (!_.isEqual(left, make_primitive_type(primitive_type.BOOL))) {
+        return null;
+      }
+      if (!_.isEqual(right, make_primitive_type(primitive_type.BOOL))) {
+        return null;
+      }
+      ret = make_primitive_type(primitive_type.BOOL);
+    } else if (op in intereger_operators) {
+      ret = make_primitive_type(primitive_type.INT);
+      if (!_.isEqual(left, ret)) {
+        return null;
+      }
+      if (!_.isEqual(right, ret)) {
+        return null;
+      }
+    } else {
+      throw "Operator unknown: " + op;
+    }
+    return ret;
   }
 
   type_subexpression(e: any): symbl_type | null {
@@ -1054,12 +1086,12 @@ class VSCompiler {
       }
       return null;
     case "operator_assignment": {
-      let left = this.type_subexpression(e.lhs)!;
-      let right = this.type_subexpression(e.rhs)!;
+      let left = this.type_subexpression(e.lhs);
+      let right = this.type_subexpression(e.rhs);
       let t = this.get_operation_result(left, right, e.operator);
       if (!t) {
         throw {
-          message: e.operator + " does not accept types " + this.readable_type(left) + " and " + this.readable_type(right),
+          message: "Operator \"" + e.operator + "\" does not accept types <" + this.readable_type(left) + ", " + this.readable_type(right) + ">",
           location: e.location,
         };
       }
@@ -1097,8 +1129,6 @@ class VSCompiler {
       "divide": "/",
       "modulus": "%",
     }
-
-    let comparison_operators = {"<": true, "<=": true, ">=": true, ">": true, "==": true, "!=": true};
 
     let expression_type = "" + e.type;
 
@@ -1182,17 +1212,19 @@ class VSCompiler {
       }
 
       break;
-    case "binary_operator":
-      this.type_subexpression(e.lhs);
+    case "binary_operator": {
+      let left = this.type_subexpression(e.lhs);
       //this.write_output(" " + op + " ");
-      this.type_subexpression(e.rhs);
-      // TODO: Implement proper coalescing of types
-      if (op in comparison_operators) {
-        t = make_primitive_type(primitive_type.BOOL);
-      } else {
-        t = e.lhs.calculated_type;
+      let right = this.type_subexpression(e.rhs);
+
+      t = this.get_operation_result(left, right, op);
+      if (!t) {
+        throw {
+          message: "Operator \"" + op + "\" does not accept types <" + this.readable_type(left) + ", " + this.readable_type(right) + ">",
+          location: e.location,
+        };
       }
-      break;
+    } break;
     case "is_not":
       // this.write_output("!");
       // Pass onto "is"
@@ -2408,7 +2440,7 @@ class VSCompiler {
       this.write_output("if ");
       if (!_.isEqual(this.type_expression(data.condition), make_primitive_type(primitive_type.BOOL))) {
         throw {
-          message: "Argument to if statement must be a boolean!",
+          message: "Argument to if statement must be a boolean",
           location: data.condition.location,
         };
       }
