@@ -23,7 +23,7 @@
     "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs base_ts.ts build_tsconfig.json build && cd ..",
     "compile_extension": "echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd .. && mkdir -p ./voxelscript_extension/server/build/voxelscript_compiler && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
     "compile_all": "npm run compile_compiler && npm run compile_extension",
-    "test_compiler": "npm run compile_compiler && node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build",
+    "test_compiler": "npm run compile_compiler && node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build && g++ -O0 -g -std=c++17 ./tests/build/main.cpp -o ./tests/build/main && ./tests/build/main && echo",
     "package_compiler": "npm run compile_compiler && pkg ./src/build/voxelscript_compiler.js --out-path=./build",
     "test": "npm run compile_compiler && node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
   },

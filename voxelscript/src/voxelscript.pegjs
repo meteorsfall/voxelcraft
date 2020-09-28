@@ -134,7 +134,10 @@ argument_list
   = START_OF_ARGUMENT_LIST _ args:(argument argument_with_comma*)? _ ")" { return flatten_comma(args); }
 
 expression
-  = e:(precedence_15) { return {type: "expression", value:e, location:location()}; }
+  = e:(subexpression) { return {type: "expression", value:e, location:location()}; }
+
+subexpression
+  = e:(precedence_15) { return e; }
 
 // Operator Precedence from https://en.cppreference.com/w/c/language/operator_precedence
 
@@ -356,11 +359,11 @@ bool
 
 // Integer
 integer
-  = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join(""), location:location()}; }
+  = num:([0-9]+) ![0-9\.] { return {type:"integer", value: num.join(""), location:location()}; }
 
 // Double
 float
-  = num:([0-9]+ "." [0-9]+) ![0-9] { return {type:"float", value: num.join(""), location:location()}; }
+  = num:([0-9]+ "." [0-9]+) ![0-9\.] { return {type:"float", value: num.join(""), location:location()}; }
 
 // String
 char
@@ -370,13 +373,13 @@ char
 string
   = "\"" str:([^"]*) "\"" { return {type: "string", value: str.join(""), location:location()}; }
 
-value_comma
-  = _ "," _ v:value { return v; }
+subexpression_comma
+  = _ "," _ e:subexpression { return e; }
 
 // Values can be constants, identifiers, or arrays of identifiers
 value "value"
   = v:(bool / float / integer / char / string / identifier) { return v; }
-  / "[" _ vals:(value value_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
+  / "[" _ vals:(subexpression subexpression_comma*)? _"]" { return {type:"array", value: flatten_comma(vals), location:location()}; }
 
 basic_type
   = t:(INT / CHAR / FLOAT / BOOL / STRING / identifier) template:(template_list)? { return {type: "type", value: t, template: template, location:location()}; }

@@ -16,7 +16,6 @@ interface function_type {
 
 // A primitive type
 enum primitive_type {
-  STRING,
   CHAR,
   FLOAT,
   INT,
@@ -35,6 +34,7 @@ interface symbl_type {
   is_class: bool,
   is_trait: bool,
   is_array: bool,
+  is_string?: bool,
   // Is a template type
   is_template?: bool, // Uses class_name, and template_num
   // Is member function of class
@@ -43,6 +43,8 @@ interface symbl_type {
   is_member_trait_function?: bool,
   // Is member of array
   is_member_array_function?: bool,
+  // Is member of string
+  is_member_string_function?: bool,
   // Is trait function
   is_trait_function?: bool,
 
@@ -66,6 +68,22 @@ function make_primitive_type(prim: primitive_type): symbl_type {
     is_trait: false,
     is_array: false,
     primitive_type: prim,
+    lambda_type: null,
+    class_name: null,
+    trait_name: null,
+    array_type: null,
+  };
+}
+
+function make_string_type(): symbl_type {
+  return {
+    is_primitive: true,
+    is_lambda: false,
+    is_class: false,
+    is_trait: false,
+    is_array: false,
+    is_string: true,
+    primitive_type: null,
     lambda_type: null,
     class_name: null,
     trait_name: null,
@@ -192,6 +210,39 @@ interface block {
   variables: Record<string, symbl_type>
 }
 
+// Internal traits/funcs
+let internal_traits: Record<string, trait_type> = {
+  "Printable": {
+    public_functions: {
+      "print": {
+        arg_types: [],
+        is_variadic: true,
+        return_type: null,
+      },
+    },
+    implementations: {},
+  },
+};
+
+let internal_functions: Record<string, function_type> = {
+  "print" : {
+    arg_types: [],
+    return_type: null,
+    is_variadic: true,
+  },
+  "raw_print" : {
+    arg_types: [],
+    return_type: null,
+    is_variadic: true,
+  },
+  "sleep" : {
+    arg_types: [make_primitive_type(primitive_type.INT)],
+    return_type: null,
+    is_variadic: true,
+  },
+};
+// End internal traits/funcs
+
 class VSContext {
   // Modules
   modules: Record<string, module>;
@@ -311,12 +362,9 @@ class VSContext {
 
   // For a given variable, check what symbl_type it has (Check blocks and static variables)
   resolve_symbol_type(identifier : string): symbl_type | null {
-    if (identifier == "print") {
-      return make_lambda_type({
-        arg_types: [],
-        return_type: null,
-        is_variadic: true,
-      });
+    // Global functions
+    if (identifier in internal_functions) {
+      return make_lambda_type(internal_functions[identifier]);
     }
 
     // Check any code blocks for this symbol
@@ -446,6 +494,22 @@ class VSContext {
       ret.is_member_array_function = true;
       return ret;
     }
+    if (parent.is_string) {
+      let ret = null;
+      if (member == "substring") {
+        ret = make_lambda_type({return_type: make_string_type(), arg_types: [make_primitive_type(primitive_type.INT), make_primitive_type(primitive_type.INT)]});
+      } else if (member == "split") {
+        ret = make_lambda_type({return_type: make_array_type(make_string_type()), arg_types: [make_string_type()]});
+      } else if (member == "match") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: [make_string_type()]});
+      } else if (member == "size") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: []});
+      } else {
+        return null;
+      }
+      ret.is_member_string_function = true;
+      return ret;
+    } 
 
     let ret: any = {
       is_member_function: false,
@@ -520,7 +584,7 @@ class VSContext {
     } else if (type_name == 'char') {
       type_value = make_primitive_type(primitive_type.CHAR);
     } else if (type_name == 'string') {
-      type_value = make_primitive_type(primitive_type.STRING);
+      type_value = make_string_type();
     } else if (this.resolve_templated_class_type(type_name, template)) {
       type_value = this.resolve_templated_class_type(type_name, template);
     } else if (this.resolve_trait_type(type_name)) {
@@ -727,6 +791,10 @@ class VSCompiler {
     let identifier = this.parse_identifier(identifier_ast);
     this.verify_not_registered(identifier, identifier_ast);
     this.modules[this.compiling_module!].traits[identifier] = t;
+  }
+
+  register_trait_direct(trait_name: string, t: trait_type) {
+    this.modules[this.compiling_module!].traits[trait_name] = t;
   }
 
   register_typedef(identifier_ast: any, t: symbl_type) {
@@ -1050,9 +1118,9 @@ class VSCompiler {
       break;
     case "member_of":
       let cls = this.type_subexpression(e.lhs);
-      if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array && !cls.is_template)) {
+      if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array && !cls.is_template && !cls.is_string)) {
         throw {
-          message: "Member-of operator \".\" must have a class or trait on the left-hand side.",
+          message: "Member-of operator \".\" must have a class, trait, array, or string on the left-hand side.",
           location: e.location,
         };
       }
@@ -1145,7 +1213,7 @@ class VSCompiler {
       t = make_primitive_type(primitive_type.FLOAT);
       break;
     case "string":
-      t = make_primitive_type(primitive_type.STRING);
+      t = make_string_type();
       break;
     // ****
     // Unary Operators
@@ -1239,7 +1307,7 @@ class VSCompiler {
       break;
     case "subscript": {
       let lhs = this.type_subexpression(e.lhs)!;
-      if (!lhs.is_array) {
+      if (!lhs.is_array && !lhs.is_string) {
         throw {
           message: "Subscript operator can only be called on arrays",
           location: e.lhs.location,
@@ -1252,7 +1320,8 @@ class VSCompiler {
           location: e.rhs.location,
         }
       }
-      t = lhs.array_type;
+      // Get array type for arrays, otherwise it's the char of a string
+      t = lhs.is_array ? lhs.array_type : make_primitive_type(primitive_type.CHAR);
     } break;
     default:
       throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
@@ -1364,6 +1433,7 @@ class VSCompiler {
       let is_template = e.lhs.calculated_type.is_template;
       let is_member_trait_function = e.calculated_type.is_member_trait_function;
       let is_member_array_function = e.calculated_type.is_member_array_function;
+      let is_member_string_function = e.calculated_type.is_member_string_function;
       let is_trait_function = e.calculated_type.is_trait_function;
       if (is_member_trait_function) {
         // TODO: Render as namespace
@@ -1374,12 +1444,14 @@ class VSCompiler {
         this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
       } else if (is_member_array_function) {
         this.write_output("_Array_::");
+      } else if (is_member_string_function) {
+        this.write_output("_String_::");
       } else {
         this.render_subexpression(e.lhs);
         if (is_class || is_array) {
           this.write_output("->");
         } else {  
-          // Traits use "."
+          // Traits and strings use "."
           this.write_output(".");
         }
       }
@@ -1387,7 +1459,7 @@ class VSCompiler {
       let prefix = "";
       let member_name = this.parse_identifier(e.rhs);
 
-      if (!is_array) {
+      if (!is_array && !is_member_string_function) {
         let member_result_type = e.calculated_type;
         prefix = "_VS_";
         if (member_result_type.is_member_function) {
@@ -1416,7 +1488,12 @@ class VSCompiler {
       break;
     case "array":
       this.write_output("{");
+      let first = true;
       for (let elem of e.value) {
+        if (!first) {
+          this.write_output(", ");
+        }
+        first = false;
         this.render_subexpression(elem);
       }
       this.write_output("}");
@@ -1431,7 +1508,7 @@ class VSCompiler {
       this.write_output(e.value);
       break;
     case "string":
-      this.write_output("\"" + e.value + "\"");
+      this.write_output("std::string_view(\"" + e.value + "\")");
       break;
     // ****
     // Unary Operators
@@ -1479,16 +1556,9 @@ class VSCompiler {
       this.render_subexpression(e.lhs);
       this.write_output("(");
       let arg_types = e.lhs.calculated_type.lambda_type!.arg_types;
-      if (fn_type.is_member_trait_function) {
-        this.write_output("self" + (arg_types.length > 0 ? ", " : ""));
-      }
-      if (fn_type.is_trait_function) {
+      if (fn_type.is_member_trait_function || fn_type.is_trait_function || fn_type.is_member_array_function || fn_type.is_member_string_function) {
         this.render_subexpression(e.lhs.lhs);
-        this.write_output((arg_types.length > 0 ? ", " : ""));
-      }
-      if (fn_type.is_member_array_function) {
-        this.render_subexpression(e.lhs.lhs);
-        this.write_output((arg_types.length > 0 ? ", " : ""));
+        this.write_output(arg_types.length > 0 ? ", " : "");
       }
       if (fn_type.lambda_type!.is_variadic) {
         this.render_args(null, e.args);
@@ -1503,7 +1573,12 @@ class VSCompiler {
       break;
     case "subscript": {
       this.render_subexpression(e.lhs);
-      this.write_output("->at(");
+      if (e.lhs.calculated_type.is_string) {
+        this.write_output(".");
+      } else {
+        this.write_output("->");
+      }
+      this.write_output("at(");
       this.render_subexpression(e.rhs);
       this.write_output(")");
     } break;
@@ -1534,9 +1609,9 @@ class VSCompiler {
       if (t.primitive_type == primitive_type.FLOAT) {
         return "float";
       }
-      if (t.primitive_type == primitive_type.STRING) {
-        return "string";
-      }
+    }
+    if (t.is_string) {
+      return "std::string_view";
     }
     if (t.is_class) {
       if (rendering_template) {
@@ -1606,8 +1681,8 @@ class VSCompiler {
     }
   }
 
-  class_id: number = 0;
-  trait_id: number = 0;
+  class_id: number = 1;
+  trait_id: number = 2;
   
   // Render a statement to typescript
   render_statement(data : any): void {
@@ -1620,6 +1695,10 @@ class VSCompiler {
   
     switch (data.type) {
     case "module":
+      for(let trait_name in internal_traits) {
+        this.register_trait_direct(trait_name, internal_traits[trait_name]);
+      }
+
       for(let top_level of data.body) {
         this.render_statement(top_level);
       }
@@ -1721,8 +1800,10 @@ class VSCompiler {
       this.tab(1);
 
       this.write_output("TRAIT_HEADER\n");
+      this.tab(1);
       this.write_output("static const id_type trait_id = " + this.trait_id + ";\n");
       this.trait_id++;
+      this.tab(-1);
       this.write_output("TRAIT_MID1\n");
       this.tab(1);
 
@@ -2229,7 +2310,7 @@ class VSCompiler {
     case "throw":
       this.write_output("abort(");
       let expression_type = this.type_expression(data.value);
-      if (!expression_type || !expression_type.is_primitive || expression_type.primitive_type != primitive_type.STRING) {
+      if (!expression_type || !expression_type.is_string) {
         throw {
           message: "Argument to throw must be a string!",
           location: data.value.location
@@ -2584,7 +2665,7 @@ let prelude = `
 using std::vector;
 using std::function;
 
-void abort(const char* message, const char* file, int start_line, int start_char, int end_line, int end_char) {
+void abort(std::string_view message, const char* file, int start_line, int start_char, int end_line, int end_char) {
     std::cout << file << ":" << start_line << ":" << start_char << " -> " << end_line << ":" << end_char << " " << message << std::endl;
     exit(-1);
 }
@@ -2629,16 +2710,6 @@ typedef Object* ObjectInstance;
 
 #define TRAIT_FOOTER \\
       };
-
-// Variadic print statement
-template<typename Value, typename... Values>
-void _VS_print( Value v, Values... vs )
-{
-    using expander = int[];
-    std::cout << v; // first
-    (void) expander{ 0, (std::cout << " " << vs, void(), 0)... };
-    std::cout << std::endl;
-}
 
 // Array of all vtables
 static void* vtbls[1024][1024];
@@ -2708,5 +2779,135 @@ namespace _Array_ {
       return ret;
   }
 }
+
+namespace _String_ {
+  typedef std::string_view string;
+  string substring(string str, int start, int end) {
+      start = ((start % str.size()) + str.size()) % str.size();
+      end = ((end % str.size()) + str.size()) % str.size();
+      if (start < end) {
+          return str.substr(start, end - start);
+      } else {
+          return "";
+      }
+  }
+  std::vector<string>* split(string str, string split_on) {
+      std::vector<string>* ret = new std::vector<string>();
+      size_t s;
+      size_t split_size = split_on.size();
+      while((s = str.find(split_on)) != str.npos) {
+          ret->push_back(str.substr(0, s));
+          str.remove_prefix(s + split_size);
+      }
+      ret->push_back(str);
+      return ret;
+  }
+  int match(string str, string match_str) {
+      size_t ret = str.find(match_str);
+      if (ret == str.npos) {
+          return -1;
+      } else {
+          return ret;
+      }
+  }
+  int size(string str) {
+      return str.size();
+  }
+}
+
+// **************
+// Global Traits
+// **************
+
+namespace _Trait_Printable {
+  TRAIT_HEADER
+  static const id_type trait_id = 1;
+  TRAIT_MID1
+      typedef void (*_Function_print_type)(Object*);
+      _Vtable(
+          _Function_print_type _Function_print
+      ) :
+          _Function_print(_Function_print)
+      {};
+      _Function_print_type _Function_print;
+  TRAIT_MID
+      // Dynamic dispatch of trait function calls
+      static void _Function_print(Object* object) {
+          ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_print(object);
+      }
+  TRAIT_FOOTER
+}
+
+// **************
+// Global functions
+// **************
+
+// Overload cout for arrays
+
+#include <ostream>
+
+std::ostream& operator<<(std::ostream& os, Object* v) 
+{
+    if (is_trait<_Trait_Printable::_Instance>(v)) {
+        ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_print(v);
+    } else {
+        long long a = (long long)v;
+        os << "Object<id=" << v->object_id << ",instance=" << a << ">";
+    }
+    return os; 
+}
+
+template <typename T> 
+std::ostream& operator<<(std::ostream& os, const vector<T>* v) 
+{ 
+    os << "["; 
+    for (int i = 0; i < v->size(); ++i) { 
+        os << (*v)[i]; 
+        if (i != v->size() - 1) 
+            os << ", "; 
+    } 
+    os << "]\\n";
+    return os; 
+}
+
+// Variadic print statement
+
+template<typename Value, typename... Values>
+void _VS_print( Value v, Values... vs )
+{
+    using expander = int[];
+    std::cout << v; // first
+    (void) expander{ 0, (std::cout << " " << vs, void(), 0)... };
+    std::cout << std::endl;
+}
+void _VS_print()
+{
+    std::cout << std::endl;
+}
+
+template<typename Value, typename... Values>
+void _VS_raw_print( Value v, Values... vs )
+{
+    using expander = int[];
+    std::cout << v; // first
+    (void) expander{ 0, (std::cout << vs, void(), 0)... };
+    std::cout << std::flush;
+}
+void _VS_raw_print()
+{
+}
+
+#include <thread>
+#include <chrono>
+
+void _VS_sleep(int ms) {
+  if (ms > 0) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
+  }
+}
+
+// **************
+// End Global functions
+// **************
 
 `;
