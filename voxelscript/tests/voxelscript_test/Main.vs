@@ -217,7 +217,7 @@ implement Tester {
         Holder<Coal> h = new Holder<Coal>(f);
 
         HashMap<Vec3, float> m = new HashMap<Vec3, float>();
-        m.set(new Vec3(2, 3, 4), <float>5);
+        m.set(new Vec3(2, 3, 4), 5.0);
         float v = m.get(new Vec3(2, 3, 4));
         print("Integer: ", v);
 
@@ -226,12 +226,9 @@ implement Tester {
 
         c.fuel.give(h.get_holder(), 1);
         c.crushing.give(io, 1);
-        int i = 0;
-        
-        while(i < 250) {
+        for(int i = 0; i < 250; i++) {
             print("<progress=", c.current_progress, ",energy_in_crusher=", c.energy_in_crusher, ">");
             c.iterate();
-            i++;
         }
     }
 }
