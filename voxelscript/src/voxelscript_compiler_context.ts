@@ -259,6 +259,8 @@ class VSContext {
   trait: string | null = null;
   template: string[] = [];
   return_type: symbl_type[] = [];
+  // Trait functions for only this specific trait implementation
+  internal_functions: Record<string, function_type> = {};
 
   // Blocks
   blocks: block[] = [];
@@ -304,12 +306,26 @@ class VSContext {
     this.trait = trait;
   }
 
+  set_top_level_internal_function(fn_name: string, internal_type: function_type) {
+    this.internal_functions[fn_name] = internal_type;
+  }
+
   set_top_level_function(fn_name: string) {
     if (this.implementing_function_type) {
       throw new Error("Trying to set top level function, but haven't cleared top level function yet");
     }
     this.implementing_function = fn_name;
-    this.implementing_function_type = this.resolve_member_of(make_class_type(this.class!), fn_name)!.lambda_type;
+    if (this.is_implementing_trait) {
+      let member = this.resolve_member_of(make_class_type(this.class!), fn_name);
+      if (member) {
+        this.implementing_function_type = member.lambda_type;
+      } else {
+        console.log(fn_name, " to ", this.internal_functions[fn_name]);
+        this.implementing_function_type = this.internal_functions[fn_name];
+      }
+    } else {
+      this.implementing_function_type = this.resolve_member_of(make_class_type(this.class!), fn_name)!.lambda_type;
+    }
   }
 
   set_top_level_template(template: string[]) {
@@ -331,6 +347,7 @@ class VSContext {
     this.class = null;
     this.trait = null;
     this.template = [];
+    this.internal_functions = {};
   }
 
   // Resolves a static variable, or a class, or a trait
@@ -526,6 +543,10 @@ class VSContext {
       } else if (member in cls.private_functions) {
         ret = make_lambda_type(cls.private_functions[member]);
         ret.is_member_function = true;
+      } else if (parent.class_name == this.class && member in this.internal_functions) {
+        ret = make_lambda_type(this.internal_functions[member]);
+        ret.is_member_trait_function = true;
+        ret.member_trait = this.trait;
       } else {
         // No such member thusfar
         ret = null;
@@ -1461,9 +1482,10 @@ class VSCompiler {
 
       if (!is_array && !is_member_string_function) {
         let member_result_type = e.calculated_type;
-        prefix = "_VS_";
-        if (member_result_type.is_member_function) {
+        if (member_result_type.is_member_function || member_result_type.is_member_trait_function) {
           prefix = "_Function_";
+        } else {
+          prefix = "_VS_";
         }
       }
       this.write_output(prefix + member_name);
@@ -2189,24 +2211,30 @@ class VSCompiler {
       }
       class_data.traits[trait_name] = true;
 
+      this.get_context().set_top_level_implementing_trait(class_name, trait_name);
+
       let member_map: Record<string, any> = {};
       for(let statement of data.body) {
         if (statement.type == "function_implementation") {
-          if (statement.identifier.value in trait_data.public_functions) {
-            if (!_.isEqual(trait_data.public_functions[statement.identifier.value], this.resolve_function_type(statement))) {
+          let fn_name = statement.identifier.value;
+          let fn_type = this.resolve_function_type(statement);
+          if (fn_name in trait_data.public_functions) {
+            if (!_.isEqual(trait_data.public_functions[fn_name], fn_type)) {
               throw {
                 message: "Trait function implementation does not match trait function declaration",
                 location: statement.identifier.location,
               };
             }
-            member_map[statement.identifier.value] = statement;
+            member_map[fn_name] = statement;
           } else {
             // Private
-            member_map[statement.identifier.value] = statement;
+            this.get_context().set_top_level_internal_function(fn_name, fn_type);
+            member_map[fn_name] = statement;
           }
         } else {
           throw {
-            message: "Not implemented yet",
+            // TODO: Allow traits to have internal data
+            message: "Only function implementations are allowed in trait implementations",
             location: statement.identifier.location,
           };
         }
@@ -2221,9 +2249,9 @@ class VSCompiler {
             this.refresh_types(member_map[fn_name]);
           } else {
             throw {
-              message: "Trait implementation missing public function \"" + fn_name + "\"",
+              message: "Trait implementation missing trait function \"" + fn_name + "\"",
               location: data.trait.location,
-            }
+            };
           }
         }
       }
@@ -2233,10 +2261,17 @@ class VSCompiler {
       this.tab(1);
       this.write_output("namespace " + trait_implementation_name + " {\n");
       this.tab(1);
-
-      this.get_context().set_top_level_implementing_trait(class_name, trait_name);
   
-      // Implement Trait
+      // Declare trait function
+      for(let func in member_map) {
+        let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
+        this.get_context().set_top_level_function(func);
+        this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
+        let rendered_type_args = this.render_typed_args(member_map[func].arguments);
+        this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ");\n");
+        this.get_context().clear_top_level_function();
+      }
+      // Implement Trait function
       for(let func in member_map) {
         let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
         this.get_context().set_top_level_function(func);

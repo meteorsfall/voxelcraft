@@ -50,8 +50,11 @@ implement Eq on Vec3 {
             Vec3 v = <Vec3>e;
             return this.x == v.x && this.y == v.y && this.z == v.z;
         } else {
-            return false;
+            return this.truey();
         }
+    }
+    bool truey() {
+        return true;
     }
 }
 
