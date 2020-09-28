@@ -236,10 +236,13 @@ let internal_functions: Record<string, function_type> = {
     return_type: null,
     is_variadic: true,
   },
+  "input" : {
+    arg_types: [],
+    return_type: make_string_type(),
+  },
   "sleep" : {
     arg_types: [make_primitive_type(primitive_type.INT)],
     return_type: null,
-    is_variadic: true,
   },
 };
 // End internal traits/funcs
@@ -522,6 +525,14 @@ class VSContext {
         ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: [make_string_type()]});
       } else if (member == "size") {
         ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: []});
+      } else if (member == "concat") {
+        ret = make_lambda_type({return_type: make_string_type(), arg_types: [make_string_type()]});
+      } else if (member == "is_equal") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.BOOL), arg_types: [make_string_type()]});
+      } else if (member == "to_integer") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.INT), arg_types: []});
+      } else if (member == "is_integer") {
+        ret = make_lambda_type({return_type: make_primitive_type(primitive_type.BOOL), arg_types: []});
       } else {
         return null;
       }
@@ -982,16 +993,30 @@ class VSCompiler {
 
   coalesce_to(lhs: symbl_type, rhs: symbl_type): symbl_type | null {
     if (lhs.is_array && rhs.is_array && rhs.array_type == null) {
+      // Coalesce empty arrays to LHS arrays
       return lhs;
     }
     if (lhs.is_trait && rhs.is_class) {
-      return lhs;
+      if (lhs.trait_name! in this.get_context().resolve_class_type(rhs.class_name!)!.traits) {
+        // Check if class implements trait before casting
+        return lhs;
+      } else {
+        return null;
+      }
     }
     if (lhs.is_trait && rhs.is_trait) {
-      return lhs;
+      // Traits can only cast if they're equal
+      return _.isEqual(lhs, rhs) ? lhs : null;
     }
     if (lhs.is_trait && rhs.is_template) {
-      return lhs;
+      // Check if template is constrained by the lhs trait before trying to cast it
+      let constraints = this.get_context().resolve_class_type(this.get_context().class!)!.template[rhs.template_num!];
+      for(let possible_trait of constraints) {
+        if (_.isEqual(lhs, possible_trait)) {
+          return lhs;
+        }
+      }
+      return null;
     }
     if (_.isEqual(lhs, rhs)) {
       return lhs;
@@ -1029,7 +1054,8 @@ class VSCompiler {
   get_operation_result(left: symbl_type | null, right: symbl_type | null, op: string): symbl_type | null {
     let comparison_operators = {"<": true, "<=": true, ">=": true, ">": true, "==": true, "!=": true};
     let boolean_operators = {"&&": true, "||": true};
-    let intereger_operators = ["|", "^", "&", "<<", ">>", "+", "-", "*", "/", "%"].reduce((acc: any, cur) => {acc[cur] = true; return acc;}, {});
+    let integer_operators = ["|", "^", "&", "<<", ">>", "+", "-", "*", "/", "%"].reduce((acc: any, cur) => {acc[cur] = true; return acc;}, {});
+    let float_operators = ["+", "-", "*", "/"].reduce((acc: any, cur) => {acc[cur] = true; return acc;}, {});
 
     if (!left || !right) {
       return null;
@@ -1037,11 +1063,9 @@ class VSCompiler {
 
     let ret = null;
     if (op in comparison_operators) {
-      ret = make_primitive_type(primitive_type.BOOL);
-      if (!_.isEqual(left, make_primitive_type(primitive_type.INT))) {
-        return null;
-      }
-      if (!_.isEqual(right, make_primitive_type(primitive_type.INT))) {
+      if (left.is_primitive && _.isEqual(left, right)) {
+        return make_primitive_type(primitive_type.BOOL);
+      } else {
         return null;
       }
     } else if (op in boolean_operators) {
@@ -1051,19 +1075,24 @@ class VSCompiler {
       if (!_.isEqual(right, make_primitive_type(primitive_type.BOOL))) {
         return null;
       }
-      ret = make_primitive_type(primitive_type.BOOL);
-    } else if (op in intereger_operators) {
-      ret = make_primitive_type(primitive_type.INT);
-      if (!_.isEqual(left, ret)) {
-        return null;
-      }
-      if (!_.isEqual(right, ret)) {
+      return make_primitive_type(primitive_type.BOOL);
+    } else if (op in integer_operators || op in float_operators) {
+      let is_int = left.is_primitive && left.primitive_type == primitive_type.INT;
+      let is_float = left.is_primitive && left.primitive_type == primitive_type.FLOAT;
+      if (left.is_primitive && _.isEqual(left, right)) {
+        if (is_int && op in integer_operators) {
+          return make_primitive_type(primitive_type.INT);
+        } else if (is_float && op in float_operators) {
+          return make_primitive_type(primitive_type.FLOAT);
+        } else {
+          return null;
+        }
+      } else {
         return null;
       }
     } else {
       throw "Operator unknown: " + op;
     }
-    return ret;
   }
 
   type_subexpression(e: any): symbl_type | null {
@@ -1620,7 +1649,7 @@ class VSCompiler {
       if (fn_type.lambda_type!.is_variadic) {
         this.render_args(null, e.args);
       } else {
-        // If the function isn't variadic, coelesce the args to the parameter types
+        // If the function isn't variadic, coalesce the args to the parameter types
         this.render_args(arg_types, e.args);
       }
       this.write_output(")");
@@ -2755,6 +2784,8 @@ let prelude = `
 #include <vector>
 #include <functional>
 #include <iostream>
+// For std::from_chars
+#include <charconv>
 
 using std::vector;
 using std::function;
@@ -2907,6 +2938,34 @@ namespace _String_ {
   int size(string str) {
       return str.size();
   }
+  string concat(string self, string str) {
+      char* buf = new char[self.size() + str.size()];
+      self.copy(buf, self.size());
+      str.copy(buf + self.size(), str.size());
+
+      return string(buf, self.size() + str.size());
+  }
+  bool is_equal(string self, string str) {
+    return self == str;
+  }
+  int to_integer(string self) {
+    int result;
+    auto [p, ec] = std::from_chars(self.data(), self.data() + self.size(), result);
+    if (ec == std::errc()) {
+      return result;
+    } else {
+      return 0;
+    }
+  }
+  bool is_integer(string self) {
+    int result;
+    auto [p, ec] = std::from_chars(self.data(), self.data() + self.size(), result);
+    if (ec == std::errc()) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
 
 // **************
@@ -2939,6 +2998,8 @@ namespace _Trait_Printable {
 // Overload cout for arrays
 
 #include <ostream>
+
+bool ostream_dummy = (std::cout << std::boolalpha) ? true : false;
 
 std::ostream& operator<<(std::ostream& os, Object* v) 
 {
@@ -2989,6 +3050,13 @@ void _VS_raw_print( Value v, Values... vs )
 }
 void _VS_raw_print()
 {
+}
+
+std::string_view _VS_input()
+{
+    std::string* ret = new std::string();
+    std::getline(std::cin, *ret);
+    return std::string_view(*ret);
 }
 
 #include <thread>

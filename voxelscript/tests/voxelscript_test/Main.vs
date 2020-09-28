@@ -216,6 +216,15 @@ implement Tester {
 
         Holder<Coal> h = new Holder<Coal>(f);
 
+        c.fuel.give(h.get_holder(), 1);
+        c.crushing.give(io, 1);
+        for(int i = 0; i < 250; i++) {
+            print("<progress=", c.current_progress, ",energy_in_crusher=", c.energy_in_crusher, ">");
+            c.iterate();
+        }
+
+        // Custom tests
+
         HashMap<Vec3, float> m = new HashMap<Vec3, float>();
         m.set(new Vec3(2, 3, 4), 5.0);
         float v = m.get(new Vec3(2, 3, 4));
@@ -224,12 +233,15 @@ implement Tester {
         Holder<int> hh = new Holder<int>(5);
         print("Held Int: ", hh.get_holder());
 
-        c.fuel.give(h.get_holder(), 1);
-        c.crushing.give(io, 1);
-        for(int i = 0; i < 250; i++) {
-            print("<progress=", c.current_progress, ",energy_in_crusher=", c.energy_in_crusher, ">");
-            c.iterate();
-        }
+        string a = "test1";
+        string b = "test2";
+        string cc = a.concat(b);
+        bool mmm = "38912".is_integer();
+        print("M: ", mmm);
+
+        //string ret = input();
+        //print("Copy: ", ret);
+
     }
 }
 
