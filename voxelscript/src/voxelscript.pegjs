@@ -294,7 +294,7 @@ init_implementation
 // *************************
 
 statement // Must check variable definition before checking simple_statement, or else template parameters will be treated as \le or \ge
-  = variable_declaration / variable_definition / if / for / while / return / block_statement / throw / null_statement / simple_statement
+  = variable_declaration / variable_definition / if / for / while / return / break / continue / block_statement / throw / null_statement / simple_statement
 
 null_statement
   = ENDSTATEMENT { return {type:"null_statement"} }
@@ -329,6 +329,12 @@ variable_definition
 return
   = RETURN _ ENDSTATEMENT { return {type:"return", location:location()}; }
   / RETURN __ e:expression ENDSTATEMENT { return {type:"return", value:e, location:location()}; }
+
+break
+  = BREAK _ ENDSTATEMENT { return {type:"break", location:location()}; }
+
+continue
+  = CONTINUE _ ENDSTATEMENT { return {type:"continue", location:location()}; }
 
 throw
   = THROW __ e:expression ENDSTATEMENT { return {type:"throw", value:e, location:location()}; }
@@ -465,7 +471,7 @@ __ "whitespace"
 // Constants
 // *************************
 
-KEYWORDS = TRUE / FALSE / VOID / ANY / THIS / INT / CHAR / FLOAT / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
+KEYWORDS = TRUE / FALSE / VOID / ANY / THIS / INT / CHAR / FLOAT / BOOL / STRING / IMPORT / CONST / TRAIT / INIT / CLASS / RETURN / BREAK / CONTINUE / IMPLEMENT / PRIVATE / ON / NEW / IS / NOT / IF / ELSE / FOR / WHILE / THROW / EXPORT / TYPEDEF
 
 ANY = "any"
 THIS = "this"
@@ -482,6 +488,8 @@ TRAIT = "trait"
 INIT = "init" { return {location: location()}; }
 CLASS = "class"
 RETURN = "return"
+BREAK = "break"
+CONTINUE = "continue"
 IMPLEMENT = "implement"
 PRIVATE = "private"
 ON = "on"

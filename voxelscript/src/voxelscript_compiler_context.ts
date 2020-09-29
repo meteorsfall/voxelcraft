@@ -262,12 +262,13 @@ class VSContext {
   class: string | null = null;
   trait: string | null = null;
   template: string[] = [];
-  return_type: symbl_type[] = [];
   // Trait functions for only this specific trait implementation
   internal_functions: Record<string, function_type> = {};
 
   // Blocks
   blocks: block[] = [];
+  return_type: symbl_type[] = [];
+  loops: int[] = [0];
 
   constructor(modules: Record<string, module>, module : string) {
     this.modules = modules;
@@ -639,12 +640,26 @@ class VSContext {
     }
   }
 
+  register_loop() {
+    this.loops[this.loops.length-1]++;
+  }
+
+  pop_loop() {
+    this.loops[this.loops.length-1]--;
+  }
+
+  is_in_loop() {
+    return this.loops[this.loops.length-1] > 0;
+  }
+
   register_return_type(return_type: symbl_type) {
     this.return_type.push(return_type);
+    this.loops.push(0);
   }
 
   pop_return_type() {
     this.return_type.pop();
+    this.loops.pop();
   }
 }
 
@@ -2465,6 +2480,24 @@ class VSCompiler {
       }
       this.write_output(";\n");
       break;
+    case "break":
+      if (!this.get_context().is_in_loop()) {
+        throw {
+          message: "break must be used from within a loop",
+          location: data.location,
+        };
+      }
+      this.write_output("break;\n");
+      break;
+    case "continue":
+      if (!this.get_context().is_in_loop()) {
+        throw {
+          message: "continue must be used from within a loop",
+          location: data.location,
+        };
+      }
+      this.write_output("continue;\n");
+      break;
     case "if":
       this.write_output("if ");
       if (!_.isEqual(this.type_expression(data.condition), make_primitive_type(primitive_type.BOOL))) {
@@ -2496,7 +2529,9 @@ class VSCompiler {
       this.render_expression(data.condition);
       this.write_output(" ");
 
+      this.get_context().register_loop();
       this.render_statement(data.body);
+      this.get_context().pop_loop();
 
       this.write_output("\n");
       break;
@@ -2522,7 +2557,9 @@ class VSCompiler {
       this.render_expression(data.iterate);
       this.write_output(") ");
 
+      this.get_context().register_loop();
       this.render_statement(data.body);
+      this.get_context().pop_loop();
       this.write_output("\n");
 
       this.get_context().pop_block();
@@ -2545,7 +2582,9 @@ class VSCompiler {
       this.render_expression(data.collection);
       this.write_output(") ");
 
+      this.get_context().register_loop();
       this.render_statement(data.body);
+      this.get_context().pop_loop();
 
       this.write_output("\n");
 

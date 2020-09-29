@@ -27,8 +27,8 @@ file_extensions []     = vs;
 ## Constants
 ################################################################
 
-__CONTROL_FLOW \= (return|import|if|else|for|while|throw|export)(?!\w)
-__KEYWORDS \= (true|false|void|any|this|int|char|float|bool|string|import|const|trait|init|class|return|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|=>)(?!\w)
+__CONTROL_FLOW \= (return|break|continue|import|if|else|for|while|throw|export)(?!\w)
+__KEYWORDS \= (true|false|void|any|this|int|char|float|bool|string|import|const|trait|init|class|return|break|continue|implement|private|on|new|is|not|if|else|for|while|throw|export|typedef|=>)(?!\w)
 __IDENTIFIER \= (\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
 __NONCAPTURE_IDENTIFIER \= (?:\b[a-zA-Z_][a-zA-Z_0-9]*)(?!\w)
 __NONCAPTURE_TYPE \= (?:$${__NONCAPTURE_IDENTIFIER}(?:\s*<[\s\w<>\[\],]+>)?(?:\s*[\[\]])*)
