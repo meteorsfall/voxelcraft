@@ -1453,6 +1453,12 @@ class VSCompiler {
     return this.type_subexpression(e.value);
   }
 
+  render_abort(msg: string, ast_location: any) {
+    this.write_output("abort(\"" + msg+ "\", \"" + this.compiling_module + ".vs\", ");
+    this.write_output(ast_location.start.line + ", " + ast_location.start.column + ", " + ast_location.end.line + ", " + ast_location.end.column);
+    this.write_output("); throw;\n");
+  }
+
   // Recursively render subexpressions
   render_subexpression(e : any): void {
     switch(e.type) {
@@ -1517,6 +1523,9 @@ class VSCompiler {
       this.tab(1);
 
       this.render_function_body(e.body);
+      if (return_type) {
+        this.render_abort("Did not return from lambda function, when it should have returned a " + this.readable_type(return_type), e.location);
+      }
 
       this.tab(-1);
       this.write_output("}");
@@ -2073,6 +2082,11 @@ class VSCompiler {
       for(let statement of data.body) {
         this.render_statement(statement);
       }
+      let return_type = this.get_context().resolve_return_type();
+      if (return_type) {
+        // If there's a return type and the user got to the end of a function, throw an exception
+        this.render_abort("Did not return from function, when it should have returned a " + this.readable_type(return_type), data.location);
+      }
       this.get_context().pop_block();
       break;
     case "class_implementation": {
@@ -2218,6 +2232,7 @@ class VSCompiler {
       this.tab(1);
       this.write_output(referenced_class_name + " self = this;\n");
       if (cls.public_functions["init"]) {
+        this.get_context().set_top_level_function("init");
         if (!member_map["init"]) {
           throw {
             message: "init declared, but not defined in implementation",
@@ -2225,6 +2240,7 @@ class VSCompiler {
           };
         }
         this.render_statement(member_map["init"]);
+        this.get_context().clear_top_level_function();
       }
       this.tab(-1);
       this.write_output("}\n");
@@ -2461,7 +2477,7 @@ class VSCompiler {
       this.write_output(", \"" + this.compiling_module + ".vs\", " + data.location.start.line + ", " + data.location.start.column + ", " + data.location.end.line + ", " + data.location.end.column);
       this.write_output("); throw \"\";\n");
       break;
-    case "return":
+    case "return": {
       this.write_output("return ");
       let return_type = this.get_context().resolve_return_type();
       if (return_type) {
@@ -2483,7 +2499,7 @@ class VSCompiler {
         }
       }
       this.write_output(";\n");
-      break;
+    } break;
     case "break":
       if (!this.get_context().is_in_loop()) {
         throw {
