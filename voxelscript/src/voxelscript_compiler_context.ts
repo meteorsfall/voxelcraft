@@ -244,6 +244,10 @@ let internal_functions: Record<string, function_type> = {
     arg_types: [make_primitive_type(primitive_type.INT)],
     return_type: null,
   },
+  "time" : {
+    arg_types: [],
+    return_type: make_primitive_type(primitive_type.INT),
+  },
 };
 // End internal traits/funcs
 
@@ -3100,11 +3104,16 @@ std::string_view _VS_input()
 
 #include <thread>
 #include <chrono>
+#include <time.h>
 
 void _VS_sleep(int ms) {
   if (ms > 0) {
     std::this_thread::sleep_for(std::chrono::milliseconds(ms));
   }
+}
+
+int _VS_time() {
+  return (int)time( NULL );
 }
 
 // **************
