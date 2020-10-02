@@ -24,7 +24,7 @@ implement CoalOre {
 
 implement Entity on CoalOre {
     int entity_id() {
-        return 3129102453;
+        return 312910253;
     }
 }
 

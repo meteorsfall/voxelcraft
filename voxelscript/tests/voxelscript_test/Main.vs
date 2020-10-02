@@ -247,4 +247,29 @@ implement Tester {
 
 Tester t = new Tester();
 
-export {};
+import Env;
+
+class Main {
+    init();
+    void _init();
+    void _iterate();
+    void _render();
+    void _iterate_ui();
+    void _render_ui();
+}
+implement Main {
+    init() {}
+    void _init() {
+        env.VoxelEngine__register_font("Testing!");
+    }
+    void _iterate() {
+    }
+    void _render() {
+    }
+    void _iterate_ui() {
+    }
+    void _render_ui() {
+    }
+}
+
+export {Main};

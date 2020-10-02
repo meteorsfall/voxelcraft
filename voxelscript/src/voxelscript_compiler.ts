@@ -162,27 +162,32 @@ if (options.build_target) {
 
   // Write the remaining compiled files to the build target directory
   writeFileSync(path.join(options.build_target, "main.cpp"), compiler_context.get_compiled_code());
-} else {
-  // Run gcc to compile the resulting c++
-  const child_argv = [
-      '--std=c++17',
-      '-Wfatal-errors', // Stop at first error
-      '-xc++',
-      '-',
-  ];
-  let cp = childProcess.spawnSync("g++", child_argv, {
-      input: compiler_context.get_compiled_code(),
-      timeout: 5000,
-      windowsHide: true,
-  });
-
-  if (cp.error || cp.status != 0) {
-    // Exit due to gcc error
-    console.log("Error: Failed to compile using gcc: " + cp.status + " " + cp.error + " " + cp.stderr);
-    process.exit(2);
-  }
-  
-  // Print success message!
-  console.log();
-  console.log("Compilation Succeeded!");
 }
+
+// Run gcc to compile the resulting c++
+const child_argv = [
+    '-D_COMPILE_VS_NATIVE_',
+    '-O0',
+    '-g',
+    '--std=c++17',
+    (options.build_target ? '-o' + path.join(options.build_target, 'a.out') : '-oa.out'),
+    '-Wfatal-errors', // Stop at first error
+    '-xc++',
+    '-',
+];
+
+let cp = childProcess.spawnSync("g++", child_argv, {
+    input: compiler_context.get_compiled_code(),
+    timeout: 5000,
+    windowsHide: true,
+});
+
+if (cp.error || cp.status != 0) {
+  // Exit due to gcc error
+  console.log("Error: Failed to compile using gcc: " + cp.status + " " + cp.error + " " + cp.stderr);
+  process.exit(2);
+}
+
+// Print success message!
+console.log();
+console.log("Compilation Succeeded!");

@@ -4,5 +4,6 @@
     "author": "VoxelCraft",
     "description": "Includes Ores, Fuels, and Crushers",
     "main": "Main",
+    "environment": "Env",
     "dependencies": []
 }

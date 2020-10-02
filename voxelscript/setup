@@ -2,7 +2,7 @@
 set -e
 
 # Install all dependencies
-pkgs='nodejs-dev node-gyp libssl1.0-dev npm'
+pkgs='nodejs-dev node-gyp libssl1.0-dev npm emscripten'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs
 fi
@@ -11,5 +11,12 @@ npm_pkgs='npx pkg'
 if ! npm list -g $npm_pkgs; then
   sudo npm i -g $npm_pkgs
 fi
+# Install emcc
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+source ./emsdk_env.sh
+cd ..
 # Install npm packages everywhere
 npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..

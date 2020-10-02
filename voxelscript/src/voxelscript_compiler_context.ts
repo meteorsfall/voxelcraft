@@ -7,6 +7,13 @@ import { exit, off } from 'process';
 import { textSpanContainsPosition } from 'typescript';
 import { access } from 'fs';
 
+import { readFileSync } from 'fs';
+import * as path from "path";
+
+// Required Environment:
+// print(string)
+// abort(string)
+
 //////////////////////////////////////////////////
 // A function type
 interface function_type {
@@ -680,7 +687,7 @@ class VSCompiler {
 
   // Rendering Context
   tabs = 0;
-  output = "" + prelude;
+  output = "";
   mapping = "";
 
   // Error holding
@@ -690,6 +697,12 @@ class VSCompiler {
   error_module : string = "";
   // Keep track of modules that failed to parse
   failed_modules : Record<string, bool> = {};
+
+  constructor() {
+    const MAIN_HPP = path.join(__dirname, 'main.hpp');
+    const FUNCTION_HPP = path.join(__dirname, 'function.hpp');
+    this.output = readFileSync(FUNCTION_HPP, 'utf8') + readFileSync(MAIN_HPP, 'utf8');
+  }
 
   // Return the module, given the module name
   private get_module(module_name : string) : module | null {
@@ -1454,9 +1467,9 @@ class VSCompiler {
   }
 
   render_abort(msg: string, ast_location: any) {
-    this.write_output("abort(\"" + msg+ "\", \"" + this.compiling_module + ".vs\", ");
+    this.write_output("_abort(\"" + msg+ "\", \"" + this.compiling_module + ".vs\", ");
     this.write_output(ast_location.start.line + ", " + ast_location.start.column + ", " + ast_location.end.line + ", " + ast_location.end.column);
-    this.write_output("); throw;\n");
+    this.write_output(");\n");
   }
 
   // Recursively render subexpressions
@@ -1622,7 +1635,7 @@ class VSCompiler {
       this.write_output(e.value);
       break;
     case "string":
-      this.write_output("std::string_view(\"" + e.value + "\")");
+      this.write_output("string(\"" + e.value + "\", " + e.value.length + ")");
       break;
     // ****
     // Unary Operators
@@ -1709,7 +1722,7 @@ class VSCompiler {
     }
   }
 
-  render_type(t: symbl_type, rendering_template?: bool): string {
+  render_type(t: symbl_type, options: any = {}): string {
     if(t.is_primitive) {
       if (t.primitive_type == primitive_type.BOOL) {
         return "bool";
@@ -1725,10 +1738,14 @@ class VSCompiler {
       }
     }
     if (t.is_string) {
-      return "std::string_view";
+      if (options.environment) {
+        return "string*";
+      } else {
+        return "string";
+      }
     }
     if (t.is_class) {
-      if (rendering_template) {
+      if (options.rendering_template) {
         return "Object*";
       }
 
@@ -1741,7 +1758,9 @@ class VSCompiler {
             tmp += ", ";
           }
           first = false;
-          tmp += this.render_type(temp_val, true);
+          tmp += this.render_type(temp_val, {
+            rendering_template: true
+          });
         }
         tmp += ">";
       }
@@ -1751,9 +1770,13 @@ class VSCompiler {
       return "Object*";
     }
     if (t.is_array) {
-      return "vector<" + this.render_type(t.array_type!) + ">*";
+      return "dynamic_array<" + this.render_type(t.array_type!) + ">*";
     }
     if (t.is_lambda) {
+      if (options.environment) {
+        // TODO: Pass a proper error to the user with {location} set
+        throw new Error("ERROR: Tried to pass a lambda into an environment type");
+      }
       let return_type = t.lambda_type!.return_type;
       let ret = "";
       ret += "function<" + (return_type == null ? "void" : this.render_type(return_type)) + "(";
@@ -1797,6 +1820,8 @@ class VSCompiler {
 
   class_id: number = 1;
   trait_id: number = 2;
+
+  foreach_num: number = 1;
   
   // Render a statement to typescript
   render_statement(data : any): void {
@@ -2134,6 +2159,12 @@ class VSCompiler {
             };
           }
           let key = statement.var_identifier.value;
+          if (cls.public_members[key]) {
+            throw {
+              message: "Variable already declared in class declaration. Please set the value of this variable in the init() function",
+              location: statement.var_identifier.location,
+            };
+          }
           cls.private_members[key] = this.resolve_type(statement.var_type);
           if (member_map[key]) {
             throw {
@@ -2147,6 +2178,12 @@ class VSCompiler {
             throw {
               message: "init implemented, but no such init found in declaration of " + class_name,
               location: statement.init.location,
+            };
+          }
+          if (member_map["init"]) {
+            throw {
+              message: "Member \"init\" defined twice in class \"" + class_name + "\"",
+              location: statement.identifier.location,
             };
           }
           let fn_type = this.resolve_function_type(statement);
@@ -2183,6 +2220,13 @@ class VSCompiler {
           throw new Error("FATAL ERROR: No such type");
         }
       }
+
+      if (class_name == "Environment" && Object.keys(member_map).length > 0) {
+        throw {
+          message: "Implementation of special class \"Environment\" must be left blank",
+          location: data.identifier.location,
+        };
+      }
   
       let referenced_class_name = this.render_type(make_class_type(class_name));
       let value_class_name = referenced_class_name.slice(0, -1);
@@ -2192,6 +2236,27 @@ class VSCompiler {
         value_class_name += ">";
       }
       referenced_class_name = value_class_name + "*";
+
+      if (class_name == "Environment") {
+        this.write_output("extern \"C\" {\n");
+        this.tab(1);
+        for(let func in cls.public_functions) {
+          let return_type = cls.public_functions[func].return_type;
+          this.write_output("extern " + (return_type == null ? "void" : this.render_type(return_type, {environment: true})) + " _Import_" + func);
+          this.write_output("(");
+          let i = 0;
+          for(let arg_type of cls.public_functions[func].arg_types) {
+            if (i != 0) {
+              this.write_output(", ");
+            }
+            this.write_output(this.render_type(arg_type, {environment: true}) + " ARG" + i);
+            i++;
+          }
+          this.write_output(");\n");
+        }
+        this.tab(-1);
+        this.write_output("}\n");
+      }
 
       // Start Class
       this.write_output("namespace _Class_" + class_name + " {\n");
@@ -2249,27 +2314,60 @@ class VSCompiler {
       let all_functions = Object.assign({}, cls.public_functions, cls.private_functions);
       for(let func in all_functions) {
         if (func == "init") continue;
-        if (!member_map[func]) {
-          throw {
-            message: "\"" + func + "\" declared, but not defined in implementation",
-            location: data.identifier.location,
-          };
+
+        if (class_name == "Environment") {
+          let return_type = all_functions[func].return_type;
+          this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
+          this.write_output("(");
+          let i = 0;
+          for(let arg_type of all_functions[func].arg_types) {
+            if (i != 0) {
+              this.write_output(", ");
+            }
+            this.write_output(this.render_type(arg_type) + " ARG" + i);
+            i++;
+          }
+          this.write_output(") {\n");
+          this.tab(1);
+          if(return_type != null) {
+            this.write_output("return ");
+          }
+          this.write_output("_Import_" + func + "(");
+          for(let j = 0; j < i; j++) {
+            if (j != 0) {
+              this.write_output(", ");
+            }
+            if (all_functions[func].arg_types[j].is_string) {
+              this.write_output("&");
+            }
+            this.write_output("ARG" + j);
+          }
+          this.write_output(");\n");
+          this.tab(-1);
+          this.write_output("}\n");
+        } else {
+          if (!member_map[func]) {
+            throw {
+              message: "\"" + func + "\" declared, but not defined in implementation",
+              location: data.identifier.location,
+            };
+          }
+
+          this.get_context().set_top_level_function(func);
+
+          let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
+          this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
+          this.write_output("(" + this.render_typed_args(member_map[func].arguments) + ")");
+          this.write_output(" {\n");
+          this.tab(1);
+          this.write_output(referenced_class_name);
+          this.write_output(" self = this;\n");
+          this.render_statement(member_map[func]);
+          this.tab(-1);
+          this.write_output("}\n");
+
+          this.get_context().clear_top_level_function();
         }
-
-        this.get_context().set_top_level_function(func);
-
-        let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
-        this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
-        this.write_output("(" + this.render_typed_args(member_map[func].arguments) + ")");
-        this.write_output(" {\n");
-        this.tab(1);
-        this.write_output(referenced_class_name);
-        this.write_output(" self = this;\n");
-        this.render_statement(member_map[func]);
-        this.tab(-1);
-        this.write_output("}\n");
-
-        this.get_context().clear_top_level_function();
       }
 
       // All member variables
@@ -2465,7 +2563,7 @@ class VSCompiler {
       this.write_output(";\n");
       break;
     case "throw":
-      this.write_output("abort(");
+      this.write_output("_abort(");
       let expression_type = this.type_expression(data.value);
       if (!expression_type || !expression_type.is_string) {
         throw {
@@ -2475,7 +2573,7 @@ class VSCompiler {
       }
       this.render_expression(data.value);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + data.location.start.line + ", " + data.location.start.column + ", " + data.location.end.line + ", " + data.location.end.column);
-      this.write_output("); throw \"\";\n");
+      this.write_output(");\n");
       break;
     case "return": {
       this.write_output("return ");
@@ -2598,15 +2696,25 @@ class VSCompiler {
 
       this.get_context().register_variable(this.parse_identifier(data.item_identifier), collection_type.array_type!);
 
-      this.write_output("for (auto& _VS_" + this.parse_identifier(data.item_identifier) + " : *");
+      let collection = "_FOREACH_collection_" + this.foreach_num;
+      let iter = "_FOREACH_i_" + this.foreach_num;
+      this.foreach_num++;
+
+      this.write_output("auto& " + collection + " = *");
       this.render_expression(data.collection);
-      this.write_output(") ");
+      this.write_output(";\n");
+
+      this.write_output("for (int " + iter + " = 0; " + iter + " < " + collection + ".size(); " + iter + "++) {\n");
+
+      this.tab(1);
+      this.write_output("auto _VS_" + this.parse_identifier(data.item_identifier) + " = " + collection + "[" + iter + "];\n");
 
       this.get_context().register_loop();
       this.render_statement(data.body);
       this.get_context().pop_loop();
 
-      this.write_output("\n");
+      this.tab(-1);
+      this.write_output("}\n");
 
       this.get_context().pop_block();
       break;
@@ -2652,7 +2760,74 @@ class VSCompiler {
       //this.write_output("}\n");
 
       if (module_name == "Main") {
-        this.write_output("int main() {return 0;}\n");
+        this.write_output("MAIN\n");
+        let export_location = null;
+        for(let stmt of m.voxelscript_ast.body) {
+          if (stmt.type == "export") {
+            export_location = stmt.location;
+            break;
+          }
+        }
+        if ("Main" in this.modules["Main"].exports) {
+          let main_cls = this.get_context().resolve_class_type("Main");
+          if (!main_cls) {
+            throw {
+              message: "The main module must export a class with identifier Main",
+              location: export_location,
+            }
+          }
+          let cls_type = this.get_context().resolve_typename("Main")!;
+          if ("init" in main_cls.public_functions) {
+            let init_type = main_cls.public_functions["init"];
+            if (init_type.is_variadic || init_type.arg_types.length > 0) {
+              throw {
+                message: "Main class's init() function may not accept any arguments",
+                location: export_location,
+              };
+            }
+          }
+          this.write_output("#ifndef _COMPILE_VS_NATIVE_\n");
+          this.write_output(this.render_type(cls_type) + " _entry_point = new " + this.render_type(cls_type).slice(0, -1) + "();\n");
+          this.write_output("extern \"C\" {\n");
+          this.tab(1);
+          for(let fn_name in main_cls.public_functions) {
+            if (fn_name == "init") continue;
+            let fn_type = main_cls.public_functions[fn_name];
+            let rendered_return = fn_type.return_type ? this.render_type(fn_type.return_type) : "void";
+            this.write_output(rendered_return + " __attribute__((used)) _Export_" + fn_name + "(");
+            let i = 0;
+            for(let arg of fn_type.arg_types) {
+              if (i != 0) {
+                this.write_output(", ");
+              }
+              this.write_output(this.render_type(arg) + " arg" + i);
+            }
+            this.write_output(") {\n");
+            this.tab(1);
+            if (rendered_return != "void") {
+              this.write_output("return ");
+            }
+            this.write_output("_entry_point->_Function_" + fn_name + "(");
+            i = 0;
+            for(let arg of fn_type.arg_types) {
+              if (i != 0) {
+                this.write_output(", ");
+              }
+              this.write_output("arg" + i);
+            }
+            this.write_output(");\n");
+            this.tab(-1);
+            this.write_output("}\n");
+          }
+          this.tab(-1);
+          this.write_output("}\n");
+          this.write_output("#endif");
+        } else {
+          throw {
+            message: "The main module must export a class with identifier Main",
+            location: export_location,
+          }
+        }
       }
 
       // Close context, and save results
@@ -2837,303 +3012,3 @@ class VSCompiler {
 }
 
 export { VSCompiler };
-
-let prelude = `
-
-#include <vector>
-#include <functional>
-#include <iostream>
-// For std::from_chars
-#include <charconv>
-
-using std::vector;
-using std::function;
-
-void abort(std::string_view message, const char* file, int start_line, int start_char, int end_line, int end_char) {
-    std::cout << file << ":" << start_line << ":" << start_char << " -> " << end_line << ":" << end_char << " " << message << std::endl;
-    exit(-1);
-}
-
-#define id_type unsigned short
-
-// All objects inherit from this
-class Object {
-public:
-    // Keep track of reference count for deallocations
-    unsigned int reference_count = 1;
-    // Keep track of object id
-    const id_type object_id;
-
-    // Initialize a new object
-    Object(id_type object_id) : object_id(object_id) {};
-};
-
-// Trait instance
-class Trait {
-public:
-    Object* obj;
-    Trait(Object* obj) : obj(obj) {};
-};
-
-// Object Instance
-typedef Object* ObjectInstance;
-
-#define TRAIT_HEADER \\
-      class _Instance : public Trait { \\
-      public: \\
-
-#define TRAIT_MID1 \\
-          class _Vtable { \\
-          public:
-
-#define TRAIT_MID \\
-          }; \\
-          _Instance() : Trait(NULL) {} \\
-          _Instance(Object* obj) : Trait(obj) { \\
-          };
-
-#define TRAIT_FOOTER \\
-      };
-
-// Array of all vtables
-static void* vtbls[1024][1024];
-
-template<typename T>
-bool is_class(Object* obj) {
-    return obj->object_id == T::object_id;
-}
-
-template<typename T>
-bool is_trait(Object* obj) {
-    return vtbls[obj->object_id][T::trait_id] != nullptr;
-}
-
-template<typename T>
-Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    if (!is_trait<T>(obj)) {
-        abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
-    }
-    return obj;
-}
-
-template<typename T>
-T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    if (!is_class<T>(obj)) {
-        abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
-    }
-    return static_cast<T*>(obj);
-}
-
-namespace _Array_ {
-  template<typename T>
-  void push(std::vector<T>* arr, T val) {
-      arr->push_back(val);
-  }
-  template<typename T>
-  T pop(std::vector<T>* arr, T val) {
-      T ret = arr->back();
-      arr->pop_back();
-      return ret;
-  }
-  template<typename T>
-  T remove(std::vector<T>* arr, int index) {
-      T ret = arr.at(index);
-      arr->erase(arr->begin() + index);
-      return ret;
-  }
-  template<typename T>
-  int size(std::vector<T>* arr) {
-      return arr->size();
-  }
-  template<typename T>
-  void resize(std::vector<T>* arr, int size) {
-      arr->resize(size);
-  }
-  template<typename T>
-  int get_capacity(std::vector<T>* arr) {
-      return arr->capacity();
-  }
-  template<typename T>
-  void set_capacity(std::vector<T>* arr, int size) {
-      arr->reserve(size);
-  }
-  template<typename T>
-  std::vector<T>* clone(std::vector<T>* arr) {
-      std::vector<T>* ret = new std::vector<T>(*arr);
-      return ret;
-  }
-}
-
-namespace _String_ {
-  typedef std::string_view string;
-  string substring(string str, int start, int end) {
-      start = ((start % str.size()) + str.size()) % str.size();
-      end = ((end % str.size()) + str.size()) % str.size();
-      if (start < end) {
-          return str.substr(start, end - start);
-      } else {
-          return "";
-      }
-  }
-  std::vector<string>* split(string str, string split_on) {
-      std::vector<string>* ret = new std::vector<string>();
-      size_t s;
-      size_t split_size = split_on.size();
-      while((s = str.find(split_on)) != str.npos) {
-          ret->push_back(str.substr(0, s));
-          str.remove_prefix(s + split_size);
-      }
-      ret->push_back(str);
-      return ret;
-  }
-  int match(string str, string match_str) {
-      size_t ret = str.find(match_str);
-      if (ret == str.npos) {
-          return -1;
-      } else {
-          return ret;
-      }
-  }
-  int size(string str) {
-      return str.size();
-  }
-  string concat(string self, string str) {
-      char* buf = new char[self.size() + str.size()];
-      self.copy(buf, self.size());
-      str.copy(buf + self.size(), str.size());
-
-      return string(buf, self.size() + str.size());
-  }
-  bool is_equal(string self, string str) {
-    return self == str;
-  }
-  int to_integer(string self) {
-    int result;
-    auto [p, ec] = std::from_chars(self.data(), self.data() + self.size(), result);
-    if (ec == std::errc()) {
-      return result;
-    } else {
-      return 0;
-    }
-  }
-  bool is_integer(string self) {
-    int result;
-    auto [p, ec] = std::from_chars(self.data(), self.data() + self.size(), result);
-    if (ec == std::errc()) {
-      return true;
-    } else {
-      return false;
-    }
-  }
-}
-
-// **************
-// Global Traits
-// **************
-
-namespace _Trait_Printable {
-  TRAIT_HEADER
-  static const id_type trait_id = 1;
-  TRAIT_MID1
-      typedef void (*_Function_print_type)(Object*);
-      _Vtable(
-          _Function_print_type _Function_print
-      ) :
-          _Function_print(_Function_print)
-      {};
-      _Function_print_type _Function_print;
-  TRAIT_MID
-      // Dynamic dispatch of trait function calls
-      static void _Function_print(Object* object) {
-          ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_print(object);
-      }
-  TRAIT_FOOTER
-}
-
-// **************
-// Global functions
-// **************
-
-// Overload cout for arrays
-
-#include <ostream>
-
-bool ostream_dummy = (std::cout << std::boolalpha) ? true : false;
-
-std::ostream& operator<<(std::ostream& os, Object* v) 
-{
-    if (is_trait<_Trait_Printable::_Instance>(v)) {
-        ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_print(v);
-    } else {
-        long long a = (long long)v;
-        os << "Object<id=" << v->object_id << ",instance=" << a << ">";
-    }
-    return os; 
-}
-
-template <typename T> 
-std::ostream& operator<<(std::ostream& os, const vector<T>* v) 
-{ 
-    os << "["; 
-    for (int i = 0; i < v->size(); ++i) { 
-        os << (*v)[i]; 
-        if (i != v->size() - 1) 
-            os << ", "; 
-    } 
-    os << "]\\n";
-    return os; 
-}
-
-// Variadic print statement
-
-template<typename Value, typename... Values>
-void _VS_print( Value v, Values... vs )
-{
-    using expander = int[];
-    std::cout << v; // first
-    (void) expander{ 0, (std::cout << " " << vs, void(), 0)... };
-    std::cout << std::endl;
-}
-void _VS_print()
-{
-    std::cout << std::endl;
-}
-
-template<typename Value, typename... Values>
-void _VS_raw_print( Value v, Values... vs )
-{
-    using expander = int[];
-    std::cout << v; // first
-    (void) expander{ 0, (std::cout << vs, void(), 0)... };
-    std::cout << std::flush;
-}
-void _VS_raw_print()
-{
-}
-
-std::string_view _VS_input()
-{
-    std::string* ret = new std::string();
-    std::getline(std::cin, *ret);
-    return std::string_view(*ret);
-}
-
-#include <thread>
-#include <chrono>
-#include <time.h>
-
-void _VS_sleep(int ms) {
-  if (ms > 0) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-  }
-}
-
-int _VS_time() {
-  return (int)time( NULL );
-}
-
-// **************
-// End Global functions
-// **************
-
-`;
