@@ -7,13 +7,11 @@ namespace nostd {
 
 #ifndef _COMPILE_VS_NATIVE_
 // Externs
+struct string;
 extern "C" {
-    extern void panic(const char* s);
-    extern void print(const char* s);
+    [[noreturn]] extern void panic(string* s);
+    extern void print(string* s);
 }
-
-#define g_abort panic
-#define g_print print
 
 // Default placement versions of operator new.
 inline void* operator new(nostd::size_t, void* __p) throw() { return __p; }

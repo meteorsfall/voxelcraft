@@ -15,10 +15,12 @@ interface vspackage {
   options: any
 };
 interface option_type {
-  build_target : string | null,
+  output_file : string | null,
+  cpp_file : string | null,
   source : string,
   desired_module : string | null,
-  override : string | null
+  override : string | null,
+  is_wasm: boolean,
 };
 
 // Check if child directory string is a descendent of the base directory string
@@ -336,19 +338,51 @@ function error_to_string(module_name : string, file_path : string, code : string
 function parse_args(args : any[]) : option_type {
   let argv = minimist(args.slice(2));
 
-  let build_target : string | null = "";
+  let output_file : string | null = null;
+  let cpp_file : string | null = null;
   let source : string = "";
   let desired_module : string | null = null;
   let override : string | null = null;
+  let is_wasm : boolean = false;
 
   // Use path.resolve to get the absolute directories of each argument
 
-  if (argv['build-target']) {
-    build_target = path.resolve(argv['build-target']);
+  if (argv['cpp-file']) {
+    cpp_file = path.resolve(argv['cpp-file']);
   }
 
-  if (argv['source']) {
-    source = path.resolve(argv['source']);
+  if (argv['output'] && argv['o']) {
+    throw new Error("Cannot pass both --output and -o");
+  }
+  if (argv['output'] || argv['o']) {
+    output_file = path.resolve(argv['output'] || argv['o']);
+  }
+
+  if (argv['target']) {
+    // Target defined explicitly
+    if (argv['target'] == 'native') {
+      is_wasm = false;
+    } else if (argv['target'] == 'wasm') {
+      is_wasm = true;
+    } else {
+      throw new Error("Argument to --target must be 'native' or 'wasm'");
+    }
+  } else {
+    // Otherwise, wasm can be deduced implicitly, and otherwise we compile to native
+    if (output_file && path.extname(output_file) == '.wasm') {
+      is_wasm = true;
+    } else {
+      is_wasm = false;
+    }
+  }
+
+  let main_arg = null;
+  if (argv._ && argv._.length > 0) {
+    main_arg = '' + argv._[0];
+  }
+  let source_dir = argv['source'] || main_arg;
+  if (source_dir) {
+    source = path.resolve(source_dir);
   } else {
     throw new Error("No --source given!");
   }
@@ -362,10 +396,12 @@ function parse_args(args : any[]) : option_type {
   }
 
   return {
-    build_target,
+    output_file,
+    cpp_file,
     source,
     desired_module,
-    override
+    override,
+    is_wasm
   };
 }
 

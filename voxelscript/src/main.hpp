@@ -47,6 +47,15 @@ struct string {
     }
 };
 
+#ifndef _COMPILE_VS_NATIVE_
+[[noreturn]] void g_abort(string s) {
+    panic(&s);
+}
+void g_print(string s) {
+    print(&s);
+}
+#endif
+
 struct string_buffer {
     string_buffer(int size) : _data(new char[size]), _size(size), _loc((char*)_data) {}
     ~string_buffer() {
@@ -62,6 +71,12 @@ struct string_buffer {
     }
     const char* data() {
         return (char*)_data;
+    }
+    int size() {
+        return _loc - _data;
+    }
+    string to_string() {
+        return string(this->data(), this->size());
     }
     void flush() {
         *_loc = '\0';
@@ -178,7 +193,7 @@ ostream& operator<<(ostream& os, string s)
 #ifdef _COMPILE_VS_NATIVE_
     exit(-1);
 #else
-    g_abort(out.data());
+    g_abort(out.to_string());
     while(true);
 #endif
 }
@@ -495,7 +510,7 @@ void _VS_print( Value v, Values... vs )
     out << "\n";
     out.flush();
 #ifndef _COMPILE_VS_NATIVE_
-    g_print(out.data());
+    g_print(out.to_string());
 #endif
 }
 void _VS_print()
@@ -508,7 +523,7 @@ void _VS_print()
     out << "\n";
     out.flush();
 #ifndef _COMPILE_VS_NATIVE_
-    g_print(out.data());
+    g_print(out.to_string());
 #endif
 }
 
@@ -526,7 +541,7 @@ void _VS_raw_print( Value v, Values... vs )
     out << "\n";
     out.flush();
 #ifndef _COMPILE_VS_NATIVE_
-    g_print(out.data());
+    g_print(out.to_string());
 #endif
 }
 void _VS_raw_print()

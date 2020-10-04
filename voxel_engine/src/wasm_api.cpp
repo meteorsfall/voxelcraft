@@ -62,8 +62,8 @@ const char* colons_to_underscores(string str) {
 
   // First swap out wasm to voxelengine
   if ((start_pos = str.find("VoxelEngineWASM", start_pos)) != std::string::npos) {
-    str.replace(start_pos, string("VoxelEngineWASM").length(), "VoxelEngine");
-    start_pos += string("VoxelEngine").length();
+    str.replace(start_pos, string("VoxelEngineWASM").length(), "_Import_VoxelEngine");
+    start_pos += string("_Import_VoxelEngine").length();
   }
 
   string from = "::";
@@ -177,32 +177,31 @@ const char* get_wasm_string(ContextRuntimeData* wasm_ctx, i32 string_ptr_i) {
     }
 
     // Check for header
-    if (string_ptr < 4) {
+    if (string_ptr < 4 || string_ptr >= memory_length - 8) {
         dbg("ERROR: Out of bounds access");
         assert(false);
     }
 
     // Get length and check for memory errors
-    u32 length = *(u32*)(&memory_data[string_ptr-4]);
-    if (length/2 > sizeof(str_buffer)) {
+    u32 length = *(u32*)(&memory_data[string_ptr]);
+    if (length+1 > sizeof(str_buffer) || length > memory_length) {
         dbg("ERROR: String too long!");
         assert(false);
     }
-    if (string_ptr + length > memory_length) {
+
+    u32 string_data_ptr = *(u32*)(&memory_data[string_ptr+4]);
+
+    // if (string_data_ptr + length > memory_length)
+    if (string_data_ptr > memory_length - length) {
         dbg("ERROR: Out of bounds access");
-        assert(false);
-    }
-    if (length % 2 != 0) {
-        dbg("ERROR: Strings must have even length");
         assert(false);
     }
 
     // Copy str buffer
-    u32 true_length = length / 2 + 1;
-    for(u32 i = 0; i < true_length - 1; i++) {
-        str_buffer[i] = memory_data[string_ptr+i*2];
+    for(u32 i = 0; i < length; i++) {
+        str_buffer[i] = memory_data[string_data_ptr+i];
     }
-    str_buffer[true_length-1] = '\0';
+    str_buffer[length] = '\0';
 
     return str_buffer;
 }
@@ -263,8 +262,6 @@ void VoxelEngineWASM::get_input_state(ContextRuntimeData* wasm_ctx, int32_t ptr_
 }
 
 int32_t VoxelEngineWASM::register_font(ContextRuntimeData* wasm_ctx, i32 filepath) {
-    
-    
     return VoxelEngine::register_font(get_wasm_string(wasm_ctx, filepath));
 }
 

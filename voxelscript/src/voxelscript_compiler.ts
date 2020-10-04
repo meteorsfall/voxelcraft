@@ -11,7 +11,7 @@ const TRACE_PARSER = false;
 
 // Read and parse args
 // source => file directory to read files from
-// build_target => directory to put compiled files
+// cpp_file => directory to put compiled files
 // desired_module => the module to compile, if a specific one is desired (compile all if null)
 // override => A set of files to override existing files in the directory
 //             (I.e., If Entity.vs is in source, and Entity.vs is in override, then use the one in override)
@@ -154,40 +154,103 @@ if (err) {
 }
 
 // If there's a built target, we should get all compiled modules and write them to the build target
-if (options.build_target) {
+if (options.cpp_file) {
   // If the build target doesn't exist, make it
-  if (!existsSync(options.build_target)){
-    mkdirSync(options.build_target);
-  }
+  mkdirSync(path.dirname(options.cpp_file), { recursive: true });
 
   // Write the remaining compiled files to the build target directory
-  writeFileSync(path.join(options.build_target, "main.cpp"), compiler_context.get_compiled_code());
+  writeFileSync(options.cpp_file, compiler_context.get_compiled_code());
 }
 
-// Run gcc to compile the resulting c++
-const child_argv = [
-    '-D_COMPILE_VS_NATIVE_',
-    '-O0',
-    '-g',
-    '--std=c++17',
-    (options.build_target ? '-o' + path.join(options.build_target, 'a.out') : '-oa.out'),
-    '-Wfatal-errors', // Stop at first error
-    '-xc++',
-    '-',
-];
+async function compile() {
+  if (options.is_wasm) {
+    let wasm_filename = options.output_file || "a.wasm";
+    mkdirSync(path.dirname(wasm_filename), { recursive: true });
 
-let cp = childProcess.spawnSync("g++", child_argv, {
-    input: compiler_context.get_compiled_code(),
-    timeout: 5000,
-    windowsHide: true,
-});
+    // emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -o main.wasm
+    // cat main.cpp | emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -xc++ -o main2.wasm
+    const child_argv = [
+      '-std=c++17',
+      '-fno-rtti',
+      '-fno-exceptions',
+      '-Wfatal-errors',
+      '-sALLOW_MEMORY_GROWTH',
+      '--no-entry',
+      '-xc++',
+      '-',
+      '-o' + wasm_filename
+    ];
+    let cp = childProcess.spawnSync("emcc", child_argv, {
+        input: compiler_context.get_compiled_code(),
+        timeout: 5000,
+        windowsHide: true,
+    });
+    if (cp.error || cp.status != 0) {
+      // Exit due to gcc error
+      console.log("Error: Failed to compile using emcc: " + cp.status + " " + cp.error + " " + cp.stderr);
+      process.exit(2);
+    }
 
-if (cp.error || cp.status != 0) {
-  // Exit due to gcc error
-  console.log("Error: Failed to compile using gcc: " + cp.status + " " + cp.error + " " + cp.stderr);
-  process.exit(2);
+    await require("wabt")().then((wabt: any) => {
+      let wasm = readFileSync(wasm_filename); // a buffer holding the contents of a wasm file
+    
+      let myModule = wabt.readWasm(wasm, { readDebugNames: true });
+      try {
+        myModule.validate();
+      } catch(e) {
+        console.log(e);
+        console.log("Error: Wasm validation error");
+        process.exit(2);
+      }
+      myModule.applyNames();
+    
+      let wast = myModule.toText({ foldExprs: false, inlineExport: false });
+
+      let num_occurances = (wast.match(/wasi_snapshot_preview1/g) || []).length;
+      if (num_occurances != 1) {
+        console.log("Error: Please don't use the string \"wasi_snapshot_preview1\" in your code");
+        process.exit(2);
+      }
+
+      let new_wast = wast.replace('wasi_snapshot_preview1', 'env');
+
+      let new_module  = wabt.parseWat('a.wat', new_wast);
+      let new_wasm = new_module.toBinary({}).buffer;
+
+      writeFileSync(wasm_filename, new_wasm);
+    });
+  } else {
+    let exec_filename = options.output_file || "a.out";
+    mkdirSync(path.dirname(exec_filename), { recursive: true });
+
+    // Run gcc to compile the resulting c++
+    const child_argv = [
+        '-D_COMPILE_VS_NATIVE_',
+        '-O0',
+        '-g',
+        '--std=c++17',
+        '-o' + exec_filename,
+        '-Wfatal-errors', // Stop at first error
+        '-xc++',
+        '-',
+    ];
+
+    let cp = childProcess.spawnSync("clang++", child_argv, {
+        input: compiler_context.get_compiled_code(),
+        timeout: 5000,
+        windowsHide: true,
+    });
+
+    if (cp.error || cp.status != 0) {
+      // Exit due to gcc error
+      console.log("Error: Failed to compile using clang: " + cp.status + " " + cp.error + " " + cp.stderr);
+      process.exit(2);
+    }
+  }
+
+  // Print success message!
+  console.log();
+  console.log("Compilation Succeeded!");
 }
 
-// Print success message!
-console.log();
-console.log("Compilation Succeeded!");
+compile();

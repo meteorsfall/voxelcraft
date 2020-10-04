@@ -14,7 +14,8 @@
     "pegjs": "^0.10.0",
     "pegjs-backtrace": "^0.2.0",
     "source-map-support": "^0.5.19",
-    "typescript": "^3.9.7"
+    "typescript": "^3.9.7",
+    "wabt": "1.0.19"
   },
   "devDependencies": {
     "@types/node": "^14.6.0"
@@ -22,9 +23,8 @@
   "scripts": {
     "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs *.hpp base_ts.ts build_tsconfig.json build && cd ..",
     "compile_extension": "npm run compile_compiler && echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd .. && mkdir -p ./voxelscript_extension/server/build/voxelscript_compiler && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
-    "test_compiler": "npm run compile_compiler && ((node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build && ./tests/build/a.out && echo) || true)",
-    "package_compiler": "npm run compile_compiler && pkg ./src/build/voxelscript_compiler.js --out-path=./build",
-    "test": "npm run compile_compiler && node ./src/build/voxelscript_compiler.js --source=./tests/voxelscript_test --build-target=./tests/build"
+    "test_compiler": "npm run compile_compiler && ((node ./src/build/voxelscript_compiler.js ./tests/voxelscript_test --cpp-file=./tests/build/main.cpp -o ./tests/build/a.out && ./tests/build/a.out && echo) || true)",
+    "package_compiler": "npm run compile_compiler && pkg ./src/build/voxelscript_compiler.js --out-path=./build"
   },
   "author": "VoxelCraft",
   "license": "ISC"
