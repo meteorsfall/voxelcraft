@@ -1,5 +1,0 @@
-class Player {
-
-}
-
-export {Player};

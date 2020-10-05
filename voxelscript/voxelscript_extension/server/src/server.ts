@@ -109,7 +109,7 @@ function compile(package_name : string, module_name : string) {
 
         log("Compiling: " + module_name + " with " + compiler_path);
         const child_argv = [
-            '--build-target=' + build_path,
+            '--cpp-file=' + path.join(build_path, 'main.cpp'),
             '--source=' + path.join(PROJECTS_PATH, package_name),
             '--override=' + path.join(PROJECTS_PATH, package_name, 'open_files'),
             '--module=' + module_name

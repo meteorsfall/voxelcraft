@@ -164,7 +164,7 @@ if (options.cpp_file) {
 
 async function compile() {
   if (options.is_wasm) {
-    let wasm_filename = options.output_file || "a.wasm";
+    let wasm_filename = options.output_file!;
     mkdirSync(path.dirname(wasm_filename), { recursive: true });
 
     // emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -o main.wasm
@@ -220,7 +220,7 @@ async function compile() {
       writeFileSync(wasm_filename, new_wasm);
     });
   } else {
-    let exec_filename = options.output_file || "a.out";
+    let exec_filename = options.output_file!;
     mkdirSync(path.dirname(exec_filename), { recursive: true });
 
     // Run gcc to compile the resulting c++
@@ -253,4 +253,6 @@ async function compile() {
   console.log("Compilation Succeeded!");
 }
 
-compile();
+if (options.output_file) {
+  compile();
+}

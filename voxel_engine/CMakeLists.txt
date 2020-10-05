@@ -20,7 +20,7 @@ ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
   COMMENT "Checking GCH Compilation"
 )
 
-file(GLOB_RECURSE wasm_sources CONFIGURE_DEPENDS "mods/*.ts")
+file(GLOB_RECURSE wasm_sources CONFIGURE_DEPENDS "mods/*.vs")
 
 if (WIN32)
 ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
@@ -31,7 +31,7 @@ ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
 )
 else()
 ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
-  COMMAND asc mods/main.ts --runtime half --explicitStart -b mods/main.wasm
+  COMMAND voxelc ./mods/main_mod -o ./mods/main.wasm
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm compilation"
 )
