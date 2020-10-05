@@ -182,7 +182,6 @@ async function compile() {
     ];
     let cp = childProcess.spawnSync("emcc", child_argv, {
         input: compiler_context.get_compiled_code(),
-        timeout: 5000,
         windowsHide: true,
     });
     if (cp.error || cp.status != 0) {
@@ -237,7 +236,6 @@ async function compile() {
 
     let cp = childProcess.spawnSync("clang++", child_argv, {
         input: compiler_context.get_compiled_code(),
-        timeout: 5000,
         windowsHide: true,
     });
 
