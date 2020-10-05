@@ -1,5 +1,5 @@
 import * as peg from 'pegjs';
-import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync, exists } from 'fs';
 import * as childProcess from 'child_process';
 import * as path from "path";
 import { VSCompiler } from './voxelscript_compiler_context';
@@ -161,7 +161,9 @@ if (err) {
 // If there's a built target, we should get all compiled modules and write them to the build target
 if (options.cpp_file) {
   // If the build target doesn't exist, make it
-  mkdirSync(path.dirname(options.cpp_file), { recursive: true });
+  if (!existsSync(path.dirname(options.cpp_file))) {
+    mkdirSync(path.dirname(options.cpp_file), { recursive: true });
+  }
 
   // Write the remaining compiled files to the build target directory
   writeFileSync(options.cpp_file, compiler_context.get_compiled_code());
@@ -170,7 +172,9 @@ if (options.cpp_file) {
 async function compile() {
   if (options.is_wasm) {
     let wasm_filename = options.output_file!;
-    mkdirSync(path.dirname(wasm_filename), { recursive: true });
+    if (!existsSync(path.dirname(wasm_filename))) {
+      mkdirSync(path.dirname(wasm_filename), { recursive: true });
+    }
 
     // emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -o main.wasm
     // cat main.cpp | emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -xc++ -o main2.wasm
@@ -225,7 +229,9 @@ async function compile() {
     });
   } else {
     let exec_filename = options.output_file!;
-    mkdirSync(path.dirname(exec_filename), { recursive: true });
+    if (!existsSync(path.dirname(exec_filename))) {
+      mkdirSync(path.dirname(exec_filename), { recursive: true });
+    }
 
     // Run gcc to compile the resulting c++
     const child_argv = [
