@@ -104,7 +104,9 @@ InputState InputHandler::capture_input(bool relative_mouse) {
         }
     }
 
-    input.current_time = glfwGetTime();
+    double current_time = glfwGetTime();
+    input.current_time_seconds = (int)current_time;
+    input.current_time_nanoseconds = (current_time - input.current_time_seconds) * 1'000'000'000;
     input.screen_dimensions = ivec2(w, h);
 
     last_relative_mouse = relative_mouse;

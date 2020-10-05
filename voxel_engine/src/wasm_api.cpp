@@ -173,20 +173,20 @@ const char* get_wasm_string(ContextRuntimeData* wasm_ctx, i32 string_ptr_i) {
     // Error on very long string
     if (string_ptr > UINT32_MAX/2) {
         dbg("ERROR: String pointer too large!");
-        assert(false);
+        exit(-1);
     }
 
     // Check for header
     if (string_ptr < 4 || string_ptr >= memory_length - 8) {
         dbg("ERROR: Out of bounds access");
-        assert(false);
+        exit(-1);
     }
 
     // Get length and check for memory errors
     u32 length = *(u32*)(&memory_data[string_ptr]);
     if (length+1 > sizeof(str_buffer) || length > memory_length) {
         dbg("ERROR: String too long!");
-        assert(false);
+        exit(-1);
     }
 
     u32 string_data_ptr = *(u32*)(&memory_data[string_ptr+4]);
@@ -194,7 +194,7 @@ const char* get_wasm_string(ContextRuntimeData* wasm_ctx, i32 string_ptr_i) {
     // if (string_data_ptr + length > memory_length)
     if (string_data_ptr > memory_length - length) {
         dbg("ERROR: Out of bounds access");
-        assert(false);
+        exit(-1);
     }
 
     // Copy str buffer
@@ -217,7 +217,7 @@ mat4 get_mat4(ContextRuntimeData* wasm_ctx, i32 mat4_ptr_i) {
     u32 mat4_ptr = (u32)mat4_ptr_i;
     if (mat4_ptr >= memory_length - 4) {
         dbg("ERROR: mat4 ptr too large! %u", mat4_ptr);
-        assert(false);
+        exit(-1);
     }
 
     u32 mat4_data = *(u32*)&memory_data[mat4_ptr];
@@ -225,11 +225,11 @@ mat4 get_mat4(ContextRuntimeData* wasm_ctx, i32 mat4_ptr_i) {
 
     if (mat4_data > UINT32_MAX/2) {
         dbg("ERROR: mat4 ptr too large!");
-        assert(false);
+        exit(-1);
     }
     if (mat4_data + 16*4 > memory_length) {
         dbg("ERROR: mat4 ptr out of bounds!");
-        assert(false);
+        exit(-1);
     }
 
     mat4 ret;
@@ -248,16 +248,23 @@ void memcpy_wasm(ContextRuntimeData* wasm_ctx, i32 ptr_i, void* buffer, u32 leng
     
     u32 ptr = (u32)ptr_i;
 
-    if (ptr >= UINT32_MAX/2 || length >= UINT32_MAX/2) {
-        dbg("ERROR: ptr/length too large! %d %d", ptr, length);
-        assert(false);
-    }
-    if (ptr + length > memory_length) {
-        dbg("ERROR: copy out of bounds!");
-        assert(false);
+    if (ptr >= memory_length - 4) {
+        dbg("ERROR: ptr too large! %d", ptr);
+        exit(-1);
     }
 
-    memcpy(&memory_data[ptr], buffer, length);
+    u32 data_ptr = *(u32*)&memory_data[ptr];
+
+    if (data_ptr >= UINT32_MAX/2 || length >= UINT32_MAX/2) {
+        dbg("ERROR: ptr/length too large! %d %d", data_ptr, length);
+        exit(-1);
+    }
+    if (data_ptr + length > memory_length) {
+        dbg("ERROR: copy out of bounds!");
+        exit(-1);
+    }
+
+    memcpy(&memory_data[data_ptr], buffer, length);
 }
 
 void VoxelEngineWASM::print(ContextRuntimeData* wasm_ctx, int32_t str) {
@@ -382,11 +389,6 @@ void VoxelEngineWASM::Renderer::render_skybox(ContextRuntimeData* wasm_ctx, int3
     UNUSED(wasm_ctx);
     mat4 proj = get_mat4(wasm_ctx, proj_ptr);
     mat4 view = get_mat4(wasm_ctx, view_ptr);
-    
-    dbg("SKYBOX");
-    for(int i = 0; i < 16; i++) {
-        dbg("proj[%d][%d] = %f", i / 4, i % 4, proj[i/4][i%4]);
-    }
 
     VoxelEngine::Renderer::render_skybox(cubemap_texture_id, proj, view);
 }

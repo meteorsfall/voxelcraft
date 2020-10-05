@@ -15,7 +15,7 @@ implement mat4 {
         this.arr[15] = val;
     }
     mat4 make_perspective(float fov, float aspect_ratio, float near, float far) {
-        mat4 ret = this.clone();
+        mat4 ret = new mat4(0.0);
         float frustum_depth = far - near;
         float one_over_depth = 1.0 / frustum_depth;
 
@@ -24,7 +24,6 @@ implement mat4 {
         ret.arr[4*2+2] = -(near+far) * one_over_depth;
         ret.arr[4*3+2] = -(2.0*near*far) * one_over_depth;
         ret.arr[4*2+3] = -1.0;
-        ret.arr[4*3+3] = 0.0;
 
         return ret;
     }

@@ -25,8 +25,8 @@ Chunk* World::get_chunk(int x, int y, int z) {
 }
 
 Chunk* World::make_chunk(int x, int y, int z) {
-    dbg("Making %d, %d, %d", x, y, z);
     ivec3 chunk_coords(floor_div(x, CHUNK_SIZE), floor_div(y, CHUNK_SIZE), floor_div(z, CHUNK_SIZE));
+    dbg("Making %d, %d, %d", chunk_coords.x, chunk_coords.y, chunk_coords.z);
 
     // Inserts into hashmap
     ivec3 megachunk_coords(floor_div(chunk_coords.x, MEGACHUNK_SIZE), floor_div(chunk_coords.y, MEGACHUNK_SIZE), floor_div(chunk_coords.z, MEGACHUNK_SIZE));

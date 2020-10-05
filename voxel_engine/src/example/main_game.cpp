@@ -256,7 +256,7 @@ const float MOUSE_SPEED = 0.1;
 const float JUMP_VELOCITY = 6.0;
 
 void Game::do_something() {
-    double current_time = input.current_time;
+    double current_time = input.current_time_seconds + input.current_time_nanoseconds * (1'000'000'000.0);
     // If there hasn't been a frame yet, we skip this one and save this->last_time
     float delta_time = current_time - this->last_time;
     this->last_time = current_time;

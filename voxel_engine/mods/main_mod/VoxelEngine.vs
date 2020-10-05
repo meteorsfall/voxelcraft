@@ -6,6 +6,7 @@ class VoxelEngineRenderer {
     void render_texture(int texture_id, int location_x, int location_y, int size_x, int size_y);
     void render_text(int font_id, int location_x, int location_y, float scale, string text, int color_x, int color_y, int color_z);
     void render_skybox(int cubemap_texture_id, mat4 proj, mat4 view);
+    void render_world(int world_id, mat4 proj, mat4 view);
 }
 
 implement VoxelEngineRenderer {
@@ -17,6 +18,9 @@ implement VoxelEngineRenderer {
     }
     void render_skybox(int cubemap_texture_id, mat4 proj, mat4 view) {
         env.VoxelEngine__Renderer__render_skybox(cubemap_texture_id, proj.arr, view.arr);
+    }
+    void render_world(int world_id, mat4 proj, mat4 view) {
+        env.VoxelEngine__Renderer__render_world(world_id, proj.arr, view.arr);
     }
 }
 
@@ -72,7 +76,7 @@ implement VoxelEngineWorld {
 
 class VoxelEngine {
     init();
-    void get_input_state(char[] data);
+    void get_input_state(int[] data);
     // Registery
     int register_font(string s);
     int register_atlas_texture(string filepath, int color_key_x, int color_key_y, int color_key_z);
@@ -93,7 +97,7 @@ implement VoxelEngine {
         this.renderer = new VoxelEngineRenderer();
         this.world = new VoxelEngineWorld();
     }
-    void get_input_state(char[] data) {
+    void get_input_state(int[] data) {
         env.VoxelEngine__get_input_state(data);
     }
     int register_font(string s) {

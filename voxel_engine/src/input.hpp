@@ -25,12 +25,14 @@ public:
 
     /// The current Input state
     struct InputState {
+        /// The current time
+        // i32
+        int current_time_seconds;
+        // i32
+        int current_time_nanoseconds;
         /// The current screen dimensions
         // i32, i32
         ivec2 screen_dimensions;
-        /// The current time
-        // f64
-        double current_time;
         /// The mouse position. If relative_mouse was true, this is a delta-position representing how much the mouse would have moved, had it been visible
         // i32, i32
         ivec2 mouse_pos;

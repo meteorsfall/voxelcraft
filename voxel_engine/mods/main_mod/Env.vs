@@ -1,6 +1,6 @@
 class Environment {
     // Get input state
-    void VoxelEngine__get_input_state(char[] data);
+    void VoxelEngine__get_input_state(int[] data);
 
     // Registry
     int VoxelEngine__register_font(string s);
@@ -30,6 +30,7 @@ class Environment {
     void VoxelEngine__Renderer__render_texture(int texture_id, int location_x, int location_y, int size_x, int size_y);
     void VoxelEngine__Renderer__render_text(int font_id, int location_x, int location_y, float scale, string text, int color_x, int color_y, int color_z);
     void VoxelEngine__Renderer__render_skybox(int cubemap_texture_id, float[] proj, float[] view);
+    void VoxelEngine__Renderer__render_world(int world_id, float[] proj, float[] view);
     //void VoxelEngine__Renderer__render_model(int texture_id, int location_x, int location_y, int size_x, int size_y);
 }
 implement Environment { /* class Environment will be implemented as wasm imports */ }

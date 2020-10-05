@@ -98,6 +98,11 @@ for(let file_data of vs_files) {
       voxelscript_data, err
     );
     console.log(err_str);
+    if (!options.desired_module) {
+      // If there is no particular desired module, we should exit on the first parse error
+      // Otherwise, we do more specific checks below (Since if the failed module isn't a dependency of the desired module, it doesn't matter)
+      process.exit(1);
+    }
     parsing_errors[voxelscript_module_name] = err_str;
   }
 

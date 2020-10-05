@@ -34,8 +34,7 @@ implement BasicMath {
         return sign*res;
     }
     float cos(float theta) {
-        float s = this.sin(theta);
-        return this.sqrt(1.0 - s*s);
+        return this.sin(this.pi/2.0 - theta);
     }
     float tan(float theta) {
         return this.sin(theta) / this.cos(theta);
