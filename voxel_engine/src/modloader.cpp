@@ -17,7 +17,7 @@ WASM_NAMED_DECLARE(void, , abort_fn, "panic", I32);
 void abort_fn(ContextRuntimeData* ctx, i32 message) {
     UNUSED(ctx);
     UNUSED(message);
-    dbg("Abort: %d", message);
+    dbg("Abort: %s", get_wasm_string(ctx, message));
     dbg("Abort occured!");
 }
 

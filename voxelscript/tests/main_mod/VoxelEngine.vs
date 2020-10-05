@@ -1,11 +1,10 @@
 import Env;
-import vec3;
-import mat4;
+import Vec3;
+import Mat4;
 
 class VoxelEngineRenderer {
     void render_texture(int texture_id, int location_x, int location_y, int size_x, int size_y);
     void render_text(int font_id, int location_x, int location_y, float scale, string text, int color_x, int color_y, int color_z);
-    void render_skybox(int cubemap_texture_id, mat4 proj, mat4 view);
 }
 
 implement VoxelEngineRenderer {
@@ -14,9 +13,6 @@ implement VoxelEngineRenderer {
     }
     void render_text(int font_id, int location_x, int location_y, float scale, string text, int color_x, int color_y, int color_z) {
         env.VoxelEngine__Renderer__render_text(font_id, location_x, location_y, scale, text, color_x, color_y, color_z);
-    }
-    void render_skybox(int cubemap_texture_id, mat4 proj, mat4 view) {
-        env.VoxelEngine__Renderer__render_skybox(cubemap_texture_id, proj.arr, view.arr);
     }
 }
 
@@ -77,7 +73,7 @@ class VoxelEngine {
     int register_font(string s);
     int register_atlas_texture(string filepath, int color_key_x, int color_key_y, int color_key_z);
     int register_texture(string filepath, int color_key_x, int color_key_y, int color_key_z);
-    int register_cubemap_texture(string filepath);
+    int register_cubemap_texutre(string filepath);
     void register_mesh(string filepath);
     void register_component(string filepath);
     int register_model(string filepath);
@@ -105,8 +101,8 @@ implement VoxelEngine {
     int register_texture(string filepath, int color_key_x, int color_key_y, int color_key_z) {
         return env.VoxelEngine__register_texture(filepath, color_key_x, color_key_y, color_key_z);
     }
-    int register_cubemap_texture(string filepath) {
-        return env.VoxelEngine__register_cubemap_texture(filepath);
+    int register_cubemap_texutre(string filepath) {
+        return env.VoxelEngine__register_cubemap_texutre(filepath);
     }
     void register_mesh(string filepath) {
         env.VoxelEngine__register_mesh(filepath);

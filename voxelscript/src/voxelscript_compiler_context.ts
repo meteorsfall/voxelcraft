@@ -1340,28 +1340,40 @@ class VSCompiler {
       if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.BOOL))) {
         throw {
           message: "Argument to logical not \"!\" must be a boolean",
-          location: e.rhs,
+          location: e.rhs.location,
         };
       }
       t = make_primitive_type(primitive_type.BOOL);
       break;
     case "minus":
       this.type_subexpression(e.rhs);
-      if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.INT))) {
+      if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
         throw {
-          message: "Argument to unary minus \"-\" must be an integer",
-          location: e.rhs,
+          message: "Argument to unary minus \"-\" must be an integer or a float",
+          location: e.rhs.location,
         };
       }
-      t = make_primitive_type(primitive_type.INT);
+      t = e.rhs.calculated_type;
       break;
     case "postfix_minus":
       this.type_subexpression(e.lhs);
-      //this.write_output("--");
+      if (!_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
+        throw {
+          message: "Argument to postfix minus \"--\" must be an integer or a float",
+          location: e.lhs.location,
+        };
+      }
+      t = e.lhs.calculated_type;
       break;
     case "postfix_plus":
       this.type_subexpression(e.lhs);
-      //this.write_output("++");
+      if (!_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
+        throw {
+          message: "Argument to postfix plus \"++\" must be an integer or a float",
+          location: e.lhs.location,
+        };
+      }
+      t = e.lhs.calculated_type;
       break;
     case "cast":
       let cast_type = this.resolve_type(e.lhs);
@@ -2866,7 +2878,7 @@ class VSCompiler {
   }
 
   // Compile module
-  private compile_internal_module(module_name : string) : boolean {
+  public compile_single_module(module_name : string) : boolean {
     // Return if the module has already been compiled
     if (module_name in this.loaded_modules) {
       return true;
@@ -2901,9 +2913,15 @@ class VSCompiler {
             module_name: import_being_explored!.module_name,
             location: import_being_explored!.location,
           };
-          if (dependency_being_explored.module_name in this.failed_modules) {
-            this.error_reason = "Dependency failed to parse";
+          if (import_being_explored.module_name != dependency_being_explored.module_name) {
+            // If a parent module is in-fact the one with a missing dependency,
+            // then the parent module must fail to compile if we theoretically compile it
+            this.error_reason = "Dependency failed to compile";
+          } else if (dependency_being_explored.module_name in this.failed_modules) {
+            // If the parent module _is_ the missing dependency, but it failed to PEGJS parse
+            this.error_reason = "Dependency failed to compile";
           } else {
+            // If the parent module _is_ the missing dependency, but it isn't a fail-to-pegjs-parse, then it must just not exist
             this.error_reason = "Dependency not found";
           }
           return false;
@@ -2956,10 +2974,6 @@ class VSCompiler {
     return true;
   }
 
-  compile_single_module(module_name : string): bool {
-    return this.compile_internal_module(module_name);
-  }
-
   compile_all_modules(): bool {
     // While there are still modules to compile,
     while(Object.keys(this.modules).length != Object.keys(this.loaded_modules).length) {
@@ -2974,11 +2988,38 @@ class VSCompiler {
 
       // Check that such a module was found
       if (!module_with_no_dependencies) {
-        return false;
+        // If we failed to find a module with no dependencies,
+        // then the remaining modules either have a cycle or a dependency that does not exist
+
+        // First, check for a module whose dependencies don't exist
+        for(let module_name in this.modules) {
+          if (!this.loaded_modules[module_name]) {
+            if (!(this.find_missing_dependency(module_name)!.module_name in this.modules)) {
+              if (!this.compile_single_module(module_name)) {
+                return false;
+              } else {
+                throw new Error("Module somehow compiled, even though they all had an unresolvable dependency");
+              }
+            }
+          }
+        }
+
+        // Otherwise, there's a cycle and we can just pick one randomly
+        for(let module_name in this.modules) {
+          if (!this.loaded_modules[module_name]) {
+            if (!this.compile_single_module(module_name)) {
+              return false;
+            } else {
+              throw new Error("Module somehow compiled, even though they all had an unresolvable dependency");
+            }
+          }
+        }
+
+        throw new Error("Somehow all modules are compiled?");
       }
 
       // Compile that module
-      if (!this.compile_internal_module(module_with_no_dependencies)) {
+      if (!this.compile_single_module(module_with_no_dependencies)) {
         return false;
       }
     }
