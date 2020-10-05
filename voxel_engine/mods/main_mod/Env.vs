@@ -6,7 +6,7 @@ class Environment {
     int VoxelEngine__register_font(string s);
     int VoxelEngine__register_atlas_texture(string filepath, int color_key_x, int color_key_y, int color_key_z);
     int VoxelEngine__register_texture(string filepath, int color_key_x, int color_key_y, int color_key_z);
-    int VoxelEngine__register_cubemap_texutre(string filepath);
+    int VoxelEngine__register_cubemap_texture(string filepath);
     void VoxelEngine__register_mesh(string filepath);
     void VoxelEngine__register_component(string filepath);
     int VoxelEngine__register_model(string filepath);
@@ -29,6 +29,7 @@ class Environment {
     // Renderer
     void VoxelEngine__Renderer__render_texture(int texture_id, int location_x, int location_y, int size_x, int size_y);
     void VoxelEngine__Renderer__render_text(int font_id, int location_x, int location_y, float scale, string text, int color_x, int color_y, int color_z);
+    void VoxelEngine__Renderer__render_skybox(int cubemap_texture_id, float[] proj, float[] view);
     //void VoxelEngine__Renderer__render_model(int texture_id, int location_x, int location_y, int size_x, int size_y);
 }
 implement Environment { /* class Environment will be implemented as wasm imports */ }

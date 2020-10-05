@@ -94,8 +94,8 @@ int main( void )
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
 
-	// Dark blue background
-	glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+	// Red background
+	glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
     glEnable(GL_CULL_FACE);
 	glEnable(GL_SAMPLE_ALPHA_TO_MASK_EXT);

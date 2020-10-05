@@ -369,7 +369,7 @@ integer
 
 // Double
 float
-  = num:([0-9]+ "." [0-9]+) ![0-9\.] { return {type:"float", value: num.join(""), location:location()}; }
+  = num:([0-9]+ "." [0-9]+) ![0-9\.] { return {type:"float", value: num[0].join("") + num[1] + num[2].join(""), location:location()}; }
 
 // String
 char

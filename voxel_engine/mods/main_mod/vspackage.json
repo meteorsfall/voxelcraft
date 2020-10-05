@@ -1,8 +1,8 @@
 {
-    "name": "base_and_ic2",
-    "title": "Base and IC2",
+    "name": "main_mod",
+    "title": "Base Mod",
     "author": "VoxelCraft",
-    "description": "Includes Ores, Fuels, and Crushers",
+    "description": "Includes the Base Mod of VoxelCraft",
     "main": "Main",
     "environment": "Env",
     "dependencies": []

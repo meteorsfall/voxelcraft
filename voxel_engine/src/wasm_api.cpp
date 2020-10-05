@@ -215,18 +215,25 @@ mat4 get_mat4(ContextRuntimeData* wasm_ctx, i32 mat4_ptr_i) {
     u32 memory_length = mrd.numPages * 65536;
 
     u32 mat4_ptr = (u32)mat4_ptr_i;
+    if (mat4_ptr >= memory_length - 4) {
+        dbg("ERROR: mat4 ptr too large! %u", mat4_ptr);
+        assert(false);
+    }
 
-    if (mat4_ptr > UINT32_MAX/2) {
+    u32 mat4_data = *(u32*)&memory_data[mat4_ptr];
+    //u32 mat4_size = *(u32*)&memory_data[mat4_ptr+4];
+
+    if (mat4_data > UINT32_MAX/2) {
         dbg("ERROR: mat4 ptr too large!");
         assert(false);
     }
-    if (mat4_ptr + 16*4 > memory_length) {
+    if (mat4_data + 16*4 > memory_length) {
         dbg("ERROR: mat4 ptr out of bounds!");
         assert(false);
     }
 
     mat4 ret;
-    memcpy(&ret[0][0], &memory_data[mat4_ptr], 16*4);
+    memcpy(&ret[0][0], &memory_data[mat4_data], 16*4);
 
     return ret;
 }
@@ -375,6 +382,11 @@ void VoxelEngineWASM::Renderer::render_skybox(ContextRuntimeData* wasm_ctx, int3
     UNUSED(wasm_ctx);
     mat4 proj = get_mat4(wasm_ctx, proj_ptr);
     mat4 view = get_mat4(wasm_ctx, view_ptr);
+    
+    dbg("SKYBOX");
+    for(int i = 0; i < 16; i++) {
+        dbg("proj[%d][%d] = %f", i / 4, i % 4, proj[i/4][i%4]);
+    }
 
     VoxelEngine::Renderer::render_skybox(cubemap_texture_id, proj, view);
 }
