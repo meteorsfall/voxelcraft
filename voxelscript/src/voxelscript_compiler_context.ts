@@ -1075,7 +1075,7 @@ class VSCompiler {
       this.write_output(")");
     } else if (t.is_array && right.array_type == null) {
       this.write_output("(");
-      this.write_output("new " + this.render_type(t).slice(0, -1));
+      this.write_output("new " + this.render_type(t).slice(0, -1).slice("ObjectRef<".length));
       this.render_subexpression(rhs);
       this.write_output(")");
     } else {
@@ -1685,7 +1685,7 @@ class VSCompiler {
       break;
     case "new": {
       let type_name = e.new_type.calculated_type;
-      this.write_output(this.render_type(type_name).slice(0, -1) + "::_create_class(");
+      this.write_output(this.render_type(type_name).slice(0, -1).slice("ObjectRef<".length) + "::_create_class(");
       this.render_args(null, e.args);
       this.write_output(")");
       // Pass onto function call for the rest of the new
@@ -1697,6 +1697,9 @@ class VSCompiler {
       let arg_types = e.lhs.calculated_type.lambda_type!.arg_types;
       if (fn_type.is_member_trait_function || fn_type.is_trait_function || fn_type.is_member_array_function || fn_type.is_member_string_function) {
         this.render_subexpression(e.lhs.lhs);
+        if(fn_type.is_member_array_function) {
+          this.write_output(".obj");
+        }
         this.write_output(arg_types.length > 0 ? ", " : "");
       }
       if (fn_type.lambda_type!.is_variadic) {
@@ -1734,77 +1737,114 @@ class VSCompiler {
     }
   }
 
-  render_type(t: symbl_type, options: any = {}): string {
-    if(t.is_primitive) {
-      if (t.primitive_type == primitive_type.BOOL) {
-        return "bool";
-      }
-      if (t.primitive_type == primitive_type.CHAR) {
-        return "char";
-      }
-      if (t.primitive_type == primitive_type.INT) {
-        return "int";
-      }
-      if (t.primitive_type == primitive_type.FLOAT) {
-        return "float";
-      }
+  render_class_type(t: symbl_type, options: any = {}): string {
+    if (!t.is_class) {
+      throw new Error("Called render_class on symbl_type that is not a class!");
     }
-    if (t.is_string) {
-      if (options.environment) {
-        return "string*";
-      } else {
-        return "string";
-      }
-    }
-    if (t.is_class) {
-      if (options.rendering_template) {
-        return "Object*";
-      }
 
-      let tmp = "";
-      if (t.template!.length > 0) {
-        tmp += "<";
-        let first = true;
-        for(let temp_val of t.template!) {
-          if (!first) {
-            tmp += ", ";
-          }
-          first = false;
-          tmp += this.render_type(temp_val, {
-            rendering_template: true
-          });
-        }
-        tmp += ">";
-      }
-      return "_Class_" + t.class_name! + "::_Instance" + tmp + "*";
+    if (options.rendering_template) {
+      return "ObjectRef<Object>";
     }
-    if (t.is_trait) {
-      return "Object*";
-    }
-    if (t.is_array) {
-      return "dynamic_array<" + this.render_type(t.array_type!) + ">*";
-    }
-    if (t.is_lambda) {
-      if (options.environment) {
-        // TODO: Pass a proper error to the user with {location} set
-        throw new Error("ERROR: Tried to pass a lambda into an environment type");
-      }
-      let return_type = t.lambda_type!.return_type;
-      let ret = "";
-      ret += "function<" + (return_type == null ? "void" : this.render_type(return_type)) + "(";
+
+    let tmp = "";
+    if (t.template!.length > 0) {
+      tmp += "<";
       let first = true;
-      for(let e of t.lambda_type!.arg_types) {
-        if (!first) ret += ", ";
+      for(let temp_val of t.template!) {
+        if (!first) {
+          tmp += ", ";
+        }
         first = false;
-        ret += this.render_type(e);
+        tmp += this.render_type(temp_val, {
+          rendering_template: true
+        });
       }
-      ret += ")>";
-      return ret;
+      tmp += ">";
     }
-    if (t.is_template) {
-      return "T" + t.template_num;
+    return "ObjectRef<_Class_" + t.class_name! + "::_Instance" + tmp + ">";
+    //return "_Class_" + t.class_name! + "::_Instance" + tmp + "*";
+
+  }
+
+  render_type(t: symbl_type, options: any = {}): string {
+    let render_type_internal = (t: symbl_type, options: any = {}): string => {
+      if(t.is_primitive) {
+        if (t.primitive_type == primitive_type.BOOL) {
+          return "bool";
+        }
+        if (t.primitive_type == primitive_type.CHAR) {
+          return "char";
+        }
+        if (t.primitive_type == primitive_type.INT) {
+          return "int";
+        }
+        if (t.primitive_type == primitive_type.FLOAT) {
+          return "float";
+        }
+      }
+      if (t.is_string) {
+        if (options.environment) {
+          return "string*";
+        } else {
+          return "string";
+        }
+      }
+      if (t.is_class) {
+        if (options.rendering_template) {
+          return "ObjectRef<Object>";
+        }
+
+        let tmp = "";
+        if (t.template!.length > 0) {
+          tmp += "<";
+          let first = true;
+          for(let temp_val of t.template!) {
+            if (!first) {
+              tmp += ", ";
+            }
+            first = false;
+            tmp += this.render_type(temp_val, {
+              rendering_template: true
+            });
+          }
+          tmp += ">";
+        }
+        return "ObjectRef<_Class_" + t.class_name! + "::_Instance" + tmp + ">";
+        //return "_Class_" + t.class_name! + "::_Instance" + tmp + "*";
+      }
+      if (t.is_trait) {
+        return "ObjectRef<Object>";
+      }
+      if (t.is_array) {
+        return "ObjectRef<dynamic_array<" + this.render_type(t.array_type!) + ">>";
+      }
+      if (t.is_lambda) {
+        if (options.environment) {
+          // TODO: Pass a proper error to the user with {location} set
+          throw new Error("ERROR: Tried to pass a lambda into an environment type");
+        }
+        let return_type = t.lambda_type!.return_type;
+        let ret = "";
+        ret += "function<" + (return_type == null ? "void" : this.render_type(return_type)) + "(";
+        let first = true;
+        for(let e of t.lambda_type!.arg_types) {
+          if (!first) ret += ", ";
+          first = false;
+          ret += this.render_type(e);
+        }
+        ret += ")>";
+        return ret;
+      }
+      if (t.is_template) {
+        return "T" + t.template_num;
+      }
+      throw new Error("FATAL ERROR: Type cannot be rendered!");
     }
-    throw new Error("FATAL ERROR: Type cannot be rendered!");
+    let ret: string = render_type_internal(t, options);
+    if (options.environment && ret.startsWith("ObjectRef<")) {
+      ret = ret.slice(0, -1).slice("ObjectRef<".length) + "*";
+    }
+    return ret;
   }
 
   render_trait(t: symbl_type): string {
@@ -2012,7 +2052,7 @@ class VSCompiler {
         let func = t.public_functions[func_name];
         this.write_output("static ");
         this.write_output((func.return_type == null ? "void" : this.render_type(func.return_type)) + " ");
-        this.write_output("_Function_" + func_name + "(Object* object");
+        this.write_output("_Function_" + func_name + "(ObjectRef<Object> object");
         let arg_name = "a";
         for(let arg_type of func.arg_types) {
           this.write_output(", ");
@@ -2241,13 +2281,14 @@ class VSCompiler {
       }
   
       let referenced_class_name = this.render_type(make_class_type(class_name));
-      let value_class_name = referenced_class_name.slice(0, -1);
+      let value_class_name = referenced_class_name.slice(0, -1).slice("ObjectRef<".length);
       if (template_names.length > 0) {
         value_class_name += "<";
         value_class_name += template_names.map((_, i) => "T" + i).join(", ");
         value_class_name += ">";
       }
-      referenced_class_name = value_class_name + "*";
+      referenced_class_name = "ObjectRef<" + value_class_name + ">";
+      let ptr_class_name = value_class_name + "*";
 
       if (class_name == "Environment") {
         this.write_output("extern \"C\" {\n");
@@ -2295,11 +2336,13 @@ class VSCompiler {
       // Function to create a new class
       this.write_output("static " + referenced_class_name + " _create_class(" + rendered_typed_args + ") {\n");
       this.tab(1);
-      this.write_output("return new " + value_class_name + "(");
+      this.write_output(referenced_class_name + " ret = new " + value_class_name + "(");
       if (constructor_args) {
         this.write_output(this.render_typed_args(constructor_args, false));
       }
       this.write_output(");\n");
+      this.write_output("ret->reference_count--;\n");
+      this.write_output("return ret;\n");
       this.tab(-1);
       this.write_output("}\n");
       
@@ -2490,7 +2533,7 @@ class VSCompiler {
         this.write_output(" {\n");
         this.tab(1);
         let rendered_class = this.render_type(make_class_type(class_name));
-        this.write_output(rendered_class + " const self = static_cast<" + rendered_class + ">(self_void);\n")
+        this.write_output(rendered_class + " const self = static_cast<" + this.render_class(make_class_type(class_name)) + "*>(self_void);\n")
         // Render function implementation body
         this.render_statement(member_map[func]);
         this.tab(-1);
@@ -2799,7 +2842,7 @@ class VSCompiler {
             }
           }
           this.write_output("#ifndef _COMPILE_VS_NATIVE_\n");
-          this.write_output(this.render_type(cls_type) + " _entry_point = new " + this.render_type(cls_type).slice(0, -1) + "();\n");
+          this.write_output(this.render_type(cls_type) + " _entry_point = new " + this.render_type(cls_type).slice(0, -1).slice("ObjectRef<".length) + "();\n");
           this.write_output("extern \"C\" {\n");
           this.tab(1);
           for(let fn_name in main_cls.public_functions) {

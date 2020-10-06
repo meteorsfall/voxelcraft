@@ -4,6 +4,56 @@ namespace nostd {
     template<class Tag>using type_t=typename Tag::type;
     using size_t=decltype(sizeof(int));
 }
+#ifndef _COMPILE_VS_NATIVE_
+using nostd::size_t;
+#endif
+
+#ifdef _COMPILE_VS_NATIVE_
+
+// Handle memory allocator that can keep track of memory leaks
+
+#include <stdlib.h>
+#include <stdio.h> 
+#include <iostream>
+#include <map>
+
+//#define TRACK_MEMORY
+
+std::map<void*, std::size_t> mem;
+bool count_allocation = true;
+int total_memory_usage = 0;
+
+void* operator new(size_t size) 
+{
+    void* p = malloc(size); 
+#ifdef TRACK_MEMORY
+    if (count_allocation) {
+        //std::cout << "Allocating " << size << " bytes at " << p << std::endl; 
+        count_allocation = false;
+        mem[p] = size;
+        total_memory_usage += size;
+        count_allocation = true;
+    }
+#endif
+    return p; 
+} 
+  
+void operator delete(void* p) 
+{
+    //printf("Deallocating %p\n", p);
+#ifdef TRACK_MEMORY
+    if (count_allocation && mem.count(p)) {
+        size_t bytes = mem[p];
+        mem.erase(p);
+        total_memory_usage -= bytes;
+        //std::cout << "Deallocating " << bytes << " bytes at " << p << std::endl; 
+        std::cout << total_memory_usage << " remaining" << std::endl;
+    }
+#endif
+    free(p); 
+}
+
+#endif
 
 #ifndef _COMPILE_VS_NATIVE_
 // Externs
@@ -28,6 +78,13 @@ namespace nostd {
     // Move
     template<class T>
     T&& move(T&t){return static_cast<T&&>(t);}
+
+    // Swap
+    template<typename T> void swap(T& t1, T& t2) {
+        T temp = nostd::move(t1); // or T temp(std::move(t1));
+        t1 = nostd::move(t2);
+        t2 = nostd::move(temp);
+    }
 
     // Forward
     template<class T>
@@ -249,3 +306,9 @@ namespace nostd {
     template<class Sig>
     using function = small_task<Sig, sizeof(void*)*4, alignof(void*) >;
 }
+
+#ifdef _COMPILE_VS_NATIVE_
+#define standard std
+#else
+#define standard nostd
+#endif

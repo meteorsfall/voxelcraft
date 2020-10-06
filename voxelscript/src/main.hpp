@@ -29,6 +29,7 @@ struct string {
     const char* data() {
         return _data;
     }
+    string() : _data(nullptr), _size(0) {}
     string(const char* str) : _data(str), _size(__builtin_strlen(str)) {}
     string(const char* str, int size) : _data(str), _size(size) {}
     string substr(int start, int len) {
@@ -204,8 +205,20 @@ struct dynamic_array {
     dynamic_array(int size) {
         resize(size);
     }
+    ~dynamic_array() {
+        resize(0);
+        delete[] (char*)data;
+    }
     void resize(int new_size) {
         reserve(new_size);
+        // Destruct any elements if we must decrease in size
+        for(int i = new_size; i < _size; i++) {
+            data[i].~T();
+        }
+        // Default-Construct any new elements
+        for(int i = _size; i < new_size; i++) {
+            new(&data[i]) T;
+        }
         _size = new_size;
     }
     void reserve(int new_capacity) {
@@ -213,12 +226,20 @@ struct dynamic_array {
             if (capacity * 2 > new_capacity) {
                 new_capacity = capacity * 2;
             }
+            // Create new buffer
             T* new_data = (T*)(new char[new_capacity * sizeof(T)]);
-            __builtin_memset(new_data + capacity /* * sizeof(T) is automatic */, 0, (new_capacity - capacity) * sizeof(T));
+
+            // We don't need to memset because we can leave the uninitialized data as undefined
+            // They won't access it because .at() checks for size
+            // __builtin_memset(new_data + capacity /* * sizeof(T) is automatic */, 0, (new_capacity - capacity) * sizeof(T));
+
             for(int i = 0; i < _size; i++) {
-                new_data[i] = data[i];
+                // Construct new element from old element
+                new(&new_data[i]) T(standard::move(data[i]));
+                // Deconstruct dead element
+                data[i].~T();
             }
-            delete[] data;
+            delete[] (char*)data;
             data = new_data;
             capacity = new_capacity;
         }
@@ -233,15 +254,17 @@ struct dynamic_array {
         return data[index];
     }
     void push_back(T datum) {
-        resize(_size + 1);
-        data[_size - 1] = datum;
+        reserve(_size + 1);
+        new(&data[_size]) T(datum);
+        _size++;
     }
     int size() {
         return _size;
     }
-private:
+public:
     T* data = nullptr;
     int _size = 0;
+    unsigned int reference_count = 0;
     int capacity = 0;
 };
 
@@ -257,6 +280,61 @@ public:
 
     // Initialize a new object
     Object(id_type object_id) : object_id(object_id) {};
+};
+
+template<typename T>
+class ObjectRef {
+public:
+    T* obj;
+    ObjectRef() : obj(nullptr) {}
+    ObjectRef(T* obj) : obj(obj) {
+        obj->reference_count++;
+    }
+    // If we can implicitly convert from U* to T*,
+    // then we can create a ObjectRef<T> from an ObjectRef<U>
+    template<typename U>
+    ObjectRef(ObjectRef<U> other) {
+        // Grab reference to Object
+        obj = other.obj;
+        // Nullify the other ObjectRef
+        other.obj = nullptr;
+    }
+    ~ObjectRef()
+    {
+        if (obj) {
+            obj->reference_count--;
+            if (obj->reference_count == 0) {
+                delete obj;
+            }
+        }
+    }
+    ObjectRef(const ObjectRef<T>& other) // copy constructor
+    : ObjectRef(other.obj)
+    {}
+    ObjectRef(ObjectRef<T>&& other) noexcept // move constructor
+    {
+        this->obj = other.obj;
+        other.obj = nullptr;
+    }
+    ObjectRef<T>& operator=(const ObjectRef<T>& other) // copy assignment
+    {
+        return *this = ObjectRef(other);
+    }
+    ObjectRef<T>& operator=(ObjectRef<T>&& other) noexcept // move assignment
+    {
+        standard::swap(obj, other.obj);
+        return *this;
+    }
+    T& operator*() const
+    {
+        return *obj;
+    }
+    T* operator->() const
+    {
+        return obj;
+    }
+    // Define implicit conversion to T*
+    operator T*() const { return obj; }
 };
 
 // Trait instance
@@ -349,8 +427,12 @@ namespace _Array_ {
       arr->reserve(size);
   }
   template<typename T>
-  dynamic_array<T>* clone(dynamic_array<T>* arr) {
-      dynamic_array<T>* ret = new dynamic_array<T>(*arr);
+  ObjectRef<dynamic_array<T>> clone(dynamic_array<T>* arr) {
+      dynamic_array<T>* ret = new dynamic_array<T>();
+      ret->resize(arr->size());
+      for(int i = 0; i < arr->size(); i++) {
+          ret[i] = arr[i];
+      }
       return ret;
   }
 }
@@ -365,7 +447,7 @@ namespace _String_ {
           return string("", 0);
       }
   }
-  dynamic_array<string>* split(string str, string split_on) {
+  ObjectRef<dynamic_array<string>> split(string str, string split_on) {
       dynamic_array<string>* ret = new dynamic_array<string>();
       int s;
       int split_size = split_on.size();
@@ -475,8 +557,12 @@ ostream& operator<<(ostream& os, Object* v)
     if (is_trait<_Trait_Printable::_Instance>(v)) {
         ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_print(v);
     } else {
-        long long a = (long long)v;
-        os << "Object<id=" << v->object_id << ",instance=" << a << ">";
+        if (v) {
+            long long a = (long long)v;
+            os << "Object<id=" << v->object_id << ",instance=" << a << ">";
+        } else {
+            os << "Object<null>";
+        }
     }
     return os; 
 }
@@ -502,7 +588,7 @@ void _VS_print( Value v, Values... vs )
 #ifdef _COMPILE_VS_NATIVE_
     ostream& out = std::cout;
 #else
-    ostream out = string_buffer(4096);
+    ostream out(4096);
 #endif
     using expander = int[];
     out << v; // first
@@ -518,7 +604,7 @@ void _VS_print()
 #ifdef _COMPILE_VS_NATIVE_
     ostream& out = std::cout;
 #else
-    ostream out = string_buffer(4096);
+    ostream out(4096);
 #endif
     out << "\n";
     out.flush();
@@ -533,7 +619,7 @@ void _VS_raw_print( Value v, Values... vs )
 #ifdef _COMPILE_VS_NATIVE_
     ostream& out = std::cout;
 #else
-    ostream out = string_buffer(4096);
+    ostream out(4096);
 #endif
     using expander = int[];
     out << v; // first

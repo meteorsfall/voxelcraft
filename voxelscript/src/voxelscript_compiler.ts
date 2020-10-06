@@ -233,20 +233,29 @@ async function compile() {
       mkdirSync(path.dirname(exec_filename), { recursive: true });
     }
 
-    // Run gcc to compile the resulting c++
-    const child_argv = [
+    // Run clang++ to compile the resulting c++
+    let child_argv = [
         '-D_COMPILE_VS_NATIVE_',
-        '-O0',
+        '-O3',
         '-g',
         '--std=c++17',
         '-o' + exec_filename,
         '-Wfatal-errors', // Stop at first error
-        '-xc++',
-        '-',
     ];
 
+    if (options.cpp_file) {
+      // Use cpp file
+      // By doing this, gdb debugging will reference line numbers in main.cpp
+      child_argv.push(options.cpp_file);
+    } else {
+      // Use stdin
+      child_argv.push('-xc++');
+      child_argv.push('-');
+    }
+
     let cp = childProcess.spawnSync("clang++", child_argv, {
-        input: compiler_context.get_compiled_code(),
+        // Pass into stdin if not using cpp file
+        input: options.cpp_file ? undefined : compiler_context.get_compiled_code(),
         windowsHide: true,
     });
 
