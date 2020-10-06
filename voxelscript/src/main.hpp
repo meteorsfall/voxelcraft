@@ -327,10 +327,16 @@ public:
     }
     T& operator*() const
     {
+        if (obj == nullptr) {
+            _abort("Null pointer exception", "??", 0, 0, 0, 0);
+        }
         return *obj;
     }
     T* operator->() const
     {
+        if (obj == nullptr) {
+            _abort("Null pointer exception", "??", 0, 0, 0, 0);
+        }
         return obj;
     }
     // Define implicit conversion to T*
@@ -396,38 +402,62 @@ T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int 
 namespace _Array_ {
   template<typename T>
   void push(dynamic_array<T>* arr, T val) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       arr->push_back(val);
   }
   template<typename T>
   T pop(dynamic_array<T>* arr, T val) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       T ret = arr->back();
       arr->pop_back();
       return ret;
   }
   template<typename T>
   T remove(dynamic_array<T>* arr, int index) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       T ret = arr->at(index);
       arr->erase(arr->begin() + index);
       return ret;
   }
   template<typename T>
   int size(dynamic_array<T>* arr) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       return arr->size();
   }
   template<typename T>
   void resize(dynamic_array<T>* arr, int size) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       arr->resize(size);
   }
   template<typename T>
   int get_capacity(dynamic_array<T>* arr) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       return arr->capacity();
   }
   template<typename T>
   void set_capacity(dynamic_array<T>* arr, int size) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       arr->reserve(size);
   }
   template<typename T>
   ObjectRef<dynamic_array<T>> clone(dynamic_array<T>* arr) {
+      if (arr == nullptr) {
+          _abort("Null pointer exception", "??", 0, 0, 0, 0);
+      }
       dynamic_array<T>* ret = new dynamic_array<T>();
       ret->resize(arr->size());
       for(int i = 0; i < arr->size(); i++) {

@@ -209,6 +209,7 @@ class Tester {
     init();
 }
 implement Tester {
+    Vec3[] null_test;
     init() {
         Coal f = new Coal();
         IronOre io = new IronOre();
@@ -248,6 +249,9 @@ implement Tester {
             arr.resize(0);
         }
         print("Hi!");
+
+        // Should throw null-pointer exception
+        // this.null_test.push(new Vec3(1.0, 2.0, 3.0));
 
         //string ret = input();
         //print("Copy: ", ret);
