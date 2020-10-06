@@ -242,9 +242,8 @@ implement Tester {
         Vec3[] arr = [];
         for(int i = 0; i < 10000; i++) {
             arr = [];
-            for(int j = 0; j < 10000; j++) {
+            for(int j = 0; j < 1000; j++) {
                 arr.push(new Vec3(1.0, 2.0, 3.0));
-                //arr.push(j);
             }
             arr.resize(0);
         }
