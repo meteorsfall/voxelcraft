@@ -21,7 +21,7 @@ class Camera {
 
 implement Camera {
     init() {
-        this.position = new vec3(0, 0, 0);
+        this.position = new vec3(-25, -5, 0);
         this.horizontal_angle = 3.14;
         this.vertical_angle = 0.0;
         this.fov = 75.0;

@@ -69,6 +69,9 @@ public:
      * A natural way to use this function is to mark all chunks within a given radius of the player.
      * This is what @ref example_game does, for example.
      * 
+     * Note that block faces will be culled if its neighbor is another opaque block, and this culling will occur
+     * regardless of whether or not neighboring chunks are actually marked for render.
+     * 
      * @param chunk_coords the chunk coordinates of the chunk that is to be marked for rendering
      * @param priority The priority of the chunk render. If several chunks have yet to be rendered,
      * only a single chunk mesh will be generated per frame, as rendering can take 5-10ms.

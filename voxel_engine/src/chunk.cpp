@@ -70,6 +70,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
             }
             // If any of the components are opaque in the given direction,
             // then this block is opaque in that direction
+
             const vector<vector<int>>& components = get_universe()->get_model(b->block_model)->generate_model_instance(map<string,string>{});
             bool opaque = false;
             for(uint i = 0; i < components.size(); i++) {
