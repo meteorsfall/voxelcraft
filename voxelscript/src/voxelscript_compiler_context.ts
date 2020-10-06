@@ -1644,7 +1644,7 @@ class VSCompiler {
     case "integer":
     case "bool":
     case "float":
-      this.write_output(e.value);
+      this.write_output(e.value + (e.type == "float" ? "f" : ""));
       break;
     case "string":
       this.write_output("string(\"" + e.value + "\", " + e.value.length + ")");
