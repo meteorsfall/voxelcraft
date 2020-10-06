@@ -1,30 +1,9 @@
 import VoxelEngine;
 import Camera;
 import vec2;
-
-class InputState {
-    float current_time;
-    vec2 screen_dimensions;
-    vec2 mouse_pos;
-    int left_mouse;
-    int right_mouse;
-    int[] keys;
-    init(int[] input_data);
-}
-implement InputState {
-    init(int[] input_data) {
-        this.current_time = <float>input_data[0] + <float>input_data[1]/1000000000.0;
-        this.screen_dimensions = new vec2(input_data[2], input_data[3]);
-        this.mouse_pos = new vec2(input_data[4], input_data[5]);
-        this.left_mouse = input_data[6];
-        this.right_mouse = input_data[7];
-        this.keys = [];
-        this.keys.resize(350);
-        for(int i = 0; i < 350; i++) {
-            this.keys[i] = input_data[8+i];
-        }
-    }
-}
+import Models;
+import WorldGen;
+import Input;
 
 class Main {
     int world_id;
@@ -37,6 +16,7 @@ class Main {
     int stone_model;
     int dirt_model;
 
+    float last_time;
     InputState input_state;
     Camera camera;
 
@@ -56,22 +36,63 @@ implement Main {
         this.stone_texture = voxel_engine.register_atlas_texture("assets/images/stone.bmp", -1, -1, -1);
         this.dirt_texture = voxel_engine.register_atlas_texture("assets/images/dirt.bmp", -1, -1, -1);
         voxel_engine.register_mesh("assets/meshes/cube.mesh");
-        voxel_engine.register_component("assets/components/stone.json");
         voxel_engine.register_component("assets/components/dirt.json");
-        this.stone_model = voxel_engine.register_model("assets/models/stone_block.json");
-        this.dirt_model = voxel_engine.register_model("assets/models/dirt_block.json");
+        voxel_engine.register_component("assets/components/stone.json");
+        // Now that textures and meshes have been registered, register the models
+        models.initialize();
         this.camera = new Camera();
+        this.last_time = 0.0;
 
         // Generate World
-        voxel_engine.world.set_block(this.world_id, 2, 2, -7, this.dirt_model);
-        voxel_engine.world.mark_generated(this.world_id, 0, 0, -1);
+        for(int dx = -1; dx <= 1; dx++) {
+            for(int dy = -1; dy <= 1; dy++) {
+                for(int dz = -1; dz <= 1; dz++) {
+                    int[] ret = overworld_gen.generate(dx, dy, dz);
+                    for(int x = 0; x < 16; x++) {
+                        for(int y = 0; y < 16; y++) {
+                            for(int z = 0; z < 16; z++) {
+                                voxel_engine.world.set_block(this.world_id, dx*16+x, dy*16+y, dz*16+z, ret[16*16*x+16*y+z]);
+                            }
+                        }
+                    }
+                    voxel_engine.world.mark_generated(this.world_id, dx, dy, dz);
+                }
+            }
+        }
     }
     void _iterate() {
+        // Get input state
         int[] input_data = [];
         input_data.resize(358);
         voxel_engine.get_input_state(input_data);
         this.input_state = new InputState(input_data);
-        voxel_engine.world.mark_chunk(this.world_id, 0, 0, -1, 0);
+
+        // Get time
+        float current_time = this.input_state.current_time;
+        float delta_time = current_time - this.last_time;
+        if (delta_time > 1.0/30.0) {
+            delta_time = 1.0/30.0;
+        }
+        this.last_time = current_time;
+
+        // Handle camera rotation
+        vec2 mouse_rotation = this.input_state.mouse_pos.times(0.1*delta_time);
+        this.camera.rotate(mouse_rotation);
+
+        // Handle player input
+        if (this.input_state.keys[Keys.D] != Keys.RELEASED) {
+            print("W!");
+            this.camera.position.x += 0.01;
+        }
+
+        // Mark chunks for render
+        for(int dx = -1; dx <= 1; dx++) {
+            for(int dy = -1; dy <= 1; dy++) {
+                for(int dz = -1; dz <= 1; dz++) {
+                    voxel_engine.world.mark_chunk(this.world_id, dx, dy, dz, 0);
+                }
+            }
+        }
     }
     void _render() {
         voxel_engine.renderer.render_text(this.font_id, 50, 100, 1.0, "Hello VoxelScript!", 0, 255, 0);

@@ -187,6 +187,10 @@ int Universe::register_model(const char* model_path) {
             vector<int> components;
             for(uint j = 0; j < apply.Size(); j++) {
                 const Value& comp = apply[j];
+                if (!this->component_names.count(comp["component"].GetString())) {
+                    dbg("Could not find component name: %s", comp["component"].GetString());
+                    exit(-1);
+                }
                 components.push_back(this->component_names.at(comp["component"].GetString()));
             }
 
