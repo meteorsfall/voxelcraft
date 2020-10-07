@@ -9,6 +9,7 @@ implement mat4 {
     init(float val) {
         this.arr = [];
         this.arr.resize(16);
+        for(int i = 0; i < 16; i++) this.arr[i] = 0.0;
         this.arr[0] = val;
         this.arr[5] = val;
         this.arr[10] = val;
@@ -49,7 +50,7 @@ implement mat4 {
         return ret;
     }
     mat4 clone() {
-        mat4 ret = new mat4(1.0);
+        mat4 ret = new mat4(0.0);
         for(int i = 0; i < 16; i++) {
             ret.arr[i] = this.arr[i];
         }

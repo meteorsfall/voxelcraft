@@ -1,5 +1,5 @@
 import VoxelEngine;
-import Camera;
+import Player;
 import vec2;
 import Models;
 import WorldGen;
@@ -18,7 +18,7 @@ class Main {
 
     float last_time;
     InputState input_state;
-    Camera camera;
+    Player player;
 
     init();
     void _init();
@@ -40,7 +40,7 @@ implement Main {
         voxel_engine.register_component("assets/components/stone.json");
         // Now that textures and meshes have been registered, register the models
         models.initialize();
-        this.camera = new Camera();
+        this.player = new Player();
         this.last_time = 0.0;
 
         // Generate World
@@ -77,13 +77,34 @@ implement Main {
 
         // Handle camera rotation
         vec2 mouse_rotation = this.input_state.mouse_pos.times(0.1*delta_time);
-        this.camera.rotate(mouse_rotation);
+        this.player.rotate(mouse_rotation);
 
         // Handle player input
-        if (this.input_state.keys[Keys.D] != Keys.RELEASED) {
-            print("W!");
-            this.camera.position.x += 0.01;
+        vec3 movement = new vec3(0.0, 0.0, 0.0);
+        if (this.input_state.keys[Keys.W] != Keys.RELEASED) {
+            movement.x += 1.0;
         }
+        if (this.input_state.keys[Keys.S] != Keys.RELEASED) {
+            movement.x -= 1.0;
+        }
+        if (this.input_state.keys[Keys.D] != Keys.RELEASED) {
+            movement.z += 1.0;
+        }
+        if (this.input_state.keys[Keys.A] != Keys.RELEASED) {
+            movement.z -= 1.0;
+        }
+        if (this.player.is_flying) {
+            if (this.input_state.keys[Keys.LEFT_SHIFT] != Keys.RELEASED) {
+                movement.y += 1.0;
+            }
+            if (this.input_state.keys[Keys.LEFT_CONTROL] != Keys.RELEASED) {
+                movement.y -= 1.0;
+            }
+        }
+        if (movement.length() > 0.01) {
+            movement = movement.normalize().times(4.5);
+        }
+        this.player.move_toward(movement.times(delta_time));
 
         // Mark chunks for render
         for(int dx = -1; dx <= 1; dx++) {
@@ -96,8 +117,8 @@ implement Main {
     }
     void _render() {
         voxel_engine.renderer.render_text(this.font_id, 50, 100, 1.0, "Hello VoxelScript!", 0, 255, 0);
-        mat4 proj = this.camera.get_projection_matrix(this.input_state.screen_dimensions.x / this.input_state.screen_dimensions.y);
-        mat4 view = this.camera.get_view_matrix();
+        mat4 proj = this.player.get_projection_matrix(this.input_state.screen_dimensions.x / this.input_state.screen_dimensions.y, 75.0);
+        mat4 view = this.player.get_view_matrix();
         voxel_engine.renderer.render_world(this.world_id, proj, view);
         voxel_engine.renderer.render_skybox(this.skybox_texture_id, proj, view);
     }
