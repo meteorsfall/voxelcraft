@@ -9,9 +9,6 @@ class Main {
     int world_id;
     int skybox_texture_id;
     int font_id;
-    // textures
-    int stone_texture;
-    int dirt_texture;
     // models
     int stone_model;
     int dirt_model;
@@ -28,15 +25,16 @@ class Main {
 }
 implement Main {
     void initialize() {
+        // Register everything important
         this.world_id = voxel_engine.register_world();
         this.skybox_texture_id = voxel_engine.register_cubemap_texture("assets/images/skybox.bmp");
         this.font_id = voxel_engine.register_font("assets/fonts/pixel.ttf");
-        this.stone_texture = voxel_engine.register_atlas_texture("assets/images/stone.bmp", -1, -1, -1);
-        this.dirt_texture = voxel_engine.register_atlas_texture("assets/images/dirt.bmp", -1, -1, -1);
+        voxel_engine.register_atlas_texture("assets/images/stone.bmp", -1, -1, -1);
+        voxel_engine.register_atlas_texture("assets/images/dirt.bmp", -1, -1, -1);
         voxel_engine.register_mesh("assets/meshes/cube.mesh");
         voxel_engine.register_component("assets/components/dirt.json");
         voxel_engine.register_component("assets/components/stone.json");
-        // Now that textures and meshes have been registered, register the models
+        // Now that all of the base assets have been initialized, we initialize the models as well
         models.initialize();
         this.player = new Player();
         this.last_time = 0.0;

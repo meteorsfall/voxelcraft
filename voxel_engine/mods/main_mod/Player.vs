@@ -2,15 +2,6 @@ import vec3;
 import vec2;
 import mat4;
 
-class PlayerMovement {
-    vec3 position;
-    float horizontal_angle;
-    float vertical_angle;
-}
-implement PlayerMovement {
-
-}
-
 class Player {
     int hand;
     int[] hotbar;
