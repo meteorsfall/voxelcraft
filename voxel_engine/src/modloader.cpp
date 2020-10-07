@@ -182,13 +182,14 @@ void Mod::set_input_state(void* input_state, int length) {
 }
 
 void Mod::call(const char* function_name) {
-  char func_name[256] = "_Export__";
+  char func_name[256] = "_Export_";
 
   bool starting = false;
   if (memcmp(function_name, "_initialize", 12) == 0) {
     starting = true;
     strcpy(func_name, function_name);
   } else {
+    // Only prepend with _Export_ when the function is not _initialize
     strcpy(func_name + strlen(func_name), function_name);
   }
 

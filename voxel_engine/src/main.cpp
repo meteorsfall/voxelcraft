@@ -111,7 +111,7 @@ int main( void )
 	
 	// Import mods
 	Mod main_mod("mods/main.wasm");
-	main_mod.call("init");
+	main_mod.call("initialize");
 
 	// MAKE GAME HERE
 	//Game game;

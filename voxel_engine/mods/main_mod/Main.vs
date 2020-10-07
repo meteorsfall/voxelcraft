@@ -20,16 +20,14 @@ class Main {
     InputState input_state;
     Player player;
 
-    init();
-    void _init();
-    void _iterate();
-    void _render();
-    void _iterate_ui();
-    void _render_ui();
+    void initialize();
+    void iterate();
+    void render();
+    void iterate_ui();
+    void render_ui();
 }
 implement Main {
-    init() {}
-    void _init() {
+    void initialize() {
         this.world_id = voxel_engine.register_world();
         this.skybox_texture_id = voxel_engine.register_cubemap_texture("assets/images/skybox.bmp");
         this.font_id = voxel_engine.register_font("assets/fonts/pixel.ttf");
@@ -60,7 +58,7 @@ implement Main {
             }
         }
     }
-    void _iterate() {
+    void iterate() {
         // Get input state
         int[] input_data = [];
         input_data.resize(358);
@@ -115,16 +113,16 @@ implement Main {
             }
         }
     }
-    void _render() {
+    void render() {
         voxel_engine.renderer.render_text(this.font_id, 50, 100, 1.0, "Hello VoxelScript!", 0, 255, 0);
         mat4 proj = this.player.get_projection_matrix(this.input_state.screen_dimensions.x / this.input_state.screen_dimensions.y, 75.0);
         mat4 view = this.player.get_view_matrix();
         voxel_engine.renderer.render_world(this.world_id, proj, view);
         voxel_engine.renderer.render_skybox(this.skybox_texture_id, proj, view);
     }
-    void _iterate_ui() {
+    void iterate_ui() {
     }
-    void _render_ui() {
+    void render_ui() {
     }
 }
 
