@@ -98,9 +98,9 @@ implement Main {
             }
         }
         if (movement.length() > 0.01) {
-            movement = movement.normalize().times(4.5);
+            movement = movement.normalize();
         }
-        this.player.move_toward(movement.times(delta_time));
+        this.player.move_toward(movement, delta_time);
 
         // Mark chunks for render
         for(int dx = -1; dx <= 1; dx++) {
