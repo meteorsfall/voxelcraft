@@ -46,6 +46,6 @@ implement WorldGen on OverworldGen {
     }
 }
 
-OverworldGen overworld_gen = new OverworldGen();
+OverworldGen overworld_generator = new OverworldGen();
 
-export {overworld_gen};
+export {overworld_generator};

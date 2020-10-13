@@ -7,6 +7,7 @@ class BasicMath {
     float deg2rad(float deg);
     float rad2deg(float rad);
     float sqrt(float a);
+    float floor(float x);
 }
 
 implement BasicMath {
@@ -52,6 +53,13 @@ implement BasicMath {
             z -= (z*z - x) / (2.0*z); // MAGIC LINE!!
         }
         return z;
+    }
+    float floor(float x) {
+        if (x <= 0.0 && x != <float><int>x) {
+            return <float>(<int>x - 1);
+        } else {
+            return x;
+        }
     }
 }
 

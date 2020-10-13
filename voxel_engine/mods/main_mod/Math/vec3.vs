@@ -13,6 +13,7 @@ class vec3 {
     vec3 add(vec3 other);
     vec3 sub(vec3 other);
     float dot(vec3 other);
+    vec3 floor();
 }
 
 implement vec3 {
@@ -61,6 +62,9 @@ implement vec3 {
     }
     float dot(vec3 other) {
         return this.x * other.x + this.y * other.y + this.z * other.z;
+    }
+    vec3 floor() {
+        return new vec3(math.floor(this.x), math.floor(this.y), math.floor(this.z));
     }
 }
 
