@@ -59,7 +59,7 @@ int main( void )
 	// Open a window and create its OpenGL context
 	window = glfwCreateWindow( width, height, "VoxelCraft", NULL, NULL);
 	if( window == NULL ) {
-		fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+		fprintf( stderr, "Failed to open GLFW %dx%d window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n", width, height );
 		getchar();
 		glfwTerminate();
 		return -1;

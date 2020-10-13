@@ -298,10 +298,12 @@ void World::render(mat4& P, mat4& V, TextureAtlasser& atlasser) {
 }
 
 optional<ivec3> World::raycast(vec3 position, vec3 direction, float max_distance, bool previous_block) {
+    // Ray increment
     float ray = 0.01;
     direction = normalize(direction);
     for(int i = 0; i < max_distance/ray; i++) {
-        if(read_block(ivec3(floor(position + direction*(ray*i))))) {
+        // If the block is not air, then our raycast has hit a solid block
+        if(read_block(ivec3(floor(position + direction*(ray*i)))) != 0) {
             if(previous_block) {
                 ivec3 loc = floor(position + direction*(ray*(i-1)));
                 return { loc };
