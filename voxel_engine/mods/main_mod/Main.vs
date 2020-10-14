@@ -129,6 +129,7 @@ implement Main {
             this.player.reset();
         }
 
+        // Check for jumping
         if (this.input_state.keys[Keys.SPACE] == Keys.PRESSED) {
             this.player.jump();
         }
