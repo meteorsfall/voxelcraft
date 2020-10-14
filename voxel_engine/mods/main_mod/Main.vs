@@ -8,9 +8,11 @@ import World;
 class Main {
     World overworld;
     int skybox_texture_id;
+    int crosshair_texture;
     int font_id;
 
     float last_frame_time;
+    float last_right_click_press;
     InputState input_state;
     Player player;
 
@@ -22,6 +24,9 @@ class Main {
 }
 implement Main {
     void initialize() {
+        // Crosshair UI
+        this.crosshair_texture = voxel_engine.register_texture("assets/images/crosshair.bmp", 255, 0, 255);
+
         // Register all of the main assets
         this.skybox_texture_id = voxel_engine.register_cubemap_texture("assets/images/skybox.bmp");
         this.font_id = voxel_engine.register_font("assets/fonts/pixel.ttf");
@@ -59,6 +64,7 @@ implement Main {
 
         // Start last frame time at 0seconds
         this.last_frame_time = 0.0;
+        this.last_right_click_press = 0.0;
     }
     void iterate() {
         // Get input state
@@ -123,6 +129,13 @@ implement Main {
             }
         }
 
+        else if (this.input_state.right_mouse != Keys.RELEASED) {
+            if (current_time - this.last_right_click_press > 0.25) {
+                this.place_block(models.stone_model);
+                this.last_right_click_press = current_time;
+            }
+        }
+
         // Handle creative mode toggle
         if (this.input_state.keys[Keys.C] == Keys.PRESSED) {
             this.player.set_fly(!this.player.is_flying);
@@ -170,6 +183,23 @@ implement Main {
     void render_ui() {
         // Render text
         voxel_engine.renderer.render_text(this.font_id, 50, 100, 1.0, "Hello VoxelScript!", 0, 255, 0);
+        voxel_engine.renderer.render_texture(this.crosshair_texture, <int>this.input_state.screen_dimensions.x/2-25/2, <int>this.input_state.screen_dimensions.y/2-25/2, 25, 25);
+    }
+
+
+    void place_block(int block) {
+        if (block == 0) {
+            return;
+        }
+
+        Optional<vec3> target_block = this.overworld.raycast(this.player.get_camera_position(), this.player.get_direction(), 6.0, true);
+
+        if (target_block.has_value()) {
+            vec3 loc = <vec3>target_block.get_value();
+            if (!this.player.get_collision_box().is_colliding(new AABB(loc, loc.add(new vec3(1.0, 1.0, 1.0))))) {
+                voxel_engine.world.set_block(this.overworld.world_id, <int>loc.x, <int>loc.y, <int>loc.z, block);
+            }
+        }
     }
 }
 
