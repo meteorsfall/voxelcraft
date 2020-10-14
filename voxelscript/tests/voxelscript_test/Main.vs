@@ -250,6 +250,8 @@ implement Tester {
         }
         print("Hi!");
 
+        float[] test_arr = [4.0, 2.0, 1.0];
+
         // Should throw null-pointer exception
         // this.null_test.push(new Vec3(1.0, 2.0, 3.0));
 
