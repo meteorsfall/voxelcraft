@@ -1095,7 +1095,9 @@ class VSCompiler {
 
     let ret = null;
     if (op in comparison_operators) {
-      if (left.is_primitive && _.isEqual(left, right)) {
+      if (left.is_primitive && [primitive_type.INT, primitive_type.FLOAT].includes(left.primitive_type!) &&
+          right.is_primitive && [primitive_type.INT, primitive_type.FLOAT].includes(right.primitive_type!)
+      ) {
         return make_primitive_type(primitive_type.BOOL);
       } else {
         return null;
@@ -1111,16 +1113,24 @@ class VSCompiler {
     } else if (op in integer_operators || op in float_operators) {
       let is_int = left.is_primitive && left.primitive_type == primitive_type.INT;
       let is_float = left.is_primitive && left.primitive_type == primitive_type.FLOAT;
-      if (left.is_primitive && _.isEqual(left, right)) {
-        if (is_int && op in integer_operators) {
-          return make_primitive_type(primitive_type.INT);
-        } else if (is_float && op in float_operators) {
-          return make_primitive_type(primitive_type.FLOAT);
+      let is_r_int = left.is_primitive && left.primitive_type == primitive_type.INT;
+      let is_r_float = left.is_primitive && left.primitive_type == primitive_type.FLOAT;
+      if (op in float_operators) {
+        if ((is_int || is_float) && (is_r_int || is_r_float)) {
+          if (is_int && is_r_int) {
+            return make_primitive_type(primitive_type.INT);
+          } else {
+            return make_primitive_type(primitive_type.FLOAT);
+          }
         } else {
           return null;
         }
-      } else {
-        return null;
+      } else { // if op in int_operators
+        if (is_int && is_r_int) {
+          return make_primitive_type(primitive_type.INT);
+        } else {
+          return null;
+        }
       }
     } else {
       throw "Operator unknown: " + op;
