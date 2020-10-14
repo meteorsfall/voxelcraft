@@ -66,6 +66,9 @@ implement vec3 {
     vec3 floor() {
         return new vec3(math.floor(this.x), math.floor(this.y), math.floor(this.z));
     }
+    vec3 ceil() {
+        return new vec3(math.ceil(this.x), math.ceil(this.y), math.ceil(this.z));
+    }
 }
 
 export {vec3};

@@ -15,6 +15,9 @@ implement Optional<T> {
         this.val = val;
         this.is_set = true;
     }
+    void clear_value() {
+        this.is_set = false;
+    }
     bool has_value() {
         return this.is_set;
     }

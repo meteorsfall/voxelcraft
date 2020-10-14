@@ -58,8 +58,24 @@ implement BasicMath {
         if (x <= 0.0 && x != <float><int>x) {
             return <float>(<int>x - 1);
         } else {
-            return x;
+            return <float><int>x;
         }
+    }
+    float ceil(float x) {
+        if (x >= 0.0 && x != <float><int>x) {
+            return <float>(<int>x + 1);
+        } else {
+            return <float><int>x;
+        }
+    }
+    float min(float x, float y) {
+        return x < y ? x : y;
+    }
+    float max(float x, float y) {
+        return x > y ? x : y;
+    }
+    float abs(float x) {
+        return x < 0.0 ? -x : x;
     }
 }
 

@@ -199,11 +199,22 @@ ostream& operator<<(ostream& os, string s)
 #endif
 }
 
+#include <initializer_list> // std::initializer_list<T>
+
 template<typename T>
 struct dynamic_array {
     dynamic_array() {}
     dynamic_array(int size) {
         resize(size);
+    }
+    dynamic_array(std::initializer_list<T> list) {
+        reserve(list.size());
+        _size = list.size();
+        int i = 0;
+        for(auto& a : list) {
+            new(&data[i]) T(a);
+            i++;
+        }
     }
     ~dynamic_array() {
         resize(0);

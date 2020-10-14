@@ -57,7 +57,7 @@ implement Main {
             }
         }
 
-        //
+        // Start last frame time at 0seconds
         this.last_frame_time = 0.0;
     }
     void iterate() {
@@ -105,6 +105,46 @@ implement Main {
             movement = movement.normalize();
         }
         this.player.move_toward(movement, delta_time);
+
+        if (this.input_state.left_mouse != Keys.RELEASED) {
+            // Damage block
+            Optional<vec3> target_block = this.overworld.raycast(this.player.get_camera_position(), this.player.get_direction(), 4.0, false);
+            if (target_block.has_value()) {
+                vec3 block = <vec3>target_block.get_value();
+                float mining_time = voxel_engine.world.get_break_amount(this.overworld.world_id, <int>block.x, <int>block.y, <int>block.z);
+                mining_time += delta_time;
+                if (mining_time < 1.0) {
+                    voxel_engine.world.set_break_amount(this.overworld.world_id, <int>block.x, <int>block.y, <int>block.z, mining_time);
+                } else {
+                    // If total damage is high enough, the block should disappear
+                    // Trigger event
+                    voxel_engine.world.set_block(this.overworld.world_id, <int>block.x, <int>block.y, <int>block.z, 0);
+                }
+            }
+        }
+
+        // Handle creative mode toggle
+        if (this.input_state.keys[Keys.C] == Keys.PRESSED) {
+            this.player.set_fly(!this.player.is_flying);
+            this.player.reset();
+        }
+
+        if (this.input_state.keys[Keys.SPACE] == Keys.PRESSED) {
+            this.player.jump();
+        }
+
+        // Apply apply gravity
+        this.player.push(this.player.is_flying ? new vec3(0.0, 0.0, 0.0) : new vec3(0.0, -9.8, 0.0), delta_time);
+
+        // Iterate the player
+        this.player.iterate(delta_time);
+
+        if (!this.player.is_flying) {
+            AABB aabb = this.player.get_collision_box();
+            this.overworld.collide(aabb, (vec3 move, float friction) => void {
+                this.player.get_on_collide()(move, 0.5);
+            });
+        }
 
         // Mark chunks for render
         for(int dx = -1; dx <= 1; dx++) {

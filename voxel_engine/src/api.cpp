@@ -64,7 +64,8 @@ void VoxelEngine::World::mark_chunk(int world_id, ivec3 chunk_coords, int priori
 
 int VoxelEngine::World::get_block(int world_id, ivec3 coordinates) {
     if (world_id != 1) dbg("ERROR: World doesn't exist!");
-    return world.read_block(coordinates)->block_model;
+    const BlockData* data = world.read_block(coordinates);
+    return data ? data->block_model : 0;
 }
 
 void VoxelEngine::World::set_block(int world_id, ivec3 coordinates, int model_id) {
