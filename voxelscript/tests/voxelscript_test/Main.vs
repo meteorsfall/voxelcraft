@@ -252,6 +252,8 @@ implement Tester {
 
         float[] test_arr = [4.0, 2.0, 1.0];
 
+        print("Float < Int", test_arr[0] < 2);
+
         // Should throw null-pointer exception
         // this.null_test.push(new Vec3(1.0, 2.0, 3.0));
 
