@@ -182,7 +182,8 @@ implement Main {
     }
     void render_ui() {
         // Render text
-        voxel_engine.renderer.render_text(this.font_id, 50, 100, 1.0, "Hello VoxelScript!", 0, 255, 0);
+        //voxel_engine.renderer.render_text(this.font_id, 50, 100, 1.0, "Hello VoxelScript!", 0, 255, 0);
+        // Render crosshair
         voxel_engine.renderer.render_texture(this.crosshair_texture, <int>this.input_state.screen_dimensions.x/2-25/2, <int>this.input_state.screen_dimensions.y/2-25/2, 25, 25);
     }
 
