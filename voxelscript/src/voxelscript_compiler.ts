@@ -184,6 +184,7 @@ async function compile() {
       '-fno-exceptions',
       '-Wfatal-errors',
       '-sALLOW_MEMORY_GROWTH',
+      '-sERROR_ON_UNDEFINED_SYMBOLS=0', // TODO: Replace with more specific "-sEXPORTED_FUNCTIONS"
       '--no-entry',
       '-xc++',
       '-',
