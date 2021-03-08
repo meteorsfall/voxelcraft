@@ -85,7 +85,7 @@ Game::Game() {
     VoxelEngine::register_atlas_texture("assets/images/wireframe.bmp", ivec3(255, 0, 255));
 
     // Register All Cubemap Textures
-	skybox_texture = VoxelEngine::register_cubemap_texture("assets/images/skybox.bmp");
+    skybox_texture = VoxelEngine::register_cubemap_texture("assets/images/skybox.bmp");
 
     // Register All Meshes
     VoxelEngine::register_mesh("assets/meshes/cube.mesh");
@@ -130,7 +130,7 @@ void Game::restart_world() {
     player.hotbar[0] = dirt_block_model;
     player.hotbar[1] = cobblestone_block_model;
     player.hotbar[2] = plank_block_model;
-	player.hand = 0;
+    player.hand = 0;
 }
 
 void Game::iterate(InputState& input) {

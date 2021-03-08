@@ -85,7 +85,7 @@ int Font::get_width(const char* text) const {
 
 void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* text, ivec3 color) const {
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); 	
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);     
     glUseProgram(this->shader_id);
 
     glm::mat4 projection = glm::ortho(0.0f, (float)dimensions.x, 0.0f, (float)dimensions.y);

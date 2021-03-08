@@ -83,12 +83,12 @@ const char* colons_to_underscores(string str) {
 }
 
 #define WAVM_DECLARE_INTRINSIC_FUNCTION(module, nameString, Result, namespce, cName, ...)                     \
-	static Result namespce cName(WAVM::Runtime::ContextRuntimeData* contextRuntimeData, ##__VA_ARGS__);       \
-	static WAVM::Intrinsics::Function cName##Intrinsic(                                                       \
-		getIntrinsicModule_##module(),                                                                        \
-		nameString,                                                                                           \
-		(void*)&(namespce cName),                                                                             \
-		WAVM::Intrinsics::inferIntrinsicFunctionType(&(namespce cName)))
+    static Result namespce cName(WAVM::Runtime::ContextRuntimeData* contextRuntimeData, ##__VA_ARGS__);       \
+    static WAVM::Intrinsics::Function cName##Intrinsic(                                                       \
+        getIntrinsicModule_##module(),                                                                        \
+        nameString,                                                                                           \
+        (void*)&(namespce cName),                                                                             \
+        WAVM::Intrinsics::inferIntrinsicFunctionType(&(namespce cName)))
 
 WAVM_DEFINE_INTRINSIC_MODULE(voxelmainmod)
 

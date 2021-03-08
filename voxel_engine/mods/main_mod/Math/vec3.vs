@@ -36,7 +36,7 @@ implement vec3 {
         return new vec3(
             this.y * other.z - this.z * other.y,
             this.z * other.x - this.x * other.z,
-		    this.x * other.y - this.y * other.x
+            this.x * other.y - this.y * other.x
         );
     }
     vec3 times(float scalar) {

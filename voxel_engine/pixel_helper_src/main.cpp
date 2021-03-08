@@ -16,62 +16,62 @@ bool is_cyan(int i, int j, unsigned char* data, int width, int height, ivec3 box
 }
 
 vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255)) {
-	// Data read from the header of the BMP file
-	unsigned char header[54];
-	unsigned int dataPos;
-	unsigned int imageSize;
-	unsigned int width, height;
-	// Actual RGB data
-	unsigned char* data;
+    // Data read from the header of the BMP file
+    unsigned char header[54];
+    unsigned int dataPos;
+    unsigned int imageSize;
+    unsigned int width, height;
+    // Actual RGB data
+    unsigned char* data;
 
-	// Open the file
-	FILE * file = fopen(imagepath,"rb");
-	if (!file) {
-		printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
-		getchar();
+    // Open the file
+    FILE * file = fopen(imagepath,"rb");
+    if (!file) {
+        printf("%s could not be opened. Are you in the right directory ? Don't forget to read the FAQ !\n", imagepath);
+        getchar();
         exit(-1);
-	}
+    }
 
-	// Read the header, i.e. the 54 first bytes
+    // Read the header, i.e. the 54 first bytes
 
-	// If less than 54 bytes are read, problem
-	if ( fread(header, 1, 54, file)!=54 ){ 
-		printf("Not a correct BMP file\n");
-		fclose(file);
-		exit(-1);
-	}
-	// A BMP files always begins with "BM"
-	if ( header[0]!='B' || header[1]!='M' ){
-		printf("Not a correct BMP file\n");
-		fclose(file);
-		exit(-1);
-	}
-	// Make sure this is a 24bpp file
-	if ( *(int*)&(header[0x1E])!=0  )         {printf("Not a correct BMP file\n");    fclose(file); exit(-1);}
-	if ( *(int*)&(header[0x1C])!=24 )         {printf("Not a correct BMP file\n");    fclose(file); exit(-1);}
+    // If less than 54 bytes are read, problem
+    if ( fread(header, 1, 54, file)!=54 ){ 
+        printf("Not a correct BMP file\n");
+        fclose(file);
+        exit(-1);
+    }
+    // A BMP files always begins with "BM"
+    if ( header[0]!='B' || header[1]!='M' ){
+        printf("Not a correct BMP file\n");
+        fclose(file);
+        exit(-1);
+    }
+    // Make sure this is a 24bpp file
+    if ( *(int*)&(header[0x1E])!=0  )         {printf("Not a correct BMP file\n");    fclose(file); exit(-1);}
+    if ( *(int*)&(header[0x1C])!=24 )         {printf("Not a correct BMP file\n");    fclose(file); exit(-1);}
 
-	// Read the information about the image
-	dataPos    = *(int*)&(header[0x0A]);
-	imageSize  = *(int*)&(header[0x22]);
-	width      = *(int*)&(header[0x12]);
-	height     = *(int*)&(header[0x16]);
+    // Read the information about the image
+    dataPos    = *(int*)&(header[0x0A]);
+    imageSize  = *(int*)&(header[0x22]);
+    width      = *(int*)&(header[0x12]);
+    height     = *(int*)&(header[0x16]);
 
-	// Some BMP files are misformatted, guess missing information
-	if (imageSize==0)    imageSize=width*height*3; // 3 : one byte for each Red, Green and Blue component
-	if (dataPos==0)      dataPos=54; // The BMP header is done that way
+    // Some BMP files are misformatted, guess missing information
+    if (imageSize==0)    imageSize=width*height*3; // 3 : one byte for each Red, Green and Blue component
+    if (dataPos==0)      dataPos=54; // The BMP header is done that way
 
-	// Create a buffer
-	data = new unsigned char [imageSize];
+    // Create a buffer
+    data = new unsigned char [imageSize];
 
-	// Read the actual data from the file into the buffer
+    // Read the actual data from the file into the buffer
     fseek(file, dataPos, SEEK_SET);
-	if (fread(data,1,imageSize,file) != imageSize) {
-		printf("Bad fread of %d bytes!", imageSize);
-		fclose(file);
+    if (fread(data,1,imageSize,file) != imageSize) {
+        printf("Bad fread of %d bytes!", imageSize);
+        fclose(file);
         exit(-1);
-	}
+    }
 
-	// Shift bytes to remove padding
+    // Shift bytes to remove padding
     {
         int index = 0;
 
@@ -86,8 +86,8 @@ vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255
         }
     }
 
-	// Everything is in memory now, the file can be closed.
-	fclose (file);
+    // Everything is in memory now, the file can be closed.
+    fclose (file);
 
     // Do stuff with the data
     // BGR BGR BGR BGR ... (width)
@@ -125,13 +125,13 @@ vector<ivec4> loadBMP(const char* imagepath, ivec3 box_color = ivec3(0, 255, 255
         boxes.push_back(box);
     }
 
-	// Free the data
-	delete[] data;
+    // Free the data
+    delete[] data;
 
     printf("Width: %d\nHeight: %d\n", width, height);
 
-	// Return the ID of the texture we just created
-	return boxes;
+    // Return the ID of the texture we just created
+    return boxes;
 }
 
 int main(int argc, char* argv[]) {
