@@ -20,8 +20,8 @@ InputHandler::InputHandler(GLFWwindow* window) {
         }
     };
 
-	// Ensure we can capture the escape key being pressed below
-	glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
+    // Ensure we can capture the escape key being pressed below
+    glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
     glfwSetKeyCallback(window, lambda_to_fn_pointer(key_callback));
 }
 

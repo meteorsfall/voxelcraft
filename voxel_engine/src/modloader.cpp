@@ -60,24 +60,24 @@ Mod::Mod(const char* modname) {
   } 
   wasm_file.close();
   
-	ModuleRef module;
+    ModuleRef module;
   IR::FeatureSpec feature;
-	WAVM::WASM::LoadError wasm_error;
-	if(!Runtime::loadBinaryModule(wasm_bytes, wasm_bytes_length, module, feature, &wasm_error)) {
+    WAVM::WASM::LoadError wasm_error;
+    if(!Runtime::loadBinaryModule(wasm_bytes, wasm_bytes_length, module, feature, &wasm_error)) {
     dbg("Fail to parse!");
     exit(-1);
   }
 
-	// Create a WAVM compartment and context.
+    // Create a WAVM compartment and context.
   this->compartment = new GCPointer<Compartment>();
   GCPointer<Compartment>& compartment = *(GCPointer<Compartment>*)this->compartment;
-	compartment = createCompartment();
-	this->context = createContext(compartment);
+    compartment = createCompartment();
+    this->context = createContext(compartment);
 
-	// Create an instance that encapsulates the intrinsic function in a way that allows it to be
-	// imported by WASM instances.
-	Instance* intrinsicsInstance = WAVM::Intrinsics::instantiateModule(
-		compartment, {WAVM_INTRINSIC_MODULE_REF(voxelmainmod)}, "env");
+    // Create an instance that encapsulates the intrinsic function in a way that allows it to be
+    // imported by WASM instances.
+    Instance* intrinsicsInstance = WAVM::Intrinsics::instantiateModule(
+        compartment, {WAVM_INTRINSIC_MODULE_REF(voxelmainmod)}, "env");
 
   // Get functions
   map<string, Object*> all_functions;
@@ -93,7 +93,7 @@ all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,
   // End Macro
   
   WASM_IMPORT(VoxelEngineWASM::print);
-	WASM_IMPORT(VoxelEngineWASM::get_input_state);
+    WASM_IMPORT(VoxelEngineWASM::get_input_state);
   WASM_IMPORT(VoxelEngineWASM::register_font);
   WASM_IMPORT(VoxelEngineWASM::register_atlas_texture);
   WASM_IMPORT(VoxelEngineWASM::register_texture);
@@ -164,16 +164,16 @@ all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,
     }
   }
 
-	// Instantiate the WASM module using the intrinsic function as its import.
-	this->instance = instantiateModule(compartment, module, std::move(functions), "debug");
+    // Instantiate the WASM module using the intrinsic function as its import.
+    this->instance = instantiateModule(compartment, module, std::move(functions), "debug");
 
   // Call explicit start in order to initialize static variables
   call("_initialize");
 }
 
 Mod::~Mod() {
-	// Clean up the WAVM runtime objects.
-	WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(*(GCPointer<Compartment>*)compartment)));
+    // Clean up the WAVM runtime objects.
+    WAVM_ERROR_UNLESS(tryCollectCompartment(std::move(*(GCPointer<Compartment>*)compartment)));
   delete (GCPointer<Compartment>*)compartment;
 }
 
@@ -193,18 +193,18 @@ void Mod::call(const char* function_name) {
     strcpy(func_name + strlen(func_name), function_name);
   }
 
-	// Call the WASM module's "run" function.
-	const FunctionType i32_to_i32({ValueType::i32}, {ValueType::i32});
-	const FunctionType void_to_void({}, {});
-	Function* runFunction = getTypedInstanceExport((Instance*)instance, func_name, void_to_void);
+    // Call the WASM module's "run" function.
+    const FunctionType i32_to_i32({ValueType::i32}, {ValueType::i32});
+    const FunctionType void_to_void({}, {});
+    Function* runFunction = getTypedInstanceExport((Instance*)instance, func_name, void_to_void);
 
   if (!runFunction) {
     dbg("Function not found! %s %s", function_name, func_name);
     exit(-1);
   }
 
-	UntaggedValue args[1]{I32(100)};
-	UntaggedValue results[1];
-	invokeFunction((Context*)context, runFunction, void_to_void, args, results);
-	//printf("WASM call returned: %i\n", results[0].i32);
+    UntaggedValue args[1]{I32(100)};
+    UntaggedValue results[1];
+    invokeFunction((Context*)context, runFunction, void_to_void, args, results);
+    //printf("WASM call returned: %i\n", results[0].i32);
 }

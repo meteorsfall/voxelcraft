@@ -23,8 +23,8 @@ float mip_map_level(in vec2 texture_coordinate) // in texel units
 
 // Source: https://vegard.wiki/w/Texture_magnification_antialiasing
 //         https://www.shadertoy.com/view/ldlSzS
-vec4 texturePixelAA(sampler2D tex, vec2 uv, vec2 w, vec2 texsize, float mm) {	
-	return texture(tex, (floor(uv)+0.5+clamp((fract(uv)-0.5+w)/w,0.,1.)) / texsize, mm);	
+vec4 texturePixelAA(sampler2D tex, vec2 uv, vec2 w, vec2 texsize, float mm) {    
+    return texture(tex, (floor(uv)+0.5+clamp((fract(uv)-0.5+w)/w,0.,1.)) / texsize, mm);    
 }
 
 vec4 get_texture_color() {

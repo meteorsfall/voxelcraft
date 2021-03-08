@@ -82,7 +82,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
         }
     };
     
-	double t1 = glfwGetTime();
+    double t1 = glfwGetTime();
     UNUSED(t1);
 
     for(int i = 0; i < CHUNK_SIZE; i++) {
