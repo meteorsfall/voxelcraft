@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
 make debug
-./build/debug/vc $@ 2>&1 2>output.log
+cd ./build/debug
+./vc $@ 2>&1 2>../../output.log
 

@@ -139,7 +139,6 @@ int main( void )
         dbg("Failed to load HTML");
     }
 
-
     // Makes a vertex array object for our graphics engine
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);

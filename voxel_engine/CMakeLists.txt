@@ -13,25 +13,24 @@ file(MAKE_DIRECTORY ${CUSTOM_CACHE})
 # If src/includes.hpp changes, the precompiled header must be recreated
 # This is done be restarting the build from the beginning.
 # precompile.h.gch is just a dummy file with nothing in it
-ADD_CUSTOM_COMMAND(OUTPUT "precompiled.h.gch"
+ADD_CUSTOM_COMMAND(OUTPUT "${CUSTOM_CACHE}/precompiled.h.gch"
   COMMAND ${CMAKE_COMMAND} -E echo "Compiled GCH!" > "${CUSTOM_CACHE}/precompiled.h.gch"
   DEPENDS "src/includes.hpp"
   IMPLICIT_DEPENDS CXX "src/includes.hpp"
-  COMMENT "Checking GCH Compilation"
+  COMMENT "Checking precompiled src/includes.hpp"
 )
 
 file(GLOB_RECURSE wasm_sources CONFIGURE_DEPENDS "mods/*.vs")
 
 if (WIN32)
-ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
-  COMMAND ${CMAKE_COMMAND} -E echo "Must compile WASM!" > "mods/main.wasm"
-  COMMAND ${CMAKE_COMMAND} -E echo "Must compile WASM!" > "mods/compile_main.trigger"
+ADD_CUSTOM_COMMAND(OUTPUT "${CUSTOM_CACHE}/main.wasm"
+  COMMAND ${CMAKE_COMMAND} -E echo "Must compile WASM!" > "${CUSTOM_CACHE}/main.wasm"
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm Compilation"
 )
 else()
-ADD_CUSTOM_COMMAND(OUTPUT "mods/main.wasm"
-  COMMAND voxelc ./mods/main_mod -o ./mods/main.wasm
+ADD_CUSTOM_COMMAND(OUTPUT "${CUSTOM_CACHE}/main.wasm"
+  COMMAND voxelc ./mods/main_mod -o "${CUSTOM_CACHE}/main.wasm"
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm compilation"
 )
@@ -40,9 +39,9 @@ endif ()
 # Add release build
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all --parallel 4
-  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
-          "mods/main.wasm"
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_SOURCE_DIR} --target all --parallel 4
+  DEPENDS "${CUSTOM_CACHE}/precompiled.h.gch"
+          "${CUSTOM_CACHE}/main.wasm"
   COMMENT "Creating the executable in release mode."
 )
 
@@ -50,8 +49,8 @@ ADD_CUSTOM_TARGET(release
 ADD_CUSTOM_TARGET(debug
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Debug ${CMAKE_SOURCE_DIR}
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all --parallel 4
-  DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/precompiled.h.gch"
-          "mods/main.wasm"
+  DEPENDS "${CUSTOM_CACHE}/precompiled.h.gch"
+          "${CUSTOM_CACHE}/main.wasm"
   COMMENT "Creating the executable in debug mode."
 )
 
@@ -60,6 +59,9 @@ if (CMAKE_BUILD_TYPE MATCHES Release)
   message(STATUS "Release Mode")
 elseif (CMAKE_BUILD_TYPE MATCHES Debug)
   message(STATUS "Debug Mode")
+else ()
+  message(STATUS "No target given")
+  return ()
 endif ()
 
 # Set requirement for C++17
@@ -96,9 +98,15 @@ set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(OpenGL REQUIRED)
 message(STATUS "Found OpenGL at ${OPENGL_LIBRARY}")
 
-# Include from /include and link from /lib
+# Include from /include
 include_directories(SYSTEM include)
+if (WIN32)
+# Link from /lib on windows (For static lib files)
 link_directories(lib)
+else ()
+# And /bin on linux (For shared lib files)
+link_directories(bin)
+endif ()
 
 if (WIN32)
 else ()
@@ -124,7 +132,7 @@ include_directories(SYSTEM ${OPENGL_INCLUDE_DIR})
 include_directories(SYSTEM ${FREETYPE_INCLUDE_DIRS})
 include_directories(SYSTEM extras)
 
-# Mark rpath
+# Configure rpath
 if (WIN32)
 else ()
 # Make linux look in current directory for .so files (Just like .dll's)
@@ -142,27 +150,37 @@ target_precompile_headers(vc PRIVATE src/includes.hpp)
 if (WIN32)
   # Link windows libraries to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 libWAVM noise freetype ws2_32 userenv)
-  # Copy .dll's into build directory
-  add_custom_command(TARGET vc POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${PROJECT_SOURCE_DIR}/bin"
-      $<TARGET_FILE_DIR:vc>)
 else ()
   # Link linux system libraries to voxelcraft
   # sciter: needs dl
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs dl)
   # Link linux .so libraries to voxelcraft
   target_link_libraries(vc WAVM sciter)
-  # Copy .so's into build directory
+  # Run doxygen after compiling on linux
   add_custom_command(TARGET vc POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_directory
-      "${PROJECT_SOURCE_DIR}/lib"
-      $<TARGET_FILE_DIR:vc>)
-  # Run doxygen after compiling
-  add_custom_command(TARGET vc POST_BUILD
-      COMMAND doxygen
-    )
+    COMMAND doxygen
+  )
 endif ()
+# Copy .dll/.so's into build directory
+add_custom_command(TARGET vc POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  "${PROJECT_SOURCE_DIR}/bin"
+  $<TARGET_FILE_DIR:vc>
+)
+# Copy mods into build directory
+add_custom_command(TARGET vc POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:vc>/mods
+  COMMAND ${CMAKE_COMMAND} -E copy
+  "${CUSTOM_CACHE}/main.wasm"
+  $<TARGET_FILE_DIR:vc>/mods/main.wasm
+)
+# Copy assets into build directory
+add_custom_command(TARGET vc POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:vc>/mods
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+  "assets"
+  $<TARGET_FILE_DIR:vc>/assets
+)
 
 target_compile_definitions(vc PUBLIC "WAVM_API=")
 
