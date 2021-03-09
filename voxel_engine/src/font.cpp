@@ -135,7 +135,7 @@ void Font::render(ivec2 dimensions, ivec2 location, float scale, const char* tex
             { xpos + w, ypos + h,   1.0f, 0.0f }           
         };
         // render glyph texture over quad
-        bind_texture(0, texture_pointer, ch.texture_id);
+        bind_texture(1, texture_pointer, ch.texture_id);
         // update content of VBO memory
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vertices), vertices);
         // render quad

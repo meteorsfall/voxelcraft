@@ -149,7 +149,8 @@ if (WIN32)
       $<TARGET_FILE_DIR:vc>)
 else ()
   # Link linux system libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs)
+  # sciter: needs dl
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs dl)
   # Link linux .so libraries to voxelcraft
   target_link_libraries(vc WAVM sciter)
   # Copy .so's into build directory
