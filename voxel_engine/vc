@@ -1,6 +1,9 @@
 #!/bin/bash
 set -e
-make release
+
+mkdir -p ./build/CMakeFiles/release
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B ./build/CMakeFiles/release
+cmake --build ./build/CMakeFiles/release --target release
 cd ./build/release
 ./vc $@ 2>&1 2>../../output.log
 

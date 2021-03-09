@@ -3,7 +3,6 @@ lib
 include
 
 doxygen
-saves
 extras
 assets/images
 assets/fonts
@@ -12,7 +11,6 @@ assets/components
 assets/meshes
 gmon.out
 analysis.txt
-mods/compile_main.trigger
 
 **/*.wasm
 **/*.wat

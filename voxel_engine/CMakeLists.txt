@@ -30,7 +30,7 @@ ADD_CUSTOM_COMMAND(OUTPUT "${CUSTOM_CACHE}/main.wasm"
 )
 else()
 ADD_CUSTOM_COMMAND(OUTPUT "${CUSTOM_CACHE}/main.wasm"
-  COMMAND voxelc ./mods/main_mod -o "${CUSTOM_CACHE}/main.wasm"
+  COMMAND voxelc "${CMAKE_SOURCE_DIR}/mods/main_mod" -o "${CUSTOM_CACHE}/main.wasm"
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm compilation"
 )
@@ -39,7 +39,7 @@ endif ()
 # Add release build
 ADD_CUSTOM_TARGET(release
   COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=Release ${CMAKE_SOURCE_DIR}
-  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_SOURCE_DIR} --target all --parallel 4
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target all --parallel 4
   DEPENDS "${CUSTOM_CACHE}/precompiled.h.gch"
           "${CUSTOM_CACHE}/main.wasm"
   COMMENT "Creating the executable in release mode."
@@ -57,8 +57,10 @@ ADD_CUSTOM_TARGET(debug
 # Print build type
 if (CMAKE_BUILD_TYPE MATCHES Release)
   message(STATUS "Release Mode")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/release")
 elseif (CMAKE_BUILD_TYPE MATCHES Debug)
   message(STATUS "Debug Mode")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/build/debug")
 else ()
   message(STATUS "No target given")
   return ()
@@ -83,15 +85,6 @@ else ()
   set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -flto -g")
 endif ()
-
-# don't read CMAKE_BUILD_TYPE, it has no meaning with multiconfig
-# generators
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_SOURCE_DIR}/build/debug")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/build/release")
-
-# PROJECT_BINARY_DIR should not be set at all
-# You establish the BINARY_DIR with the initial cmake command
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
 # Find OpenGL
 set(OpenGL_GL_PREFERENCE LEGACY)
@@ -158,13 +151,13 @@ else ()
   target_link_libraries(vc WAVM sciter)
   # Run doxygen after compiling on linux
   add_custom_command(TARGET vc POST_BUILD
-    COMMAND doxygen
+    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" doxygen
   )
 endif ()
 # Copy .dll/.so's into build directory
 add_custom_command(TARGET vc POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-  "${PROJECT_SOURCE_DIR}/bin"
+  "${CMAKE_SOURCE_DIR}/bin"
   $<TARGET_FILE_DIR:vc>
 )
 # Copy mods into build directory
@@ -178,7 +171,7 @@ add_custom_command(TARGET vc POST_BUILD
 add_custom_command(TARGET vc POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory $<TARGET_FILE_DIR:vc>/mods
   COMMAND ${CMAKE_COMMAND} -E copy_directory
-  "assets"
+  "${CMAKE_SOURCE_DIR}/assets"
   $<TARGET_FILE_DIR:vc>/assets
 )
 
