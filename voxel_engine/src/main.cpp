@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include <sciter/sciter-x-lite.hpp>
-
 #include "utils.hpp"
 #include "input.hpp"
 #include "UI.hpp"
@@ -164,7 +162,7 @@ int main( void )
 
     int frames_since_last_fps_calculation = 0;
     double time_since_last_fps_calculation = glfwGetTime();
-    float last_frame_time;
+    float last_frame_time = 0;
     for (int frame_index = 0; true; frame_index++) {
 #if FRAME_TIMER
         dbg("** Begin Frame");

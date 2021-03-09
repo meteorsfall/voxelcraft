@@ -48,7 +48,7 @@ MainUI::MainUI(Game* game) {
             this->save_selected = this->save_loaded;
         }),
         Button(UIElement(button_texture), "Load Game", [this]() {
-            this->menu = MenuState::LoadMenu;
+            this->menu = MenuState::TheLoadMenu;
             this->save_selected = this->save_loaded;
         }),
         Button(UIElement(button_texture), "New Game", [this]() {
@@ -159,7 +159,7 @@ void MainUI::iterate(InputState& input, int width, int height) {
                 : load_menu);
     position_page(new_visible_page);
 
-    if (menu == MenuState::SaveMenu || menu == MenuState::LoadMenu) {
+    if (menu == MenuState::SaveMenu || menu == MenuState::TheLoadMenu) {
         new_visible_page.buttons[1].elem.set_texture(button_texture);
         new_visible_page.buttons[2].elem.set_texture(button_texture);
         new_visible_page.buttons[3].elem.set_texture(button_texture);

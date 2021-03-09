@@ -134,9 +134,9 @@ all_functions[name] = (asObject(getTypedInstanceExport(intrinsicsInstance, name,
       string export_name = irmod.functions.imports.at(kindIndex.index).exportName;
       if (module_name.compare("env") == 0 && all_functions.count(export_name)) {
         if (importType.getEncoding() != WAVM::Runtime::as<Function>(all_functions[export_name])->encodedType ) {
-          dbg();
+          dbg("");
           dbg("Import Types do not match! %s", export_name.c_str());
-          dbg();
+          dbg("");
           dbg("Found Wasm Version: ");
           for(auto& a : importType.params()) {
             dbg("- Param: %s", asString(a));

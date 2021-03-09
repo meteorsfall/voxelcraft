@@ -24,7 +24,7 @@ file(GLOB_RECURSE wasm_sources CONFIGURE_DEPENDS "mods/*.vs")
 
 if (WIN32)
 ADD_CUSTOM_COMMAND(OUTPUT "${CUSTOM_CACHE}/main.wasm"
-  COMMAND ${CMAKE_COMMAND} -E echo "Must compile WASM!" > "${CUSTOM_CACHE}/main.wasm"
+  COMMAND wsl -- /bin/bash -i -c "\"voxelc \\$$(wslpath \\\"${CMAKE_SOURCE_DIR}/mods/main_mod\\\") -o \\$$(wslpath \\\"${CUSTOM_CACHE}/main.wasm\\\")\""
   DEPENDS ${wasm_sources}
   COMMENT "Checking wasm Compilation"
 )
@@ -72,7 +72,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 if (WIN32)
   # Add cl.exe commandline options
-  add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457)
+  add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457 /DSCITER_LITE /DUNICODE)
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2 /GS-")
   if (CMAKE_BUILD_TYPE MATCHES Release)
