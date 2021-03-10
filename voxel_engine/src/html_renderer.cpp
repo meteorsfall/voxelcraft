@@ -111,6 +111,7 @@ UINT on_load_data(LPSCN_LOAD_DATA pnmld) {
         ::SciterDataReady(pnmld->hwnd, pnmld->uri, (LPCBYTE)buffer.data(), size);
         return LOAD_OK;
     } else {
+        dbg("Could not open file %s", filepath.c_str());
         return LOAD_DISCARD;
     }
 }

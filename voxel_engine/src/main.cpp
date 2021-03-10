@@ -19,7 +19,7 @@ static int height = 400;
 
 static void glfw_error_callback(int error, const char* description)
 {
-    fprintf(stderr, "Error %d: %s\n", error, description);
+    dbg("GLFW Error %d: %s\n", error, description);
 }
 
 void resize_callback(GLFWwindow* win, int w, int h) {
