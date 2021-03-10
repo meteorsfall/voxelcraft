@@ -7,8 +7,8 @@
 
 #include <WAVM/IR/Module.h>
 
-// Include wasm cpp
-#include "wasm_api.cpp"
+// Include wasm hpp
+#include "wasm_api.hpp"
 
 // Global counter our Wasm module will be updating
 

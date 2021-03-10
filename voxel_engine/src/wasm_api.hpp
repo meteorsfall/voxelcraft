@@ -1,3 +1,7 @@
+// NOTE: Includes definitions, not just declarations
+// Hence, this .hpp has no include guards, this file
+// is to be included only in modloader.cpp
+
 #include "utils.hpp"
 #include "api.hpp"
 
