@@ -115,25 +115,8 @@ int main( void )
     SciterProcX(window, SCITER_X_MSG_SIZE(width, height));
     // Set Sciter callback
     SciterSetCallback(window, sciter_handle_notification, nullptr);
-    const char html[] = /* utf8 BOM */ "\xEF\xBB\xBF" /* HTML */ R"ENDHTML(
-<html>
-<head>
-    <style>
-    html, body {background: transparent;}
-    daiv {background: white;}
-    </style>
-</head>
-<body>
-    <div>
-        <h1 id="titlebar">Hello</h1>
-        <p>World!</p>
-    </div>
-    <script>
-        document.getElementById("titlebar").innerHTML="Javascript!";
-    </script>
-</body>
-</html>)ENDHTML";
-    if (SciterLoadHtml(window, (LPCBYTE)html, strlen(html), nullptr) != TRUE) {
+    // Load HTML
+    if (SciterLoadFile(window, WSTR("file://html/menu.html")) != TRUE) {
         dbg("Failed to load HTML");
     }
 
@@ -336,6 +319,52 @@ void render_sciter() {
 
 // See sciter-sdk/demos.lite/sciter-glfw-opengl/basic.cpp for examples
 
+UINT on_load_data(LPSCN_LOAD_DATA pnmld) {
+
+    // your custom loader is here
+
+    LPCBYTE pb = 0; UINT cb = 0;
+
+    aux::wchars chars = aux::chars_of(pnmld->uri);
+    char* str = new char[chars.length];
+    int len = 0;
+    for(wchar_t c : chars) {
+        str[len++] = c;
+    }
+    str[len] = '\0';
+    std::string s(str);
+    delete[] str;
+
+    std::string prefix = "file://";
+    if (s.rfind(prefix, 0) == 0) {
+        s = s.substr(prefix.size());
+    } else {
+        dbg("File %s did not start with file://", s.c_str());
+        return LOAD_DISCARD;
+    }
+
+    dbg("URI Request: %s", s.c_str());
+
+    std::string filepath = std::string("assets/") + s;
+    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        dbg("Could not open file %s", filepath.c_str());
+        return LOAD_DISCARD;
+    }
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<char> buffer(size);
+    if (file.read(buffer.data(), size))
+    {
+        /* worked! */
+        ::SciterDataReady(pnmld->hwnd, pnmld->uri, (LPCBYTE)buffer.data(), size);
+        return LOAD_OK;
+    } else {
+        return LOAD_DISCARD;
+    }
+}
+
 UINT SC_CALLBACK sciter_handle_notification(LPSCITER_CALLBACK_NOTIFICATION pnm, LPVOID callbackParam)
 {
     UNUSED(pnm);
@@ -343,15 +372,22 @@ UINT SC_CALLBACK sciter_handle_notification(LPSCITER_CALLBACK_NOTIFICATION pnm, 
     
     switch (pnm->code) {
         case SC_LOAD_DATA:
-            return 0; // Unimplemented
+            // Load image
+            return on_load_data((LPSCN_LOAD_DATA)pnm);
         case SC_DATA_LOADED:
+            dbg("Sciter Data Loaded");
             return 0; // Unimplemented
         case SC_ATTACH_BEHAVIOR:
+            dbg("Sciter Attach");
             return 0; // Unimplemented
         case SC_INVALIDATE_RECT:
             // We draw on every frame, so the rectangle being invalidated isn't relevant to us
             return 0;
-        case SC_ENGINE_DESTROYED: break;
+        case SC_ENGINE_DESTROYED:
+            break;
+        default:
+            dbg("Unknown Sciter Notification: %d", pnm->code);
+            break;
     }
     return 0;
 }
