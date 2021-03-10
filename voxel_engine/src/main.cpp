@@ -3,20 +3,19 @@
 
 #include "utils.hpp"
 #include "input.hpp"
-#include "UI.hpp"
+#include "html_renderer.hpp"
 #include "example/main_game.hpp"
 #include "example/main_ui.hpp"
 #include "modloader.hpp"
 
 TextureRenderer* g_texture_renderer;
 GLFWwindow* window = NULL;
+HTMLRenderer html_renderer;
 
 extern bool paused;
 
 static int width = 600;
 static int height = 400;
-
-static UINT SC_CALLBACK sciter_handle_notification(LPSCITER_CALLBACK_NOTIFICATION pnm, LPVOID callbackParam);
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -25,24 +24,13 @@ static void glfw_error_callback(int error, const char* description)
 
 void resize_callback(GLFWwindow* win, int w, int h) {
     if (win != window) {
-        dbg("Unknown GLFW windows: %p, expected %p", (void*)win, (void*)window);
+        dbg("Unknown GLFW window: %p, expected %p", (void*)win, (void*)window);
+        return;
     }
     width = w;
     height = h;
     get_texture_renderer()->set_window_dimensions(width, height);
-    // Update Sciter width/height
-    SciterProcX(window, SCITER_X_MSG_SIZE(width, height));
 }
-
-int fib(int a, int seed=1) {
-    if (a < 2) {
-        return 1;
-    } else {
-        return fib(a-1, seed) + fib(a-2, seed) + seed;
-    }
-}
-
-void render_sciter();
 
 int main( void )
 {
@@ -79,6 +67,11 @@ int main( void )
         return -1;
     }
 
+    html_renderer.init(window);
+    if (!html_renderer.load_html(WSTR("file://html/menu.html"))) {
+        dbg("Failed to load HTML");
+    }
+
     // Move window to the center of the monitor
     glfwSetWindowPos(window,
         monitor_x + (mode->width - width) / 2,
@@ -102,22 +95,6 @@ int main( void )
     } else {
         dbg("No adaptive vsync support");
         glfwSwapInterval(1);
-    }
-
-    // Initializer Sciter
-    SciterSetOption(NULL, SCITER_SET_UX_THEMING, TRUE); // Removes system-dependent CSS
-    SciterProcX(window, SCITER_X_MSG_CREATE(GFX_LAYER_SKIA_OPENGL, FALSE));
-    // Set Sciter DPI
-    float xscale;
-    glfwGetWindowContentScale(window, &xscale, NULL);
-    SciterProcX(window, SCITER_X_MSG_RESOLUTION(96*xscale));
-    // Set Sciter width/height
-    SciterProcX(window, SCITER_X_MSG_SIZE(width, height));
-    // Set Sciter callback
-    SciterSetCallback(window, sciter_handle_notification, nullptr);
-    // Load HTML
-    if (SciterLoadFile(window, WSTR("file://html/menu.html")) != TRUE) {
-        dbg("Failed to load HTML");
     }
 
     // Makes a vertex array object for our graphics engine
@@ -242,10 +219,10 @@ int main( void )
         glDisable(GL_MULTISAMPLE);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        // Render UI
+        // Render Mod UI
         main_mod.call("render_ui");
-        // Render Sciter
-        render_sciter();
+        // Render HTML UI
+        html_renderer.render(width, height);
 
         double ui_time = (glfwGetTime() - ui_timer) * 1000.0;
 #if FRAME_TIMER
@@ -267,127 +244,10 @@ int main( void )
 #endif
     }
 
-    // Close Sciter
-    SciterProcX(window, SCITER_X_MSG_DESTROY());
     // Close GLFW window and terminate GLFW
+    html_renderer.destroy();
     glfwDestroyWindow(window);
     glfwTerminate();
 
-    return 0;
-}
-
-// ================
-// Sciter Functions
-// ================
-
-void render_sciter() {
-    // Static variables to store Sciter OpenGL Context
-    static GLint sciter_vertex_array = 0;
-    static GLint sciter_texture_unit = GL_TEXTURE0;
-    static GLint sciter_program = 0;
-
-    // Load up Sciter Opengl Context from saved values or known constants
-    glBindVertexArray(sciter_vertex_array);
-    glActiveTexture(sciter_texture_unit);
-    glUseProgram(sciter_program);
-    glBlendFunc(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_COLOR);
-    glDisable(GL_CULL_FACE);
-    glDepthMask(GL_FALSE);
-
-    // Open all vertex attributes
-    GLint max_vertex_attribs;
-    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
-    for(int i = 0; i < max_vertex_attribs; i++) {
-        glEnableVertexAttribArray(i);
-    }
-
-    // Give Sciter the time, so that it can synchronize animations
-    SciterProcX(window, SCITER_X_MSG_HEARTBIT(UINT(glfwGetTime() * 1000)));
-    // Render HTML/CSS with Sciter using Sciter OpenGL context
-    SciterProcX(window, SCITER_X_MSG_PAINT());
-
-    // Close all vertex attributes
-    for(int i = 0; i < max_vertex_attribs; i++) {
-        glDisableVertexAttribArray(i);
-    }
-
-    // Save Sciter OpenGL Context
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &sciter_vertex_array);
-    glGetIntegerv(GL_ACTIVE_TEXTURE, &sciter_texture_unit);
-    glGetIntegerv(GL_CURRENT_PROGRAM, &sciter_program);
-}
-
-// See sciter-sdk/demos.lite/sciter-glfw-opengl/basic.cpp for examples
-
-UINT on_load_data(LPSCN_LOAD_DATA pnmld) {
-
-    // your custom loader is here
-
-    LPCBYTE pb = 0; UINT cb = 0;
-
-    aux::wchars chars = aux::chars_of(pnmld->uri);
-    char* str = new char[chars.length];
-    int len = 0;
-    for(wchar_t c : chars) {
-        str[len++] = c;
-    }
-    str[len] = '\0';
-    std::string s(str);
-    delete[] str;
-
-    std::string prefix = "file://";
-    if (s.rfind(prefix, 0) == 0) {
-        s = s.substr(prefix.size());
-    } else {
-        dbg("File %s did not start with file://", s.c_str());
-        return LOAD_DISCARD;
-    }
-
-    dbg("URI Request: %s", s.c_str());
-
-    std::string filepath = std::string("assets/") + s;
-    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        dbg("Could not open file %s", filepath.c_str());
-        return LOAD_DISCARD;
-    }
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(size);
-    if (file.read(buffer.data(), size))
-    {
-        /* worked! */
-        ::SciterDataReady(pnmld->hwnd, pnmld->uri, (LPCBYTE)buffer.data(), size);
-        return LOAD_OK;
-    } else {
-        return LOAD_DISCARD;
-    }
-}
-
-UINT SC_CALLBACK sciter_handle_notification(LPSCITER_CALLBACK_NOTIFICATION pnm, LPVOID callbackParam)
-{
-    UNUSED(pnm);
-    UNUSED(callbackParam);
-    
-    switch (pnm->code) {
-        case SC_LOAD_DATA:
-            // Load image
-            return on_load_data((LPSCN_LOAD_DATA)pnm);
-        case SC_DATA_LOADED:
-            dbg("Sciter Data Loaded");
-            return 0; // Unimplemented
-        case SC_ATTACH_BEHAVIOR:
-            dbg("Sciter Attach");
-            return 0; // Unimplemented
-        case SC_INVALIDATE_RECT:
-            // We draw on every frame, so the rectangle being invalidated isn't relevant to us
-            return 0;
-        case SC_ENGINE_DESTROYED:
-            break;
-        default:
-            dbg("Unknown Sciter Notification: %d", pnm->code);
-            break;
-    }
     return 0;
 }
