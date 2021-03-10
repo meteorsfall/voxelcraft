@@ -1,5 +1,5 @@
 #include "utils.hpp"
-#include "wasm_api.hpp"
+#include "api.hpp"
 
 #include <WAVM/IR/Module.h>
 #include <WAVM/IR/Types.h>
