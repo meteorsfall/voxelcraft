@@ -1,6 +1,6 @@
-nmake release || EXIT /B
-if exist mods\compile_main.trigger (
-    wsl asc mods/main.ts --runtime half --explicitStart -b mods/main.wasm
-    del mods\compile_main.trigger
-)
-start /WAIT /B build/release/vc.exe
+mkdir build\CMakeFiles\release
+cmake -DCMAKE_BUILD_TYPE=Release -S . -B build\CMakeFiles\release -G "Ninja"
+cmake --build build\CMakeFiles\release --target voxelcraft
+cd build\release
+start /WAIT /B vc.exe
+cd ..\..

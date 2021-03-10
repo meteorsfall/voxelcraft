@@ -213,7 +213,7 @@ void Chunk::cached_render(const mat4& P, const mat4& V) {
     GLuint shader_texture_id = glGetUniformLocation(chunk_shader_id, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    bind_texture(0, shader_texture_id, opengl_texture_atlas_cache);
+    bind_texture(1, shader_texture_id, opengl_texture_atlas_cache);
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation

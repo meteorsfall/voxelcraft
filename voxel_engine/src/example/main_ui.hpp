@@ -17,7 +17,8 @@ enum MenuState {
     /// The save menu
     SaveMenu,
     /// The load menu
-    LoadMenu,
+    // Temporarily hanged to TheLoadMenu to prevent collision with winapi "LoadMenu"
+    TheLoadMenu,
 };
 
 /// The MainUI class drives the UI that is displayed on top of the game

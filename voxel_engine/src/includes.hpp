@@ -1,6 +1,9 @@
 #ifndef _INCLUDES_HPP_
 #define _INCLUDES_HPP_
 
+// Include Sciter
+#include <sciter/sciter-x-lite.hpp>
+
 // Include GLEW
 #include <GL/glew.h>
 

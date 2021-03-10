@@ -1,10 +1,5 @@
 voxelscript/voxelscript_highlighter/syntaxes
 
-**/CMakeFiles
-**/*.cmake
-**/CMakeCache.txt
-**/Makefile
-
 **/package-lock.json
 **/node_modules
 **/.vscode

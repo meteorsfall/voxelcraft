@@ -48,7 +48,7 @@ void TextureRenderer::internal_render(const Texture& texture, ivec2 top_left, iv
 
     // Set shader texture
     GLuint shader_texture_id = glGetUniformLocation(ui_shader, "my_texture");
-    bind_texture(0, shader_texture_id, texture.opengl_texture_id.opengl_id.value());
+    bind_texture(1, shader_texture_id, texture.opengl_texture_id.opengl_id.value());
     
     // Pass in the model matrix
     GLuint matrix_shader_pointer = glGetUniformLocation(ui_shader, "MVP");
@@ -86,10 +86,12 @@ void TextureRenderer::render_skybox(const mat4& P, mat4 V, const CubeMapTexture&
     glUniformMatrix4fv(cubemap_PV_pointer, 1, GL_FALSE, &PV[0][0]);
 
     GLuint cubemap_shader_pointer = glGetUniformLocation(shader_id, "skybox");
-    bind_texture_cubemap(0, cubemap_shader_pointer, texture.opengl_texture_id);
+    bind_texture_cubemap(1, cubemap_shader_pointer, texture.opengl_texture_id);
 
     bind_array(0, get_texture_renderer()->skybox_buffer, 3);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+
+    glDisableVertexAttribArray(0);
 }
 
 void TextureRenderer::render_text(const Font& font, ivec2 location, float scale, const char* text, ivec3 color) {

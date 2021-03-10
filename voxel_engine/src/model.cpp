@@ -98,7 +98,7 @@ static void mesh_render(const mat4& PV, const mat4& M, tuple<byte*, byte*, int> 
     GLuint shader_texture_id = glGetUniformLocation(entity_shader, "my_texture");
     // shader_texture_id = &fragment_shader.myTextureSampler;
     
-    bind_texture(0, shader_texture_id, get_universe()->get_atlasser()->get_atlas_texture());
+    bind_texture(1, shader_texture_id, get_universe()->get_atlasser()->get_atlas_texture());
 
     // Get a handle for our "MVP" uniform
     // Only during the initialisation
