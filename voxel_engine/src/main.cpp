@@ -112,6 +112,10 @@ int main( void )
     // Set a black background
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Render HTMLRenderer for one frame,
+    // to prevent black flash that it causes when being rendered for the first time
+    html_renderer.render(width, height);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glfwSwapBuffers(window);
 
     TextureRenderer texture_renderer;
@@ -234,7 +238,7 @@ int main( void )
         // Render Mod UI
         main_mod.call("render_ui");
         // Render HTML UI
-        if (game_paused || frame_index == 0) {
+        if (game_paused) {
             html_renderer.render(width, height);
         }
 
