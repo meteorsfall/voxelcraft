@@ -34,6 +34,10 @@ void resize_callback(GLFWwindow* win, int w, int h) {
 
 int main( void )
 {
+    // Line-buffer stdout/stderr so that lines get flushed immediately
+    setvbuf(stdout, NULL, _IOLBF, 0);
+    setvbuf(stderr, NULL, _IOLBF, 0);
+
     // Initialise GLFW
     glfwSetErrorCallback(glfw_error_callback);
     if( !glfwInit() )
