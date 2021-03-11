@@ -31,6 +31,7 @@ void HTMLRenderer::render(int width, int height) {
         last_width = width;
         last_height = height;
     }
+    
     // Load up Sciter Opengl Context from saved values or known constants
     glBindVertexArray(sciter_vertex_array);
     glActiveTexture(sciter_texture_unit);

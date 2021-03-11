@@ -91,9 +91,14 @@ int main( void )
     if (glfwExtensionSupported("WGL_EXT_swap_control_tear") == GLFW_TRUE
       || glfwExtensionSupported("GLX_EXT_swap_control_tear") == GLFW_TRUE) {
         dbg("Supports adaptive vsync!");
+        // Same as normal vsync when rendering at or above 60FPS
+        // But, turns off vsync when rendering below 60FPS,
+        // so that it doesn't peg it to 30FPS
         glfwSwapInterval(-1);
     } else {
         dbg("No adaptive vsync support");
+        // Forced vsync, so if it takes us 17ms to render per frame,
+        // we immediately drop to 30FPS
         glfwSwapInterval(1);
     }
 
@@ -119,6 +124,8 @@ int main( void )
     // ********************
     // START MAIN GAME LOOP
     // ********************
+
+    bool game_paused = false;
 
     int frames_since_last_fps_calculation = 0;
     double time_since_last_fps_calculation = glfwGetTime();
@@ -146,11 +153,15 @@ int main( void )
         double input_time = glfwGetTime();
         
         // Relative mouse will be activated iff the game is not paused
-        InputState input_state = input_handler.capture_input(true);
+        InputState input_state = input_handler.capture_input(!game_paused);
 
-        if (input_handler.is_exiting() || glfwWindowShouldClose(window)) {
+        if (input_state.keys[GLFW_KEY_Q] == GLFW_PRESS || glfwWindowShouldClose(window)) {
             // Exit if their input tried to exit, or if glfw detected a close event (E.g. like the 'X' button)
             break;
+        }
+
+        if (input_state.keys[GLFW_KEY_ESCAPE] == GLFW_PRESS) {
+            game_paused = !game_paused;
         }
         
 #if FRAME_TIMER
@@ -222,7 +233,9 @@ int main( void )
         // Render Mod UI
         main_mod.call("render_ui");
         // Render HTML UI
-        html_renderer.render(width, height);
+        if (game_paused || frame_index == 0) {
+            html_renderer.render(width, height);
+        }
 
         double ui_time = (glfwGetTime() - ui_timer) * 1000.0;
 #if FRAME_TIMER

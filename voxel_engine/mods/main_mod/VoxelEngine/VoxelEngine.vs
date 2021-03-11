@@ -1,6 +1,7 @@
 import Env;
 import vec3;
 import mat4;
+import Input;
 
 class VoxelEngineRenderer {
     void render_texture(int texture_id, int location_x, int location_y, int size_x, int size_y);
@@ -76,7 +77,8 @@ implement VoxelEngineWorld {
 
 class VoxelEngine {
     init();
-    void get_input_state(int[] data);
+    // Get the input state
+    InputState get_input_state();
     // Registery
     int register_font(string s);
     int register_atlas_texture(string filepath, int color_key_x, int color_key_y, int color_key_z);
@@ -97,8 +99,11 @@ implement VoxelEngine {
         this.renderer = new VoxelEngineRenderer();
         this.world = new VoxelEngineWorld();
     }
-    void get_input_state(int[] data) {
-        env.VoxelEngine__get_input_state(data);
+    InputState get_input_state() {
+        int[] input_data = [];
+        input_data.resize(359);
+        env.VoxelEngine__get_input_state(input_data);
+        return new InputState(input_data);
     }
     int register_font(string s) {
         return env.VoxelEngine__register_font(s);

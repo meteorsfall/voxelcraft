@@ -30,6 +30,9 @@ public:
         int current_time_seconds;
         // i32
         int current_time_nanoseconds;
+        /// Relative mouse status. 1 if mouse_pos is relative, 0 is mouse_pos is not
+        // i32
+        int relative_mouse;
         /// The current screen dimensions
         // i32, i32
         ivec2 screen_dimensions;
@@ -48,8 +51,6 @@ public:
         InputButtonState keys[350];
     };
 
-    /// Returns true if an exiting condition was triggered
-    bool is_exiting();
     /// Creates an InputHandler from a GLFW Window
     InputHandler(GLFWwindow* window);
     /// Iterates input handling, and returns the current InputState
@@ -65,7 +66,6 @@ private:
     GLFWwindow* window;
     InputState next_input;
     bool last_relative_mouse = false;
-    bool exiting;
 };
 
 /**@}*/

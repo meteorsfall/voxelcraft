@@ -141,12 +141,13 @@ typedef uint8_t u8;
 typedef uint32_t u32;
 
 // i32, i32 screen dimensions
+// i32 relative_mouse
 // i64 current_time
 // 350 * i32 keys
 // i32, i32 mouse_pos
 // i32 left_mouse
 // i32 right_mouse
-#define INPUT_STATE_SIZE (358*4)
+#define INPUT_STATE_SIZE (359*4)
 
 // Default-initialized to 0, so will not leak system memory
 byte g_input_state[INPUT_STATE_SIZE];
@@ -154,8 +155,9 @@ byte g_input_state[INPUT_STATE_SIZE];
 void WASM_set_input_state(void* input_state, int length) {
   if (length != sizeof(g_input_state)) {
     dbg("Wrong input state size!");
+  } else {
+    memcpy(g_input_state, input_state, sizeof(g_input_state));
   }
-  memcpy(g_input_state, input_state, sizeof(g_input_state));
 }
 
 char str_buffer[2048];
