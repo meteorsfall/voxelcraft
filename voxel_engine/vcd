@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-mkdir -p ./build/CMakeFiles/debug
-cmake -DCMAKE_BUILD_TYPE=Debug -S . -B ./build/CMakeFiles/debug
+if [[ ! -d ./build/CMakeFiles/debug ]]; then
+  mkdir -p ./build/CMakeFiles/debug
+  cmake -DCMAKE_BUILD_TYPE=Debug -S . -B ./build/CMakeFiles/debug
+fi
 cmake --build ./build/CMakeFiles/debug --target voxelcraft
 cd ./build/debug
 ./vc $@ 2>&1 | tee ../../output.log
