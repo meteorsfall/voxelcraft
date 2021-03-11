@@ -25,9 +25,10 @@ public:
 
     /// The current Input state
     struct InputState {
-        /// The current time
+        /// The current time in seconds
         // i32
         int current_time_seconds;
+        /// The number of nanoseconds since the last whole second passed
         // i32
         int current_time_nanoseconds;
         /// Relative mouse status. 1 if mouse_pos is relative, 0 is mouse_pos is not

@@ -180,7 +180,7 @@ int main( void )
         double iterate_timer = glfwGetTime();
 
         // Pass player input, and then iterate the game state
-        main_mod.set_input_state(&input_state, sizeof(input_state));
+        main_mod.set_input_state(&input_state);
         main_mod.call("iterate");
 
         double iterate_time = (glfwGetTime() - iterate_timer) * 1000.0;

@@ -16,6 +16,8 @@ using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
 
+/// \cond HIDDEN_SYMBOLS
+
 void WASM_set_input_state(void* input_state, int length);
 
 namespace VoxelEngineWASM {
@@ -398,3 +400,5 @@ void VoxelEngineWASM::Renderer::render_skybox(ContextRuntimeData* wasm_ctx, int3
 
     VoxelEngine::Renderer::render_skybox(cubemap_texture_id, proj, view);
 }
+
+/// \endcond
