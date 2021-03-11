@@ -22,10 +22,11 @@ else ()
   return ()
 endif ()
 
-# Keep track of the precompile gch cache
-# If src/includes.hpp changes, the precompiled header must be recreated
-# This is done by restarting the build from the beginning.
-# precompile.h.gch is just a dummy file with nothing in it
+# Keep track of the precompiled gch file
+# If src/includes.hpp or something it includes changes,
+# the precompiled header must be recreated
+# This is done by regenerating the dummy file precompiled.h.gch,
+# which will trigger a rebuild of the `voxelcraft` target
 add_custom_command(OUTPUT "${CUSTOM_CACHE}/precompiled.h.gch"
   COMMENT "Precompiled src/includes.hpp header out-of-date, recompiling..."
   COMMAND ${CMAKE_COMMAND} -E touch "${CUSTOM_CACHE}/precompiled.h.gch"
@@ -51,7 +52,7 @@ add_custom_command(OUTPUT "${CUSTOM_CACHE}/main.wasm"
 )
 endif ()
 
-# Create command for copying build files
+# Custom command for copying build files
 add_custom_command(OUTPUT "${CUSTOM_CACHE}/build_files"
   COMMENT "Copying build files into build folder"
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
@@ -120,6 +121,16 @@ else ()
   # Find FreeType
   find_package(Freetype REQUIRED)
   message(STATUS "Found FreeType at ${FREETYPE_LIBRARIES}")
+
+  # Find Bfd [Optional]
+  find_library(LIBBFD_LIB NAMES bfd)
+  if(LIBBFD_LIB)
+    message(STATUS "Found Libbfd")
+    add_definitions(-DBACKWARD_HAS_BFD=1)
+    link_libraries(bfd)
+  else()
+    message(STATUS "Not Found Libbfd")
+  endif()
 endif ()
 
 # Add include directories.
