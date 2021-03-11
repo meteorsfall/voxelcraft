@@ -53,10 +53,12 @@ add_custom_command(OUTPUT "${CUSTOM_CACHE}/main.wasm"
 endif ()
 
 # Custom command for copying build files
+file(GLOB_RECURSE shared_object_files "bin/*.dll" "bin/*.so")
 add_custom_command(OUTPUT "${CUSTOM_CACHE}/build_files"
   COMMENT "Copying build files into build folder"
-  COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  COMMAND ${CMAKE_COMMAND} -E copy ${shared_object_files} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets"
   COMMAND ${CMAKE_COMMAND} -E copy "${CUSTOM_CACHE}/main.wasm" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mods/main.wasm"
   COMMAND ${CMAKE_COMMAND} -E touch "${CUSTOM_CACHE}/build_files"
@@ -118,25 +120,29 @@ else ()
 
   # Find GLM
   find_package(glm REQUIRED)
-  message(STATUS "Found GLM in ${GLM_INCLUDE_DIRS}")
+  message(STATUS "GLM: Found (${GLM_INCLUDE_DIRS})")
 
   # Find GLFW
   find_package(glfw3 REQUIRED)
-  message(STATUS "Found GLFW3 in ${GLFW3_LIBRARY}")
+  message(STATUS "GLFW3: Found (${GLFW3_LIBRARY})")
 
   # Find FreeType
   find_package(Freetype REQUIRED)
-  message(STATUS "Found FreeType at ${FREETYPE_LIBRARIES}")
+  message(STATUS "FreeType: Found (${FREETYPE_LIBRARIES})")
 
   # Find Bfd [Optional]
+  # Finding Bfd will give line numbers in stack traces
   find_library(LIBBFD_LIB NAMES bfd)
   if(LIBBFD_LIB)
-    message(STATUS "Found Libbfd")
+    message(STATUS "bfd: Found")
     add_definitions(-DBACKWARD_HAS_BFD=1)
     link_libraries(bfd)
   else()
-    message(STATUS "Not Found Libbfd")
+    message(STATUS "bfd: Not Found")
   endif()
+
+  find_package(LLVM REQUIRED CONFIG)
+  message(STATUS "LLVM: Found (${LLVM_BINARY_DIR})")
 endif ()
 
 # Add include directories.
@@ -166,11 +172,12 @@ if (WIN32)
   # Link windows libraries to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 libWAVM noise freetype ws2_32 userenv)
 else ()
-  # Link linux system libraries to voxelcraft
-  # sciter: needs dl
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs dl)
-  # Link linux .so libraries to voxelcraft
-  target_link_libraries(vc WAVM sciter)
+  # Link linux system libraries that we use to voxelcraft
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs)
+  # Link WAVM and dependencies
+  target_link_libraries(vc WAVM WAVMlmdb WAVMUnwind WAVMBLAKE2 LLVM pthread)
+  # Link Sciter and dependencies
+  target_link_libraries(vc sciter dl)
   # Run doxygen after compiling on linux
   add_custom_command(TARGET vc POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" doxygen

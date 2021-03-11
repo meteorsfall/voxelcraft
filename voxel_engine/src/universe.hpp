@@ -65,7 +65,6 @@ private:
     map<string, int> texture_names;
     map<string, int> atlas_texture_names;
     map<string, int> component_names;
-    GLuint opengl_atlas_texture;
 };
 
 /// This will get the global universe that the game will use to handle resource allocation

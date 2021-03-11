@@ -20,7 +20,7 @@ if ! dpkg -s gcc-9 g++-9 >/dev/null 2>&1; then
   sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
 fi
 # Install all dependencies
-pkgs='doxygen graphviz wget unzip make g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglfw3-dev libglew-dev libglm-dev libfreetype6-dev libnoise-dev binutils-dev'
+pkgs='doxygen graphviz wget unzip make llvm g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglfw3-dev libglew-dev libglm-dev libfreetype6-dev libnoise-dev binutils-dev'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs
 fi
@@ -30,7 +30,4 @@ import bin.zip https://www.dropbox.com/sh/ufxc5m6oboggyu8/AABg_WOZoX-Fcr_kM6AcoU
 import extras.zip https://www.dropbox.com/sh/ivstaw0kblgimwe/AADib2fNuH0XbmpP-jshBWoTa?dl=1 ./extras
 import mod_extras.zip https://www.dropbox.com/sh/ow2q77abt5rrf01/AAC1NcP6tKWE-4Q5ZLF6tM38a?dl=1 ./mods
 import assets.zip https://www.dropbox.com/sh/ky2lb4fefc00xa6/AADN9dDNXM4EMZU-uPoFd49ra?dl=1 ./assets
-
-# symlink libWAVM to version 0
-ln -s "libWAVM.so.0" ./bin/libWAVM.so
 
