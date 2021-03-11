@@ -77,9 +77,9 @@ void HTMLRenderer::destroy() {
 
 UINT on_load_data(LPSCN_LOAD_DATA pnmld) {
     aux::wchars chars = aux::chars_of(pnmld->uri);
-    char* str = new char[chars.length];
+    char* str = new char[chars.length+1];
     int len = 0;
-    for(wchar_t c : chars) {
+    for(WCHAR c : chars) {
         str[len++] = c;
     }
     str[len] = '\0';

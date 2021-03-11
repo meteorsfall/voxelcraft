@@ -76,16 +76,22 @@ add_custom_target(voxelcraft
 if (WIN32)
   # Add cl.exe commandline options
   add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457 /DSCITER_LITE /DUNICODE)
+  # Link against MDd, not MD, WAVM seems to crash if this isn't done
+  string(REPLACE "/MDd" "/MD" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  # Create .pdb files
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
+  # /GL for global optimization, /O2 for optimization level
+  # /GS- to remove unneeded stack overflow nonce check
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2 /GS-")
   if (CMAKE_BUILD_TYPE MATCHES Release)
+    # Link-time optimization (Cross-file)
     add_link_options(/LTCG)
   endif ()
 else ()
   # Add gcc commandline options
   add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Werror -Wfatal-errors -DSCITER_LITE)
   add_link_options(-rdynamic)
-  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+  set(CMAKE_CXX_FLAGS_DEBUG "-Og")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -flto -g")
 endif ()
 

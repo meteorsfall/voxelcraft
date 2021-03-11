@@ -35,15 +35,14 @@ void resize_callback(GLFWwindow* win, int w, int h) {
 int main( void )
 {
     // Line-buffer stdout/stderr so that lines get flushed immediately
-    setvbuf(stdout, NULL, _IOLBF, 0);
-    setvbuf(stderr, NULL, _IOLBF, 0);
+    setvbuf(stdout, NULL, _IOLBF, 4096);
+    setvbuf(stderr, NULL, _IOLBF, 4096);
 
     // Initialise GLFW
     glfwSetErrorCallback(glfw_error_callback);
     if( !glfwInit() )
     {
         fprintf( stderr, "Failed to initialize GLFW\n" );
-        getchar();
         return -1;
     }
 
@@ -66,7 +65,6 @@ int main( void )
     window = glfwCreateWindow( width, height, "VoxelCraft", NULL, NULL);
     if( window == NULL ) {
         fprintf( stderr, "Failed to open GLFW %dx%d window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n", width, height );
-        getchar();
         glfwTerminate();
         return -1;
     }
@@ -87,7 +85,6 @@ int main( void )
     // Initialize GLEW
     if (glewInit() != GLEW_OK) {
         fprintf(stderr, "Failed to initialize GLEW\n");
-        getchar();
         glfwTerminate();
         return -1;
     }
