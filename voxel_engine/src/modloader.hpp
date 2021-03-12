@@ -17,6 +17,7 @@ public:
     Mod(const char* modname);
     /// Prevents reassigning a mod object using the = sign, since that complicates garbage handling
     Mod(const Mod&) = delete;
+    /// Prevents reassigning a mod object using the = sign, since that complicates garbage handling
     Mod& operator=(const Mod&) = delete;
     /// Destroy and cleanup the Mod's resources
     ~Mod();
