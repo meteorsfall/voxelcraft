@@ -56,7 +56,7 @@ endif ()
 file(GLOB_RECURSE shared_object_files "bin/*.dll" "bin/*.so")
 add_custom_command(OUTPUT "${CUSTOM_CACHE}/build_files"
   COMMENT "Copying build files into build folder"
-  COMMAND ${CMAKE_COMMAND} -E rm -rf "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
   COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
   COMMAND ${CMAKE_COMMAND} -E copy ${shared_object_files} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets"
