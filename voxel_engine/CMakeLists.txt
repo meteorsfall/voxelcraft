@@ -140,9 +140,6 @@ else ()
   else()
     message(STATUS "bfd: Not Found")
   endif()
-
-  find_package(LLVM REQUIRED CONFIG)
-  message(STATUS "LLVM: Found (${LLVM_BINARY_DIR})")
 endif ()
 
 # Add include directories.
@@ -175,7 +172,7 @@ else ()
   # Link linux system libraries that we use to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs)
   # Link WAVM and dependencies
-  target_link_libraries(vc WAVM WAVMlmdb WAVMUnwind WAVMBLAKE2 LLVM pthread)
+  target_link_libraries(vc WAVM WAVMlmdb WAVMUnwind WAVMBLAKE2 LLVM-10 pthread)
   # Link Sciter and dependencies
   target_link_libraries(vc sciter dl)
   # Run doxygen after compiling on linux
