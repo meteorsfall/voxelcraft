@@ -17,10 +17,11 @@ if ! dpkg -s gcc-9 g++-9 >/dev/null 2>&1; then
   sudo add-apt-repository ppa:ubuntu-toolchain-r/test
   sudo apt update
   sudo apt install gcc-9 g++-9
-  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
+  #Run the following command to have your default gcc/g++ be from gcc-9
+  #sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 90 --slave /usr/bin/g++ g++ /usr/bin/g++-9 --slave /usr/bin/gcov gcov /usr/bin/gcov-9
 fi
 # Install all dependencies
-pkgs='doxygen graphviz wget unzip make llvm-10 g++ libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglfw3-dev libglew-dev libglm-dev libfreetype6-dev libnoise-dev binutils-dev'
+pkgs='doxygen graphviz wget unzip make llvm-10 libx11-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxrandr-dev libxext-dev libxcursor-dev libxinerama-dev libxi-dev libglfw3-dev libglew-dev libglm-dev libfreetype6-dev libnoise-dev binutils-dev'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs
 fi
