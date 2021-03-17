@@ -1,13 +1,12 @@
 #!/bin/bash
 set -e
 
-export CC=/usr/local/bin/gcc-9
-export CXX=/usr/local/bin/g++-9
-export CMAKE_BUILD_TYPE=Release
+export CC=/usr/bin/gcc-9
+export CXX=/usr/bin/g++-9
 
 if [[ ! -d ./build/CMakeFiles/release ]]; then
   mkdir -p ./build/CMakeFiles/release
-  cmake -S . -B ./build/CMakeFiles/release
+  cmake -DCMAKE_BUILD_TYPE=Release -S . -B ./build/CMakeFiles/release
 fi
 cmake --build ./build/CMakeFiles/release --target voxelcraft
 cd ./build/release
