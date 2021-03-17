@@ -24,9 +24,9 @@
   "scripts": {
     "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs *.hpp base_ts.ts build_tsconfig.json build && cd ..",
     "compile_extension": "npm run compile_compiler && echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd .. && mkdir -p ./voxelscript_extension/server/build/voxelscript_compiler && cp -r ./src/build/* ./voxelscript_extension/server/build/voxelscript_compiler",
-    "test_compiler": "npm run compile_compiler && ((node ./src/build/voxelscript_compiler.js ./tests/voxelscript_test --cpp-file=./tests/build/main.cpp -o ./tests/build/a.out && time -f'%E' ./tests/build/a.out && echo) || true)",
-    "package_compiler": "npm run compile_compiler && npx pkg ./src/build/voxelscript_compiler.js --out-path=./build",
-    "install_compiler": "npm run package_compiler && sudo cp ./build/voxelscript_compiler-linux /usr/local/bin/voxelc"
+    "test_compiler": "npm run compile_compiler && ((PATH=\"./build/emscripten:$PATH\" node ./src/build/voxelscript_compiler.js ./tests/voxelscript_test --cpp-file=./tests/build/main.cpp -o ./tests/build/a.out && time -f'%E' ./tests/build/a.out && echo) || true)",
+    "package_compiler": "npm run compile_compiler && npx pkg ./src/build/voxelscript_compiler.js --targets=linux --out-path=./build",
+    "install_compiler": "npm run package_compiler && sudo cp ./build/voxelscript_compiler-linux /usr/local/bin/voxelc && sudo rm -rf /usr/local/share/voxelc && sudo cp -r ./build/emscripten /usr/local/share/voxelc && sudo ln -fs /usr/local/share/voxelc/voxelc-emcc /usr/local/bin/voxelc-emcc && sudo /usr/local/share/voxelc/init-emcc"
   },
   "author": "VoxelCraft",
   "license": "ISC"

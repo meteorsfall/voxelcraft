@@ -19,24 +19,62 @@ if ! npm list -g $npm_pkgs; then
 fi
 
 ## Install emcc ##
-if [ ! -d ./build/emsdk ]; then
+if [ ! -d ./build/emscripten ]; then
   mkdir -p build
   cd build
+  rm -rf emsdk
   git clone https://github.com/emscripten-core/emsdk.git
   cd emsdk
   ./emsdk install latest
   ./emsdk activate latest
-  source ./emsdk_env.sh
-  read -p "Do you want to add emcc to your ~/.bashrc? (y/n) " -r
-  if [[ $REPLY =~ ^[Yy](es)?$ ]]; then
-    echo "source $PWD/emsdk_env.sh &>/dev/null" >> ~/.bashrc
-  else
-    echo "If you ever want to change your mind, simply add \"source $PWD/emsdk_env.sh &>/dev/null\" to your ~/.bashrc"
-  fi
-  cd .. # out of ./build/emsdk
+  cd .. # out of ./emsdk
+  mkdir emscripten
+  cd emscripten
+  ../emsdk/upstream/emscripten/tools/install.py ./emcc
+
+  # Init config file
+  cat >./emcc/.emscripten <<'EOF'
+import os,sys
+
+root_dir = os.path.dirname(os.path.abspath(os.path.split(sys.argv[0])[0]))
+
+EMSCRIPTEN_ROOT = root_dir
+LLVM_ROOT = os.path.join(root_dir, 'bin')
+BINARYEN_ROOT = root_dir # Expects to look into /bin from here
+NODE_JS = '/usr/bin/nodejs'
+EOF
+  # Script that wraps emcc and can be symlink'ed
+  cat >./voxelc-emcc <<'EOF'
+#!/bin/bash
+DIR="$(dirname "$(readlink -f "$0")")"
+"$DIR/emcc/emcc" "$@"
+EOF
+  chmod +x ./voxelc-emcc
+
+  # Script that initializes emcc
+  cat >./init-emcc <<'EOF'
+#!/bin/bash
+DIR="$(dirname "$(readlink -f "$0")")"
+printf "#include <iostream>\nint main() {std::cout << \"Hello World"\!"\" << std::endl;}" | "$DIR/emcc/emcc" -xc++ - -o /tmp/VOXELC_test.wasm
+rm /tmp/VOXELC_test.wasm
+EOF
+  chmod +x ./init-emcc
+
+  # Copy llvm/binaryen binaries into bin and lib
+  mkdir bin
+  mkdir lib
+  cp -P ../emsdk/upstream/bin/* bin
+  cp -rP ../emsdk/upstream/lib/* lib
+  rm -r ./lib/clang ./lib/cmake
+
+  cd .. # out of ./build/emscripten
+  rm -rf ./emsdk
   cd .. # out of ./build
+
+  # Initialize emcc cache
+  ./build/emscripten/init-emcc
 fi
 
 ## Install npm packages everywhere ##
-npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..
+#npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..
 

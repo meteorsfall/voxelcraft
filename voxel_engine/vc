@@ -10,5 +10,5 @@ if [[ ! -d ./build/CMakeFiles/release ]]; then
 fi
 cmake --build ./build/CMakeFiles/release --target voxelcraft
 cd ./build/release
-./vc $@ 2>&1 | tee ../../output.log
+./vc "$@" 2>&1 | tee ../../output.log
 
