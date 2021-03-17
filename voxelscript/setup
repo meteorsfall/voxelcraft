@@ -1,10 +1,15 @@
 #!/bin/bash
 set -e
 
+should_yes=''
+if [[ "$1" == "-y" ]]; then
+  should_yes='-y'
+fi
+
 ## Install all dependencies ##
 pkgs='nodejs node-gyp libssl-dev npm python3 default-jre clang'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
-  sudo apt-get install $pkgs
+  sudo apt-get install $pkgs $should_yes
 fi
 
 ## Install npx globally ##
