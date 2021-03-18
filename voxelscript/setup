@@ -7,7 +7,7 @@ if [[ "$1" == "-y" ]]; then
 fi
 
 ## Install all dependencies ##
-pkgs='nodejs node-gyp libssl-dev npm python3 default-jre clang'
+pkgs='nodejs npm libssl-dev python3 default-jre clang'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs $should_yes
 fi
@@ -76,5 +76,5 @@ EOF
 fi
 
 ## Install npm packages everywhere ##
-#npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..
+npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..
 
