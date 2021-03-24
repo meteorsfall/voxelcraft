@@ -68,10 +68,7 @@ implement Main {
     }
     void iterate() {
         // Get input state
-        int[] input_data = [];
-        input_data.resize(358);
-        voxel_engine.get_input_state(input_data);
-        this.input_state = new InputState(input_data);
+        this.input_state = voxel_engine.get_input_state();
 
         // Get time
         float current_time = this.input_state.current_time;
@@ -82,8 +79,10 @@ implement Main {
         this.last_frame_time = current_time;
 
         // Handle camera rotation
-        vec2 mouse_rotation = this.input_state.mouse_pos.times(0.1*delta_time);
-        this.player.rotate(mouse_rotation);
+        if (this.input_state.relative_mouse) {
+            vec2 mouse_rotation = this.input_state.mouse_pos.times(0.1*delta_time);
+            this.player.rotate(mouse_rotation);
+        }
 
         // Handle player input
         vec3 movement = new vec3(0.0, 0.0, 0.0);

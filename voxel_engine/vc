@@ -1,9 +1,14 @@
 #!/bin/bash
 set -e
 
-mkdir -p ./build/CMakeFiles/release
-cmake -DCMAKE_BUILD_TYPE=Release -S . -B ./build/CMakeFiles/release
+export CC=/usr/bin/gcc-9
+export CXX=/usr/bin/g++-9
+
+if [[ ! -d ./build/CMakeFiles/release ]]; then
+  mkdir -p ./build/CMakeFiles/release
+  cmake -DCMAKE_BUILD_TYPE=Release -S . -B ./build/CMakeFiles/release
+fi
 cmake --build ./build/CMakeFiles/release --target voxelcraft
 cd ./build/release
-./vc $@ 2>&1 2>../../output.log
+./vc "$@" 2>&1 | tee ../../output.log
 

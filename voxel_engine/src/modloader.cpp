@@ -177,11 +177,11 @@ Mod::~Mod() {
   delete (GCPointer<Compartment>*)compartment;
 }
 
-void Mod::set_input_state(void* input_state, int length) {
-  WASM_set_input_state(input_state, length);
+void Mod::set_input_state(InputState* input_state) {
+  WASM_set_input_state(input_state, sizeof(InputState));
 }
 
-void Mod::call(const char* function_name) {
+bool Mod::call(const char* function_name) {
   char func_name[256] = "_Export_";
 
   bool starting = false;
@@ -200,11 +200,12 @@ void Mod::call(const char* function_name) {
 
   if (!runFunction) {
     dbg("Function not found! %s %s", function_name, func_name);
-    exit(-1);
+    return false;
   }
 
     UntaggedValue args[1]{I32(100)};
     UntaggedValue results[1];
     invokeFunction((Context*)context, runFunction, void_to_void, args, results);
     //printf("WASM call returned: %i\n", results[0].i32);
+    return true;
 }

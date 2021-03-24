@@ -62,7 +62,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
 
     int num_triangles = 0;
 
-    auto is_opaque = [this](BlockData* b, int dir) {
+    auto is_opaque = [](BlockData* b, int dir) {
         // If it exists, and opaque
         if (b) {
             if (b->block_model == 0) {
@@ -81,7 +81,7 @@ void Chunk::render(const mat4& P, const mat4& V, ivec3 location, const TextureAt
             return false;
         }
     };
-    
+
     double t1 = glfwGetTime();
     UNUSED(t1);
 

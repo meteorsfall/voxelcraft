@@ -2,6 +2,7 @@ import vec2;
 
 class InputState {
     float current_time;
+    bool relative_mouse;
     vec2 screen_dimensions;
     vec2 mouse_pos;
     int left_mouse;
@@ -12,14 +13,15 @@ class InputState {
 implement InputState {
     init(int[] input_data) {
         this.current_time = <float>input_data[0] + <float>input_data[1]/1000000000.0;
-        this.screen_dimensions = new vec2(input_data[2], input_data[3]);
-        this.mouse_pos = new vec2(input_data[4], input_data[5]);
-        this.left_mouse = input_data[6];
-        this.right_mouse = input_data[7];
+        this.relative_mouse = <bool>input_data[2];
+        this.screen_dimensions = new vec2(input_data[3], input_data[4]);
+        this.mouse_pos = new vec2(input_data[5], input_data[6]);
+        this.left_mouse = input_data[7];
+        this.right_mouse = input_data[8];
         this.keys = [];
         this.keys.resize(350);
         for(int i = 0; i < 350; i++) {
-            this.keys[i] = input_data[8+i];
+            this.keys[i] = input_data[9+i];
         }
     }
 }

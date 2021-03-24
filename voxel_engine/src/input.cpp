@@ -1,7 +1,6 @@
 #include "input.hpp"
 
 InputHandler::InputHandler(GLFWwindow* window) {
-    this->exiting = false;
     this->window = window;
 
     for(uint i = 0; i < len(this->next_input.keys); i++) {
@@ -27,11 +26,6 @@ InputHandler::InputHandler(GLFWwindow* window) {
 
 InputState InputHandler::capture_input(bool relative_mouse) {
     glfwPollEvents();
-
-    if (next_input.keys[GLFW_KEY_Q] == GLFW_PRESS) {
-        this->exiting = true;
-        return InputState {};
-    }
 
     // Get width and height
     int w, h;
@@ -107,12 +101,9 @@ InputState InputHandler::capture_input(bool relative_mouse) {
     double current_time = glfwGetTime();
     input.current_time_seconds = (int)current_time;
     input.current_time_nanoseconds = (current_time - input.current_time_seconds) * 1'000'000'000;
+    input.relative_mouse = relative_mouse;
     input.screen_dimensions = ivec2(w, h);
 
     last_relative_mouse = relative_mouse;
     return input;
-}
-
-bool InputHandler::is_exiting() {
-    return exiting;
 }

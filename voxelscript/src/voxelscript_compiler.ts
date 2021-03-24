@@ -190,7 +190,7 @@ async function compile() {
       '-',
       '-o' + wasm_filename
     ];
-    let cp = childProcess.spawnSync("emcc", child_argv, {
+    let cp = childProcess.spawnSync("voxelc-emcc", child_argv, {
         input: compiler_context.get_compiled_code(),
         windowsHide: true,
     });

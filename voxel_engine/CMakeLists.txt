@@ -22,10 +22,11 @@ else ()
   return ()
 endif ()
 
-# Keep track of the precompile gch cache
-# If src/includes.hpp changes, the precompiled header must be recreated
-# This is done by restarting the build from the beginning.
-# precompile.h.gch is just a dummy file with nothing in it
+# Keep track of the precompiled gch file
+# If src/includes.hpp or something it includes changes,
+# the precompiled header must be recreated
+# This is done by regenerating the dummy file precompiled.h.gch,
+# which will trigger a rebuild of the `voxelcraft` target
 add_custom_command(OUTPUT "${CUSTOM_CACHE}/precompiled.h.gch"
   COMMENT "Precompiled src/includes.hpp header out-of-date, recompiling..."
   COMMAND ${CMAKE_COMMAND} -E touch "${CUSTOM_CACHE}/precompiled.h.gch"
@@ -51,11 +52,13 @@ add_custom_command(OUTPUT "${CUSTOM_CACHE}/main.wasm"
 )
 endif ()
 
-# Create command for copying build files
+# Custom command for copying build files
+file(GLOB_RECURSE shared_object_files "bin/*.dll" "bin/*.so")
 add_custom_command(OUTPUT "${CUSTOM_CACHE}/build_files"
   COMMENT "Copying build files into build folder"
   COMMAND ${CMAKE_COMMAND} -E remove_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
-  COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/bin" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
+  COMMAND ${CMAKE_COMMAND} -E copy ${shared_object_files} "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}"
   COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_SOURCE_DIR}/assets" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/assets"
   COMMAND ${CMAKE_COMMAND} -E copy "${CUSTOM_CACHE}/main.wasm" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/mods/main.wasm"
   COMMAND ${CMAKE_COMMAND} -E touch "${CUSTOM_CACHE}/build_files"
@@ -75,16 +78,22 @@ add_custom_target(voxelcraft
 if (WIN32)
   # Add cl.exe commandline options
   add_compile_options(/WX /wd4305 /wd4244 /wd4267 /wd4996 /we4457 /DSCITER_LITE /DUNICODE)
+  # Link against MDd, not MD, WAVM seems to crash if this isn't done
+  string(REPLACE "/MDd" "/MD" CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}")
+  # Create .pdb files
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Zi")
+  # /GL for global optimization, /O2 for optimization level
+  # /GS- to remove unneeded stack overflow nonce check
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /GL /O2 /GS-")
   if (CMAKE_BUILD_TYPE MATCHES Release)
+    # Link-time optimization (Cross-file)
     add_link_options(/LTCG)
   endif ()
 else ()
   # Add gcc commandline options
   add_compile_options(-Wshadow=local -Wall -Wextra -pedantic -Wno-unused-variable -Wno-unused-but-set-variable -Wno-unused-function -Werror -Wfatal-errors -DSCITER_LITE)
   add_link_options(-rdynamic)
-  set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+  set(CMAKE_CXX_FLAGS_DEBUG "-Og")
   set(CMAKE_CXX_FLAGS_RELEASE "-Ofast -flto -g")
 endif ()
 
@@ -111,15 +120,26 @@ else ()
 
   # Find GLM
   find_package(glm REQUIRED)
-  message(STATUS "Found GLM in ${GLM_INCLUDE_DIRS}")
+  message(STATUS "GLM: Found (${GLM_INCLUDE_DIRS})")
 
   # Find GLFW
   find_package(glfw3 REQUIRED)
-  message(STATUS "Found GLFW3 in ${GLFW3_LIBRARY}")
+  message(STATUS "GLFW3: Found (${GLFW3_LIBRARY})")
 
   # Find FreeType
   find_package(Freetype REQUIRED)
-  message(STATUS "Found FreeType at ${FREETYPE_LIBRARIES}")
+  message(STATUS "FreeType: Found (${FREETYPE_LIBRARIES})")
+
+  # Find Bfd [Optional]
+  # Finding Bfd will give line numbers in stack traces
+  find_library(LIBBFD_LIB NAMES bfd)
+  if(LIBBFD_LIB)
+    message(STATUS "bfd: Found")
+    add_definitions(-DBACKWARD_HAS_BFD=1)
+    link_libraries(bfd)
+  else()
+    message(STATUS "bfd: Not Found")
+  endif()
 endif ()
 
 # Add include directories.
@@ -149,11 +169,12 @@ if (WIN32)
   # Link windows libraries to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 libWAVM noise freetype ws2_32 userenv)
 else ()
-  # Link linux system libraries to voxelcraft
-  # sciter: needs dl
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs dl)
-  # Link linux .so libraries to voxelcraft
-  target_link_libraries(vc WAVM sciter)
+  # Link linux system libraries that we use to voxelcraft
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs)
+  # Link WAVM and dependencies
+  target_link_libraries(vc WAVM WAVMlmdb WAVMUnwind WAVMBLAKE2 LLVM-10 pthread)
+  # Link Sciter and dependencies
+  target_link_libraries(vc sciter dl)
   # Run doxygen after compiling on linux
   add_custom_command(TARGET vc POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" doxygen
