@@ -12,12 +12,6 @@ if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs $should_yes
 fi
 
-## Install npx globally ##
-npm_pkgs='npx'
-if ! npm list -g $npm_pkgs; then
-  sudo npm i -g $npm_pkgs
-fi
-
 ## Install emcc ##
 if [ ! -d ./build/emscripten ]; then
   mkdir -p build
