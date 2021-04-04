@@ -104,11 +104,12 @@ message(STATUS "Found OpenGL at ${OPENGL_LIBRARY}")
 
 # Include from /include
 include_directories(SYSTEM include)
+include_directories(SYSTEM include/ultralight)
 if (WIN32)
-# Link from /lib on windows (For static lib files)
+# Link from /lib on windows (For static files)
 link_directories(lib)
 else ()
-# And /bin on linux (For shared lib files)
+# And /bin on linux (For shared files)
 link_directories(bin)
 endif ()
 
@@ -164,17 +165,18 @@ target_compile_definitions(vc PUBLIC "WAVM_API=")
 # Precompile includes.hpp header file
 target_precompile_headers(vc PRIVATE src/includes.hpp)
 
-# Link libraries to the executable
+# Linkraries to the executable
 if (WIN32)
-  # Link windows libraries to voxelcraft
-  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32 libWAVM noise freetype ws2_32 userenv)
+  # Link windowsraries to voxelcraft
+  target_link_libraries(vc ${OPENGL_LIBRARY} glfw3 glew32WAVM noise freetype ws2_32 userenv)
 else ()
-  # Link linux system libraries that we use to voxelcraft
+  # Link linux systemraries that we use to voxelcraft
   target_link_libraries(vc ${OPENGL_LIBRARY} glfw GLEW noise ${FREETYPE_LIBRARIES} stdc++fs)
   # Link WAVM and dependencies
   target_link_libraries(vc WAVM WAVMlmdb WAVMUnwind WAVMBLAKE2 LLVM-10 pthread)
   # Link Sciter and dependencies
   target_link_libraries(vc sciter dl)
+  target_link_libraries(vc Ultralight UltralightCore WebCore AppCore)
   # Run doxygen after compiling on linux
   add_custom_command(TARGET vc POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" doxygen

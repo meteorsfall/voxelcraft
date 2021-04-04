@@ -1,145 +1,85 @@
 #include "html_renderer.hpp"
 
-static UINT SC_CALLBACK sciter_handle_notification(LPSCITER_CALLBACK_NOTIFICATION pnm, LPVOID callbackParam);
+#include <Ultralight/Ultralight.h>
+#include <AppCore/Platform.h>
+using namespace ultralight;
+
+struct PrivateData {
+    RefPtr<Renderer> renderer;
+    RefPtr<View> view;
+};
+
+#define PRIVATE ((PrivateData*)(this->private_data))
 
 void HTMLRenderer::init(GLFWwindow* window) {
-    this->window = window;
-    // Initializer Sciter
-    SciterSetOption(NULL, SCITER_SET_UX_THEMING, TRUE); // Removes system-dependent CSS
-    SciterProcX(window, SCITER_X_MSG_CREATE(GFX_LAYER_SKIA_OPENGL, FALSE));
-    // Set Sciter DPI
-    float xscale;
-    glfwGetWindowContentScale(window, &xscale, NULL);
-    SciterProcX(window, SCITER_X_MSG_RESOLUTION(96*xscale));
-    // Set Sciter callback
-    SciterSetCallback(window, sciter_handle_notification, nullptr);
+    Config config;
+
+    // We need to tell config where our resources are so it can 
+    // load our bundled SSL certificates to make HTTPS requests.
+    config.resource_path = "/home/npip99/downloads/ultralight/bin/resources";
+
+    // The GPU renderer should be disabled to render Views to a 
+    // pixel-buffer (Surface).
+    config.use_gpu_renderer = false;
+
+    // You can set a custom DPI scale here. Default is 1.0 (100%)
+    config.device_scale = 1.0;
+
+    // Pass our configuration to the Platform singleton so that
+    // the library can use it.
+    Platform::instance().set_config(config);
+
+    // Use the OS's native font loader
+    Platform::instance().set_font_loader(GetPlatformFontLoader());
+
+    // Use the OS's native file loader, with a base directory of "."
+    // All file:/// URLs will load relative to this base directory.
+    Platform::instance().set_file_system(GetPlatformFileSystem("."));
+
+    // Use the default logger (writes to a log file)
+    Platform::instance().set_logger(GetDefaultLogger("ultralight.log"));
+
+    // Initialize private data
+    PRIVATE = new PrivateData();
+
+    // Create a View
+    PRIVATE->renderer = Renderer::Create();
+    PRIVATE->view = PRIVATE->renderer->CreateView(500, 500, true, nullptr);
+    PRIVATE->view->LoadHTML("<h1>Hello World!</h1>");
+    PRIVATE->view->Focus();
 }
 
 bool HTMLRenderer::load_html(const WCHAR* path) {
-    // Load HTML
-    if (SciterLoadFile(window, path) == TRUE) {
-        return true;
-    } else {
-        return false;
-    }
+    return true;
 }
 
 void HTMLRenderer::render(int width, int height) {
-    if (width != last_width || height != last_height) {
-        // Update Sciter width/height
-        SciterProcX(window, SCITER_X_MSG_SIZE(width, height));
-        last_width = width;
-        last_height = height;
-    }
-    
-    // Load up Sciter Opengl Context from saved values or known constants
-    glBindVertexArray(sciter_vertex_array);
-    glActiveTexture(sciter_texture_unit);
-    glUseProgram(sciter_program);
-    glBlendFunc(GL_CONSTANT_COLOR, GL_ONE_MINUS_SRC_COLOR);
-    glDisable(GL_CULL_FACE);
-    glDepthMask(GL_FALSE);
+    // Resize the view to the current render dimensions
+    PRIVATE->view->Resize(width, height);
+    // Give the library a chance to handle any pending tasks and timers.
+    PRIVATE->renderer->Update();
 
-    // Open all vertex attributes
-    GLint max_vertex_attribs;
-    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &max_vertex_attribs);
-    for(int i = 0; i < max_vertex_attribs; i++) {
-        glEnableVertexAttribArray(i);
-    }
+    // Get the pixel-buffer Surface for a View.
+    Surface* surface = PRIVATE->view->surface();
 
-    // Give Sciter the time, so that it can synchronize animations
-    SciterProcX(window, SCITER_X_MSG_HEARTBIT(UINT(glfwGetTime() * 1000)));
-    // Render HTML/CSS with Sciter using Sciter OpenGL context
-    SciterProcX(window, SCITER_X_MSG_PAINT());
+    // Cast it to a BitmapSurface.
+    BitmapSurface* bitmap_surface = (BitmapSurface*)surface;
 
-    // Close all vertex attributes
-    for(int i = 0; i < max_vertex_attribs; i++) {
-        glDisableVertexAttribArray(i);
-    }
+    // Get the underlying bitmap.
+    RefPtr<Bitmap> bitmap = bitmap_surface->bitmap();
 
-    // Save Sciter OpenGL Context
-    glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &sciter_vertex_array);
-    glGetIntegerv(GL_ACTIVE_TEXTURE, &sciter_texture_unit);
-    glGetIntegerv(GL_CURRENT_PROGRAM, &sciter_program);
-}
+    // Lock the Bitmap to retrieve the raw pixels.
+    // The format is BGRA, 8-bpp, premultiplied alpha.
+    void* pixels = bitmap->LockPixels();
 
-void HTMLRenderer::destroy() {
-    // Close Sciter
-    SciterProcX(window, SCITER_X_MSG_DESTROY());
-    window = NULL;
-}
+    // Get the bitmap dimensions.
+    uint32_t width = bitmap->width();
+    uint32_t height = bitmap->height();
+    uint32_t stride = bitmap->row_bytes();
 
-// ================
-// Sciter Functions
-// ================
+    // Psuedo-code to upload our pixels to a GPU texture.
+    CopyPixelsToTexture(pixels, width, height, stride);
 
-// See sciter-sdk/demos.lite/sciter-glfw-opengl/basic.cpp for examples
-
-UINT on_load_data(LPSCN_LOAD_DATA pnmld) {
-    aux::wchars chars = aux::chars_of(pnmld->uri);
-    char* str = new char[chars.length+1];
-    int len = 0;
-    for(WCHAR c : chars) {
-        str[len++] = c;
-    }
-    str[len] = '\0';
-    std::string s(str);
-    delete[] str;
-
-    std::string prefix = "file://";
-    if (s.rfind(prefix, 0) == 0) {
-        s = s.substr(prefix.size());
-    } else {
-        dbg("File %s did not start with file://", s.c_str());
-        return LOAD_DISCARD;
-    }
-
-    dbg("URI Request: %s", s.c_str());
-
-    std::string filepath = std::string("assets/") + s;
-    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        dbg("Could not open file %s", filepath.c_str());
-        return LOAD_DISCARD;
-    }
-    std::streamsize size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(size);
-    if (file.read(buffer.data(), size))
-    {
-        /* worked! */
-        ::SciterDataReady(pnmld->hwnd, pnmld->uri, (LPCBYTE)buffer.data(), buffer.size());
-        return LOAD_OK;
-    } else {
-        dbg("Could not open file %s", filepath.c_str());
-        return LOAD_DISCARD;
-    }
-}
-
-UINT SC_CALLBACK sciter_handle_notification(LPSCITER_CALLBACK_NOTIFICATION pnm, LPVOID callbackParam)
-{
-    UNUSED(pnm);
-    UNUSED(callbackParam);
-    
-    switch (pnm->code) {
-        case SC_LOAD_DATA:
-            // Load image
-            return on_load_data((LPSCN_LOAD_DATA)pnm);
-        case SC_DATA_LOADED:
-            dbg("Sciter Data Loaded");
-            return 0; // Unimplemented
-        case SC_ATTACH_BEHAVIOR:
-            dbg("Sciter Attach");
-            return 0; // Unimplemented
-        case SC_INVALIDATE_RECT:
-            // We draw on every frame, so the rectangle being invalidated isn't relevant to us
-            return 0;
-        case SC_ENGINE_DESTROYED:
-            break;
-        default:
-            dbg("Unknown Sciter Notification: %d", pnm->code);
-            break;
-    }
-    return 0;
+    // Unlock the Bitmap when we are done.
+    bitmap->UnlockPixels();
 }
