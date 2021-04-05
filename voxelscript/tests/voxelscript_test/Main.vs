@@ -186,6 +186,19 @@ implement HashMap<Key, Value> {
     }
 }
 
+
+class Pair<U: any, V: any> {
+    U first;
+    V second;
+    init(U first, V second);
+}
+implement Pair<U, V> {
+    init(U first, V second) {
+        this.first = first;
+        this.second = second;
+    }
+}
+
 class Holder<T: any> {
     T test;
     init(T in);
@@ -216,6 +229,10 @@ implement Tester {
         Crusher c = new Crusher();
 
         Holder<Coal> h = new Holder<Coal>(f);
+
+        Pair<int, string> my_pair = new Pair<int, string>(5, "hi");
+
+        print("my_pair<", my_pair.first, ",", my_pair.second, ">");
 
         c.fuel.give(h.get_holder(), 1);
         c.crushing.give(io, 1);
