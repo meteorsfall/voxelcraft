@@ -345,6 +345,26 @@ function parse_args(args : any[]) : option_type {
   let override : string | null = null;
   let is_wasm : boolean = false;
 
+  let help_str = `
+Usage: ${args[1]} [options] [source]
+Description: Will compile a VoxelScript package either to native executable code, or to a .wasm module
+Options:
+  --source=<folder>       Specifies the source directory of the VoxelScript Package to compile
+  -o, --output=<file>     Specifies where to write the resultant executable
+                            If <file> ends in .wasm, --target=wasm will be the new default target
+  --target=<arch>         Specifies the architecture to build for. Default is native.
+                            native: Will compile to a native executable for your machine
+                            wasm: Will compile to a wasm module
+                          
+  --module=<name>         Selects a specific module to compile. The default is to compile all modules found in the --source package directory.
+                          When selected, an executable for the package will not be generated.
+                          This options is used for reporting errors related to that package.
+
+  --cpp-file=<file>       Will write intermediate C++ code to the given file
+  --override=<path>       Specifies a --source path that will take higher precedence over --source itself.
+                          Only used for 
+`;
+
   // Use path.resolve to get the absolute directories of each argument
 
   if (argv['cpp-file']) {
