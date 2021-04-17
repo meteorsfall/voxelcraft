@@ -175,12 +175,26 @@ else ()
   target_link_libraries(vc WAVM WAVMlmdb WAVMUnwind WAVMBLAKE2 LLVM-10 pthread)
   # Link Sciter and dependencies
   target_link_libraries(vc sciter dl)
-  # Run doxygen after compiling on linux
-  add_custom_command(TARGET vc POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" doxygen
-  )
 endif ()
 
 # Define pixel_helper executable
 add_executable(pixel_helper pixel_helper_src/main.cpp)
 target_link_libraries(pixel_helper)
+
+# Create documentation
+if (WIN32)
+else ()
+  file(MAKE_DIRECTORY documentation/sphinx)
+  # Compile Sphinx documentation
+  set(SPHINX_SOURCE ${CMAKE_CURRENT_SOURCE_DIR}/documentation)
+  set(SPHINX_BUILD ${CMAKE_CURRENT_SOURCE_DIR}/documentation/sphinx)
+  add_custom_target(docs ALL
+    COMMAND ${CMAKE_COMMAND} -E chdir "${CMAKE_SOURCE_DIR}" doxygen ./documentation/Doxyfile
+    COMMAND sphinx-build -b html
+    -Dbreathe_projects.VoxelEngine=./doxygen/xml
+    ${SPHINX_SOURCE} ${SPHINX_BUILD}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    DEPENDS vc
+    COMMENT "Generating documentation with Sphinx"
+  )
+endif ()

@@ -1,3 +1,5 @@
 #!/bin/bash
-doxygen
-xdg-open doxygen/index.html
+cd ./build/CMakeFiles/debug
+make docs
+cd ../../..
+xdg-open ./documentation/doxygen/index.html
