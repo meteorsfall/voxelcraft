@@ -1,17 +1,26 @@
+# Top-level directories
+
 bin
 lib
 include
 
-doxygen
-extras
 assets/images
 assets/fonts
 assets/models
 assets/components
 assets/meshes
 assets/html
+extras
+
+# Analysis
 gmon.out
 analysis.txt
+
+# Docs
+documentation/doxygen
+documentation/sphinx
+
+# WASM
 
 **/*.wasm
 **/*.wat

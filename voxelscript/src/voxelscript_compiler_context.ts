@@ -1148,7 +1148,7 @@ class VSCompiler {
       e.calculated_type = this.coalesce_to(left, right);
       if (!e.calculated_type) {
         throw {
-          message: "Cannot assign " + this.readable_type(right) + " to " + this.readable_type(left),
+          message: "Cannot assign type " + this.readable_type(right) + " to type " + this.readable_type(left),
           location: e.equal.location,
         };
       }
