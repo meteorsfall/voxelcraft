@@ -10,15 +10,7 @@ Welcome to VoxelEngine's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-.. doxygenclass:: AABB
-Blah Blah Blah
-   :members:
+   self
+   gl
+   genindex
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

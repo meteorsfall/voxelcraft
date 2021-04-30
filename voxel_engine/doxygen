@@ -2,4 +2,4 @@
 cd ./build/CMakeFiles/debug
 make docs
 cd ../../..
-xdg-open ./documentation/sphinx/index.html
+xdg-open ./documentation/doxygen/index.html
