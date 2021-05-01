@@ -665,7 +665,6 @@ void _VS_raw_print( Value v, Values... vs )
     using expander = int[];
     out << v; // first
     (void) expander{ 0, (out << vs, void(), 0)... };
-    out << "\n";
     out.flush();
 #ifndef _COMPILE_VS_NATIVE_
     g_print(out.to_string());
