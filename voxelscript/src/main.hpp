@@ -255,13 +255,13 @@ struct dynamic_array {
             capacity = new_capacity;
         }
     }
-    T& at(int index) {
+    T& at(int index) const {
         if (index >= _size) {
             _abort("Array Index out-of-bounds", "??", 0, 0, 0, 0);
         }
         return data[index];
     }
-    T& operator[](int index) {
+    T& operator[](int index) const {
         return data[index];
     }
     void push_back(T datum) {
@@ -269,7 +269,7 @@ struct dynamic_array {
         new(&data[_size]) T(datum);
         _size++;
     }
-    int size() {
+    int size() const {
         return _size;
     }
 public:
@@ -609,7 +609,7 @@ ostream& operator<<(ostream& os, Object* v)
 }
 
 template <typename T> 
-ostream& operator<<(ostream& os, const dynamic_array<T>* v) 
+ostream& operator<<(ostream& os, ObjectRef<dynamic_array<T>>& v) 
 { 
     os << "["; 
     for (int i = 0; i < v->size(); ++i) { 
@@ -617,7 +617,7 @@ ostream& operator<<(ostream& os, const dynamic_array<T>* v)
         if (i != v->size() - 1) 
             os << ", "; 
     } 
-    os << "]\\n";
+    os << "]";
     return os; 
 }
 
