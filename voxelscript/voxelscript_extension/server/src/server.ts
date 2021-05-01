@@ -57,8 +57,6 @@ function create_generic_diagnostic(msg : string, severity) {
     }
 }
 
-const compiler_path = path.join(__dirname, "voxelscript_compiler", "voxelscript_compiler.js");
-
 var access = createWriteStream(__dirname + '/stderr_log.txt');
 process.stderr.write = access.write.bind(access);
 
@@ -107,15 +105,15 @@ function compile(package_name : string, module_name : string) {
             log("Created build path: " + build_path);
         }
 
-        log("Compiling: " + module_name + " with " + compiler_path);
+        log("Compiling Module: " + module_name);
         const child_argv = [
             '--cpp-file=' + path.join(build_path, 'main.cpp'),
             '--source=' + path.join(PROJECTS_PATH, package_name),
             '--override=' + path.join(PROJECTS_PATH, package_name, 'open_files'),
             '--module=' + module_name
         ];
-        log("node " + compiler_path + " " + child_argv.join(" "));
-        let cp = childProcess.fork(compiler_path, child_argv, {
+        log("voxelc " + child_argv.join(" "));
+        let cp = childProcess.spawn("voxelc", child_argv, {
             stdio: ['pipe', 'pipe', 'pipe', 'ipc']
         });
         log("Forked");
