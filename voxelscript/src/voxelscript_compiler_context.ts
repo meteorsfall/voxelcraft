@@ -253,7 +253,7 @@ let internal_functions: Record<string, function_type> = {
   },
   "time" : {
     arg_types: [],
-    return_type: make_primitive_type(primitive_type.INT),
+    return_type: make_primitive_type(primitive_type.FLOAT),
   },
 };
 // End internal traits/funcs
@@ -1789,7 +1789,7 @@ class VSCompiler {
           return "int";
         }
         if (t.primitive_type == primitive_type.FLOAT) {
-          return "float";
+          return "double";
         }
       }
       if (t.is_string) {

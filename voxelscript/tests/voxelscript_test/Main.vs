@@ -257,6 +257,8 @@ implement Tester {
         bool mmm = "38912".is_integer();
         print("M: ", mmm);
 
+        float start_time = time();
+
         Vec3[] arr = [];
         for(int i = 0; i < 10000; i++) {
             arr = [];
@@ -270,6 +272,10 @@ implement Tester {
         float[] test_arr = [4.0, 2.0, 1.0];
 
         print("Float < Int", test_arr[0] < 2);
+
+        print("Time: ", time() - start_time);
+
+        print("test arr: ", test_arr);
 
         // Should throw null-pointer exception
         // this.null_test.push(new Vec3(1.0, 2.0, 3.0));

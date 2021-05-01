@@ -1,9 +1,7 @@
 
 #ifdef _COMPILE_VS_NATIVE_
 #include <functional>
-#include <iostream>
 #include <cstring>
-#include <ostream>
 
 #include <thread>
 #include <chrono>
@@ -11,7 +9,6 @@
 #endif
 
 #ifdef _COMPILE_VS_NATIVE_
-bool ostream_dummy = (std::cout << std::boolalpha) ? true : false;
 using std::function;
 #else
 using nostd::function;
@@ -88,16 +85,13 @@ private:
     char* _loc;
 };
 
-#ifdef _COMPILE_VS_NATIVE_
-using std::ostream;
-#else
-typedef string_buffer ostream;
-ostream& operator<<(ostream& os, const char* str) 
+// String buffer implementations
+string_buffer& operator<<(string_buffer& os, const char* str)
 {
     os.write(str, __builtin_strlen(str));
     return os; 
 }
-ostream& operator<<(ostream& os, int integer) 
+string_buffer& operator<<(string_buffer& os, int integer)
 {
     char buf[16];
     int len = 0;
@@ -123,7 +117,7 @@ ostream& operator<<(ostream& os, int integer)
     os.write(buf, len);
     return os; 
 }
-ostream& operator<<(ostream& os, long long integer) 
+string_buffer& operator<<(string_buffer& os, long long integer)
 {
     char buf[16];
     int len = 0;
@@ -149,7 +143,7 @@ ostream& operator<<(ostream& os, long long integer)
     os.write(buf, len);
     return os; 
 }
-ostream& operator<<(ostream& os, bool val) 
+string_buffer& operator<<(string_buffer& os, bool val)
 {
     if (val) {
         os.write("true", 4);
@@ -158,23 +152,22 @@ ostream& operator<<(ostream& os, bool val)
     }
     return os;
 }
-ostream& operator<<(ostream& os, char c) 
+string_buffer& operator<<(string_buffer& os, char c)
 {
     os.write(c);
     return os;
 }
-ostream& operator<<(ostream& os, float val) 
+string_buffer& operator<<(string_buffer& os, double val)
 {
     int first = (int)val;
     os << first;
     os << '.';
-    int second = (val - first) * 10000;
+    int second = (val - first) * 100000;
     os << second;
     return os; 
 }
-#endif
 
-ostream& operator<<(ostream& os, string s) 
+string_buffer& operator<<(string_buffer& os, string s)
 {
     os.write(s.data(), s.size());
     return os; 
@@ -182,16 +175,15 @@ ostream& operator<<(ostream& os, string s)
 
 [[noreturn]] void _abort(string message, const char* file, int start_line, int start_char, int end_line, int end_char) {
     int buf_size = sizeof(char) * ((message.size() + __builtin_strlen(file) + 2) + 128);
-#ifdef _COMPILE_VS_NATIVE_
-    ostream& out = std::cout;
-#else
-    ostream out(buf_size);
-#endif
+
+    string_buffer out(buf_size);
 
     out << file << ": " << start_line << ":" << start_char << " -> " << end_line << ":" << end_char << " " << message.data() << "\n";
     out.flush();
 
 #ifdef _COMPILE_VS_NATIVE_
+    std::cerr << out.data();
+    std::cerr.flush();
     exit(-1);
 #else
     g_abort(out.to_string());
@@ -593,7 +585,7 @@ namespace _Trait_Printable {
 
 // Overload cout for arrays
 
-ostream& operator<<(ostream& os, Object* v) 
+string_buffer& operator<<(string_buffer& os, Object* v)
 {
     if (is_trait<_Trait_Printable::_Instance>(v)) {
         ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_print(v);
@@ -609,7 +601,7 @@ ostream& operator<<(ostream& os, Object* v)
 }
 
 template <typename T> 
-ostream& operator<<(ostream& os, ObjectRef<dynamic_array<T>>& v) 
+string_buffer& operator<<(string_buffer& os, ObjectRef<dynamic_array<T>>& v)
 { 
     os << "["; 
     for (int i = 0; i < v->size(); ++i) { 
@@ -626,30 +618,27 @@ ostream& operator<<(ostream& os, ObjectRef<dynamic_array<T>>& v)
 template<typename Value, typename... Values>
 void _VS_print( Value v, Values... vs )
 {
-#ifdef _COMPILE_VS_NATIVE_
-    ostream& out = std::cout;
-#else
-    ostream out(4096);
-#endif
+    string_buffer out(4096);
+
     using expander = int[];
     out << v; // first
     (void) expander{ 0, (out << " " << vs, void(), 0)... };
     out << "\n";
     out.flush();
-#ifndef _COMPILE_VS_NATIVE_
+#ifdef _COMPILE_VS_NATIVE_
+    std::cout.write(out.data(), out.size());
+#else
     g_print(out.to_string());
 #endif
 }
 void _VS_print()
 {
-#ifdef _COMPILE_VS_NATIVE_
-    ostream& out = std::cout;
-#else
-    ostream out(4096);
-#endif
+    string_buffer out(4096);
     out << "\n";
     out.flush();
-#ifndef _COMPILE_VS_NATIVE_
+#ifdef _COMPILE_VS_NATIVE_
+    std::cout.write(out.data(), out.size());
+#else
     g_print(out.to_string());
 #endif
 }
@@ -657,16 +646,15 @@ void _VS_print()
 template<typename Value, typename... Values>
 void _VS_raw_print( Value v, Values... vs )
 {
-#ifdef _COMPILE_VS_NATIVE_
-    ostream& out = std::cout;
-#else
-    ostream out(4096);
-#endif
+    string_buffer out(4096);
+
     using expander = int[];
     out << v; // first
     (void) expander{ 0, (out << vs, void(), 0)... };
     out.flush();
-#ifndef _COMPILE_VS_NATIVE_
+#ifdef _COMPILE_VS_NATIVE_
+    std::cout.write(out.data(), out.size());
+#else
     g_print(out.to_string());
 #endif
 }
@@ -693,9 +681,12 @@ void _VS_sleep(int ms) {
   }
 }
 
-int _VS_time() {
+double _VS_time() {
 #ifdef _COMPILE_VS_NATIVE_
-  return (int)time( nullptr );
+  struct timespec spec;
+  clock_gettime(CLOCK_REALTIME, &spec);
+
+  return spec.tv_sec + spec.tv_nsec / 1e9;
 #else
   return 0;
 #endif
