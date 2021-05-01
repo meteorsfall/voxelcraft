@@ -184,6 +184,8 @@ async function compile() {
       '-fno-exceptions',
       '-Wfatal-errors',
       '-sALLOW_MEMORY_GROWTH',
+      '-O' + options.optimization_level,
+      '-g',
       '-sERROR_ON_UNDEFINED_SYMBOLS=0', // TODO: Replace with more specific "-sEXPORTED_FUNCTIONS"
       '--no-entry',
       '-xc++',
@@ -237,7 +239,7 @@ async function compile() {
     // Run clang++ to compile the resulting c++
     let child_argv = [
         '-D_COMPILE_VS_NATIVE_',
-        '-O3',
+        '-O' + options.optimization_level,
         '-g',
         '--std=c++17',
         '-o' + exec_filename,
