@@ -184,6 +184,7 @@ async function compile() {
       '-fno-exceptions',
       '-Wfatal-errors',
       '-sALLOW_MEMORY_GROWTH',
+      '-fwrapv',
       '-O' + options.optimization_level,
       '-g',
       '-sERROR_ON_UNDEFINED_SYMBOLS=0', // TODO: Replace with more specific "-sEXPORTED_FUNCTIONS"
@@ -241,6 +242,7 @@ async function compile() {
         '-D_COMPILE_VS_NATIVE_',
         '-O' + options.optimization_level,
         '-g',
+        '-fwrapv',
         '--std=c++17',
         '-o' + exec_filename,
         '-Wfatal-errors', // Stop at first error
