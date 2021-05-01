@@ -1657,7 +1657,7 @@ class VSCompiler {
       this.write_output(e.value + (e.type == "float" ? "f" : ""));
       break;
     case "string":
-      this.write_output("string(\"" + e.value + "\", " + e.value.length + ")");
+      this.write_output("string(\"" + e.value + "\")");
       break;
     // ****
     // Unary Operators
