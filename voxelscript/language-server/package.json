@@ -11,5 +11,12 @@
     "file-uri-to-path": "^2.0.0",
     "vscode-languageserver": "^5.2.1"
   },
-  "scripts": {}
+  "devDependencies": {
+    "pkg": "^4.4.9"
+  },
+  "scripts": {
+    "compile-ts": "tsc -b",
+    "package": "npm run compile-ts && npx pkg ./js-build/server.js --targets=linux --out-path=./build",
+    "install": "npm run package && sudo cp ./build/server /usr/local/bin/voxells"
+  }
 }

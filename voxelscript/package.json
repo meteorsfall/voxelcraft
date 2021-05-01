@@ -13,20 +13,23 @@
     "node-typescript-compiler": "^2.1.2",
     "pegjs": "^0.10.0",
     "pegjs-backtrace": "^0.2.0",
-    "pkg": "^4.4.9",
     "source-map-support": "^0.5.19",
     "typescript": "^3.9.7",
     "wabt": "1.0.19"
   },
   "devDependencies": {
-    "@types/node": "^14.6.0"
+    "@types/node": "^14.6.0",
+    "pkg": "^4.4.9"
   },
   "scripts": {
-    "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs *.hpp base_ts.ts build_tsconfig.json build && cd ..",
-    "compile_extension": "echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd ..",
     "test_compiler": "npm run compile_compiler && ((PATH=\"./build/emscripten:$PATH\" node ./src/build/voxelscript_compiler.js ./tests/voxelscript_test --cpp-file=./tests/build/main.cpp -o ./tests/build/a.out && time -f'%E' ./tests/build/a.out && echo) || true)",
+    "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs *.hpp base_ts.ts build_tsconfig.json build && cd ..",
     "package_compiler": "npm run compile_compiler && npx pkg ./src/build/voxelscript_compiler.js --targets=linux --out-path=./build",
-    "install_compiler": "npm run package_compiler && sudo cp ./build/voxelscript_compiler /usr/local/bin/voxelc && sudo rm -rf /usr/local/share/voxelc && sudo cp -r ./build/emscripten /usr/local/share/voxelc && sudo ln -fs /usr/local/share/voxelc/voxelc-emcc /usr/local/bin/voxelc-emcc && sudo /usr/local/share/voxelc/init-emcc"
+    "install_compiler": "npm run package_compiler && sudo cp ./build/voxelscript_compiler /usr/local/bin/voxelc && sudo rm -rf /usr/local/share/voxelc && sudo cp -r ./build/emscripten /usr/local/share/voxelc && sudo ln -fs /usr/local/share/voxelc/voxelc-emcc /usr/local/bin/voxelc-emcc && sudo /usr/local/share/voxelc/init-emcc",
+    
+    "compile_extension": "echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd ..",
+    "install_language_server": "cd language-server && npm run install",
+    "install_extension": "npm run install_language_server && npm run compile_extension"
   },
   "author": "VoxelCraft",
   "license": "ISC"

@@ -70,5 +70,5 @@ EOF
 fi
 
 ## Install npm packages everywhere ##
-npm i && cd voxelscript_extension && npm i && cd client && npm i && cd ../server && npm i && cd ../..
+npm i && cd language-server && npm i && cd ../voxelscript_extension && npm i && cd client && npm i
 
