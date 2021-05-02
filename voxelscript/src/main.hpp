@@ -710,7 +710,13 @@ int _VS_randi() {
 
 double _VS_randf() {
 #ifdef _COMPILE_VS_NATIVE_
-    return _VS_randi() / ((double)(1u << 31));
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    unsigned int a = gen();
+    while(a == 0) {
+        a = gen();
+    }
+    return a / ((double)(1ULL << 32));
 #else
     return 0.5; // Random Enough
 #endif
