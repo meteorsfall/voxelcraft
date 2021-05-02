@@ -277,6 +277,15 @@ implement Tester {
 
         print("test arr: ", test_arr);
 
+        float randi_sum = 0.0;
+        float randf_sum = 0.0;
+        for(int i = 0; i < 100; i++) {
+            randi_sum += randi();
+            randf_sum += randf();
+        }
+        print("Average of 100 randi()'s: '", randi_sum / 100);
+        print("Average of 100 randf()'s: '", randf_sum / 100);
+
         // Should throw null-pointer exception
         // this.null_test.push(new Vec3(1.0, 2.0, 3.0));
 

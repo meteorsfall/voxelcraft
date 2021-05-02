@@ -693,6 +693,30 @@ double _VS_time() {
 }
 
 #ifdef _COMPILE_VS_NATIVE_
+#include <random>
+#include <limits>
+#endif
+
+int _VS_randi() {
+#ifdef _COMPILE_VS_NATIVE_
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    // Random integer between 0 and 2^31 - 1
+    return (int)(gen() >> 1);
+#else
+    return 4; // Random Enough
+#endif
+}
+
+double _VS_randf() {
+#ifdef _COMPILE_VS_NATIVE_
+    return _VS_randi() / ((double)(1u << 31));
+#else
+    return 0.5; // Random Enough
+#endif
+}
+
+#ifdef _COMPILE_VS_NATIVE_
 #define MAIN int main() {return 0;}
 #else
 #define MAIN

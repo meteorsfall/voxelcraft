@@ -255,6 +255,14 @@ let internal_functions: Record<string, function_type> = {
     arg_types: [],
     return_type: make_primitive_type(primitive_type.FLOAT),
   },
+  "randi" : {
+    arg_types: [],
+    return_type: make_primitive_type(primitive_type.INT),
+  },
+  "randf" : {
+    arg_types: [],
+    return_type: make_primitive_type(primitive_type.FLOAT),
+  },
 };
 // End internal traits/funcs
 
