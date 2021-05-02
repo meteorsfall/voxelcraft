@@ -292,6 +292,10 @@ implement Tester {
         //string ret = input();
         //print("Copy: ", ret);
 
+        char char1 = 'a';
+        char char2 = 'b';
+        if (char1 != char2) print("Char comparison passed!");
+
     }
 }
 

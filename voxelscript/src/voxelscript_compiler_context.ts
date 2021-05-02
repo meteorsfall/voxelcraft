@@ -1103,8 +1103,8 @@ class VSCompiler {
 
     let ret = null;
     if (op in comparison_operators) {
-      if (left.is_primitive && [primitive_type.INT, primitive_type.FLOAT].includes(left.primitive_type!) &&
-          right.is_primitive && [primitive_type.INT, primitive_type.FLOAT].includes(right.primitive_type!)
+      if (left.is_primitive && [primitive_type.INT, primitive_type.FLOAT, primitive_type.CHAR].includes(left.primitive_type!) &&
+          right.is_primitive && [primitive_type.INT, primitive_type.FLOAT, primitive_type.CHAR].includes(right.primitive_type!)
       ) {
         return make_primitive_type(primitive_type.BOOL);
       } else {
@@ -1347,6 +1347,9 @@ class VSCompiler {
     case "float":
       t = make_primitive_type(primitive_type.FLOAT);
       break;
+    case "char":
+      t = make_primitive_type(primitive_type.CHAR);
+      break;
     case "string":
       t = make_string_type();
       break;
@@ -1471,7 +1474,7 @@ class VSCompiler {
       t = lhs.is_array ? lhs.array_type : make_primitive_type(primitive_type.CHAR);
     } break;
     default:
-      throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
+      throw new Error("FATAL ERROR: Type did not match in type_subexpression: " + e.type);
     }
 
     e.calculated_type = t;
@@ -1662,7 +1665,10 @@ class VSCompiler {
     case "integer":
     case "bool":
     case "float":
-      this.write_output(e.value + (e.type == "float" ? "f" : ""));
+      this.write_output(e.value);
+      break;
+    case "char":
+      this.write_output("'" + e.value + "'");
       break;
     case "string":
       this.write_output("string(\"" + e.value + "\")");
