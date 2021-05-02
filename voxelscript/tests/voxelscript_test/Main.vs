@@ -292,8 +292,8 @@ implement Tester {
         //string ret = input();
         //print("Copy: ", ret);
 
-        char char1 = 'a';
-        char char2 = 'b';
+        char char1 = 'B';
+        char char2 = '\x41';
         if (char1 != char2) print("Char comparison passed!");
 
     }

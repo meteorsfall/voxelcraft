@@ -373,7 +373,7 @@ float
 
 // String
 char
-  = "\'" chr:([^"]) "\'" { return {type: "char", value: chr, location:location()}; }
+  = "\'" chr:("\\x"[0-9a-fA-F][0-9a-fA-F] / "\\"[^"] / [^"]) "\'" { return {type: "char", value: chr.join ? chr.join("") : chr, location:location()}; }
 
 // String
 string
