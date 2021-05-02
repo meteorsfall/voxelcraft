@@ -24,7 +24,7 @@
   "scripts": {
     "test_compiler": "npm run compile_compiler && ((PATH=\"./build/emscripten:$PATH\" node ./src/build/voxelscript_compiler.js ./tests/voxelscript_test --cpp-file=./tests/build/main.cpp -o ./tests/build/a.out && time -f'%E' ./tests/build/a.out && echo) || true)",
     "compile_compiler": "echo Compiling VoxelScript Compiler && cd src && npx tsc && cp voxelscript.pegjs *.hpp base_ts.ts build_tsconfig.json build && cd ..",
-    "package_compiler": "npm run compile_compiler && npx pkg ./src/build/voxelscript_compiler.js --targets=linux --out-path=./build",
+    "package_compiler": "npm run compile_compiler && npx pkg ./src/build/voxelscript_compiler.js --public --targets=linux --out-path=./build",
     "install_compiler": "./scripts/install_compiler.sh",
     "compile_extension": "echo Compiling VoxelScript Extension && cd voxelscript_extension && npm run compile && cd ..",
     "install_language_server": "cd language-server && npm run install",
