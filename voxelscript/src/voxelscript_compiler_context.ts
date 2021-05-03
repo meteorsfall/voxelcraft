@@ -1818,10 +1818,6 @@ class VSCompiler {
         }
       }
       if (t.is_class) {
-        if (options.rendering_template) {
-          return "ObjectRef<Object>";
-        }
-
         let tmp = "";
         if (t.template!.length > 0) {
           tmp += "<";
