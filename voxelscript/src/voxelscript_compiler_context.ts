@@ -2593,6 +2593,8 @@ class VSCompiler {
     // Statements
     // *************
     case "null_statement":
+      // Needed for while/for's with null statements in the body
+      this.write_output(";");
       break;
     // Static variable declaration
     case "variable_declaration":

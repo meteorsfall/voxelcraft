@@ -292,12 +292,18 @@ implement Tester {
         //string ret = input();
         //print("Copy: ", ret);
 
+        // Check for char parsing
         char char1 = 'B';
         char char2 = '\x41';
         if (char1 != char2) print("Char comparison passed!");
 
+        // Check for string indexing
         string strstr = "abcd";
         print("strstr[2] = ", strstr[2]);
+
+        // Check for while loops with no body
+        int i = 0;
+        while(i++ < 50);
 
     }
 }
