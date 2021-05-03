@@ -1376,25 +1376,21 @@ class VSCompiler {
       }
       t = e.rhs.calculated_type;
       break;
+    case "prefix_minus":
     case "postfix_minus":
-      this.type_subexpression(e.lhs);
-      if (!_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
-        throw {
-          message: "Argument to postfix minus \"--\" must be an integer or a float",
-          location: e.lhs.location,
-        };
-      }
-      t = e.lhs.calculated_type;
-      break;
+    case "prefix_plus":
     case "postfix_plus":
-      this.type_subexpression(e.lhs);
-      if (!_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
+      // If expression_type is one of the above 4 strings, we have prefix/postfix operator
+      let expr_node = expression_type.includes("postfix") ? e.lhs : e.rhs;
+      this.type_subexpression(expr_node);
+      let expr_type: symbl_type = expr_node.calculated_type;
+      if (!expr_type.is_primitive || ![primitive_type.INT, primitive_type.FLOAT].includes(expr_type.primitive_type!)) {
         throw {
-          message: "Argument to postfix plus \"++\" must be an integer or a float",
-          location: e.lhs.location,
+          message: "Argument to " + expression_type.replace("_", " ") + " \"" + (expression_type.includes("plus") ? "++" : "--") + "\" must be an int or float, but " + this.readable_type(expr_type) + " was received instead",
+          location: expr_node.location,
         };
       }
-      t = e.lhs.calculated_type;
+      t = expr_type;
       break;
     case "cast":
       let cast_type = this.resolve_type(e.lhs);
@@ -1684,9 +1680,17 @@ class VSCompiler {
       this.write_output("-");
       this.render_subexpression(e.rhs);
       break;
+    case "prefix_minus":
+      this.write_output("--");
+      this.render_subexpression(e.rhs);
+      break;
     case "postfix_minus":
       this.render_subexpression(e.lhs);
       this.write_output("--");
+      break;
+    case "prefix_plus":
+      this.write_output("++");
+      this.render_subexpression(e.rhs);
       break;
     case "postfix_plus":
       this.render_subexpression(e.lhs);
