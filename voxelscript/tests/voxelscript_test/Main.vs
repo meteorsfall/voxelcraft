@@ -296,6 +296,9 @@ implement Tester {
         char char2 = '\x41';
         if (char1 != char2) print("Char comparison passed!");
 
+        string strstr = "abcd";
+        print("strstr[2] = ", strstr[2]);
+
     }
 }
 

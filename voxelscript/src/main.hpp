@@ -14,8 +14,7 @@ using std::function;
 using nostd::function;
 #endif
 
-#ifndef _COMPILE_VS_NATIVE_
-#endif
+[[noreturn]] void _cstr_abort(const char* message, const char* file, int start_line, int start_char, int end_line, int end_char);
 
 struct string {
     int _size;
@@ -34,6 +33,12 @@ struct string {
     }
     void copy(char* str, int size) {
         __builtin_memcpy(str, _data, size);
+    }
+    char at(int index) {
+        if (index >= _size) {
+            _cstr_abort("String Index out-of-bounds", "??", 0, 0, 0, 0);
+        }
+        return _data[index];
     }
     int find(string str) {
         const char* s = __builtin_strstr(_data, str.data());
@@ -189,6 +194,11 @@ string_buffer& operator<<(string_buffer& os, string s)
     g_abort(out.to_string());
     while(true);
 #endif
+}
+
+// Used by string struct, since the string struct hasn't been declared yet at the time of this call
+[[noreturn]] void _cstr_abort(const char* message, const char* file, int start_line, int start_char, int end_line, int end_char) {
+    _abort(string(message), file, start_line, start_char, end_line, end_char);
 }
 
 #include <initializer_list> // std::initializer_list<T>
