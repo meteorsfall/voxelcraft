@@ -164,6 +164,18 @@ string_buffer& operator<<(string_buffer& os, char c)
 }
 string_buffer& operator<<(string_buffer& os, double val)
 {
+    if (val < 0) {
+        os << '-';
+        val *= -1;
+    }
+    if (__builtin_isnan(val)) {
+        os << "nan";
+        return os;
+    }
+    if (__builtin_isinf(val)) {
+        os << "infinity";
+        return os;
+    }
     int first = (int)val;
     os << first;
     os << '.';
@@ -651,6 +663,10 @@ void _VS_print()
 #else
     g_print(out.to_string());
 #endif
+}
+
+double _VS_sqrt(double in) {
+    return __builtin_sqrt(in);
 }
 
 template<typename Value, typename... Values>

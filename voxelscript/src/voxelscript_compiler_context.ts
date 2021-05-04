@@ -263,6 +263,10 @@ let internal_functions: Record<string, function_type> = {
     arg_types: [],
     return_type: make_primitive_type(primitive_type.FLOAT),
   },
+  "sqrt" : {
+    arg_types: [make_primitive_type(primitive_type.FLOAT)],
+    return_type: make_primitive_type(primitive_type.FLOAT),
+  },
 };
 // End internal traits/funcs
 
@@ -926,7 +930,11 @@ class VSCompiler {
       return "string";
     }
     if (t.is_primitive) {
-      return this.render_type(t);
+      if (t.primitive_type == primitive_type.FLOAT) {
+        return "float";
+      } else {
+        return this.render_type(t);
+      }
     }
     throw new Error("FATAL ERROR: Incorrect type!");
   }
