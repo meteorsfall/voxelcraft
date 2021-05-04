@@ -98,9 +98,9 @@ string_buffer& operator<<(string_buffer& os, const char* str)
     os.write(str, __builtin_strlen(str));
     return os; 
 }
-string_buffer& operator<<(string_buffer& os, int integer)
-{
-    char buf[16];
+
+template<typename T>
+int write_int_to_buffer(char* buf, T integer) {
     int len = 0;
     int start = 0;
     if (integer < 0) {
@@ -118,35 +118,23 @@ string_buffer& operator<<(string_buffer& os, int integer)
     }
     for(int i = 0; i < (len-start)/2; i++) {
         char tmp = buf[start+i];
-        buf[start+i] = buf[len-start-1-i];
-        buf[len-start-1-i] = tmp;
+        buf[start+i] = buf[len-1-i];
+        buf[len-1-i] = tmp;
     }
+    return len;
+}
+
+string_buffer& operator<<(string_buffer& os, int integer)
+{
+    char buf[11]; // "-2147483648" is the longest string
+    int len = write_int_to_buffer<int>(buf, integer);
     os.write(buf, len);
     return os; 
 }
 string_buffer& operator<<(string_buffer& os, long long integer)
 {
-    char buf[16];
-    int len = 0;
-    int start = 0;
-    if (integer < 0) {
-        buf[len++] = '-';
-        start++;
-        integer = -integer;
-    }
-    if (integer == 0) {
-        buf[len++] = '0';
-    } else {
-        while(integer > 0) {
-            buf[len++] = '0' + (integer % 10);
-            integer /= 10;
-        }
-    }
-    for(int i = 0; i < (len-start)/2; i++) {
-        char tmp = buf[start+i];
-        buf[start+i] = buf[len-start-1-i];
-        buf[len-start-1-i] = tmp;
-    }
+    char buf[20]; // "-9223372036854775808" is the longest string
+    int len = write_int_to_buffer<long long>(buf, integer);
     os.write(buf, len);
     return os; 
 }
@@ -164,25 +152,123 @@ string_buffer& operator<<(string_buffer& os, char c)
     os.write(c);
     return os;
 }
-string_buffer& operator<<(string_buffer& os, double val)
+string_buffer& operator<<(string_buffer& os, double f_val)
 {
-    if (val < 0) {
+    typedef unsigned long long uint64;
+    uint64 val = *((uint64*)&f_val);
+
+    // Check Sign Bit
+    if (val & (1ULL << 63)) {
         os << '-';
-        val *= -1;
+        val &= ~(1ULL << 63);
     }
-    if (__builtin_isnan(val)) {
-        os << "nan";
-        return os;
+
+    // Raw Exponent
+    uint64 raw_exp = val >> 52;
+    // Raw Mantissa
+    uint64 raw_mant = val & ((1ULL << 52) - 1);
+
+    // Check for NaN/Infinity
+    if (raw_exp == 0x7ff) {
+        if (raw_mant == 0) {
+            os << "Infinity";
+            return os;
+        } else {
+            os << "NaN";
+            return os;
+        }
     }
-    if (__builtin_isinf(val)) {
-        os << "infinity";
-        return os;
+    // Check for 0/Subnormals
+    if (raw_exp == 0) {
+        if (raw_mant == 0) {
+            os << "0.0";
+            return os;
+        } else {
+            // TODO: Render subnormals properly
+            os << "Infinitesimal";
+            return os;
+        }
     }
-    int first = (int)val;
-    os << first;
-    os << '.';
-    int second = (val - first) * 100000;
-    os << second;
+
+    // Now, we can interpret exp/mant normally
+    int exp = ((int)(val >> 52) - 1023) - 52;
+    uint64 mant = (1ULL << 52) | raw_mant;
+    // Repr: mant * 2^exp
+
+    // Convert 2^exp to 10^ten_exp_f, via ten_exp_f = exp * log(2)/log(10)
+    double ten_exp_f = exp * 0.301029995663981198017467022509663365781307220458984375;
+    // New Repr: mantissa * 10^ten_exp_f
+    int ten_exp = (int)ten_exp_f;
+    // New Repr: (mantissa * 10^(ten_exp_f - ten_exp)) 10^ten_exp
+    uint64 ten_mantissa = (uint64)(mant * __builtin_pow(10, ten_exp_f - ten_exp));
+    // New Repr: ten_mantisssa * 10^ten_exp
+
+    char buf[20]; // "18446744073709551615" is the longest string
+    int len = write_int_to_buffer<uint64>(buf, ten_mantissa);
+
+    // Find out how much resolution is actually necessary
+    int resolution_available = 14;
+    while (buf[resolution_available] == '0') {
+        resolution_available--;
+    }
+
+    // Place decimal at index 1, rather than at len
+    int decimal_place = 1;
+    ten_exp += len - 1;
+
+    // If we're within 14 digits of the decimal point, just move the decimal point
+    if (0 < ten_exp && ten_exp < 14) {
+        decimal_place += ten_exp;
+        ten_exp = 0;
+    }
+    // If we're within 8 digits of 0.000000, just move the decimal point
+    if (-8 < ten_exp && ten_exp < 0) {
+        decimal_place += ten_exp;
+        ten_exp = 0;
+    }
+
+    // Handle fractions
+    if (decimal_place <= 0) {
+        os.write("0.", 2);
+    }
+    // If we're deeper into a small number, keep writing 0's
+    while (decimal_place < 0) {
+        os.write('0');
+        decimal_place++;
+    }
+
+    int last = 0;
+
+    if (decimal_place == 0) {
+        os.write(buf, len);
+        last = len-1;
+    } else {
+        // Write 0s up to the decimal place location
+        while (len <= decimal_place) {
+            buf[len++] = '0';
+        }
+        // Write the buf up til before the decimal_place
+        os.write(buf, decimal_place);
+        // Write the decimal place itself
+        os.write('.');
+        // Write the buf that takes place after the decimal place
+        os.write(buf[decimal_place]);
+        last = decimal_place;
+        // If there's actually resolution to write, write it
+        if (resolution_available > decimal_place + 1) {
+            os.write(buf + decimal_place + 1, resolution_available - decimal_place - 1);
+            last = resolution_available - 1;
+        }
+    }
+
+    // TODO: Implement rounding on `last` digit
+
+    // If there's any left-over exponent, write it now
+    if (ten_exp != 0) {
+        os.write('e');
+        os << ten_exp;
+    }
+
     return os; 
 }
 
@@ -201,6 +287,7 @@ string_buffer& operator<<(string_buffer& os, string s)
     out.flush();
 
 #ifdef _COMPILE_VS_NATIVE_
+    std::cout.flush();
     std::cerr << out.data();
     std::cerr.flush();
     exit(-1);

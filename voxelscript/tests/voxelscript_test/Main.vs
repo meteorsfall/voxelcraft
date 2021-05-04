@@ -305,6 +305,9 @@ implement Tester {
         int i = 0;
         while(i++ < 50);
 
+        print("INT: ", 12345);
+        print("INT: ", -15);
+
         // Test exponential notation
         float asdkf = 5.5e+5 + 5.55e3 - 1.23e-3;
         print("expFloat: ", asdkf);
