@@ -35,9 +35,11 @@ struct string {
         __builtin_memcpy(str, _data, size);
     }
     char at(int index) {
+#ifndef NO_BOUNDS_CHECKING
         if (index >= _size) {
             _cstr_abort("String Index out-of-bounds", "??", 0, 0, 0, 0);
         }
+#endif
         return _data[index];
     }
     int find(string str) {
@@ -270,9 +272,11 @@ struct dynamic_array {
         }
     }
     T& at(int index) const {
+#ifndef NO_BOUNDS_CHECKING
         if (index >= _size) {
             _abort("Array Index out-of-bounds", "??", 0, 0, 0, 0);
         }
+#endif
         return data[index];
     }
     T& operator[](int index) const {
@@ -313,7 +317,9 @@ public:
     T* obj;
     ObjectRef() : obj(nullptr) {}
     ObjectRef(T* obj) : obj(obj) {
+#ifndef NO_REFERENCE_COUNTING
         obj->reference_count++;
+#endif
     }
     // If we can implicitly convert from U* to T*,
     // then we can create a ObjectRef<T> from an ObjectRef<U>
@@ -321,17 +327,21 @@ public:
     ObjectRef(ObjectRef<U> other) {
         // Grab reference to Object
         obj = other.obj;
+#ifndef NO_REFERENCE_COUNTING
         // Nullify the other ObjectRef
         other.obj = nullptr;
+#endif
     }
     ~ObjectRef()
     {
+#ifndef NO_REFERENCE_COUNTING
         if (obj) {
             obj->reference_count--;
             if (obj->reference_count == 0) {
                 delete obj;
             }
         }
+#endif
     }
     ObjectRef(const ObjectRef<T>& other) // copy constructor
     : ObjectRef(other.obj)
@@ -339,7 +349,9 @@ public:
     ObjectRef(ObjectRef<T>&& other) noexcept // move constructor
     {
         this->obj = other.obj;
+#ifndef NO_REFERENCE_COUNTING
         other.obj = nullptr;
+#endif
     }
     ObjectRef<T>& operator=(const ObjectRef<T>& other) // copy assignment
     {
@@ -347,21 +359,29 @@ public:
     }
     ObjectRef<T>& operator=(ObjectRef<T>&& other) noexcept // move assignment
     {
-        standard::swap(obj, other.obj);
+#ifdef NO_REFERENCE_COUNTING
+        this->obj = other.obj;
+#else
+        standard::swap(this->obj, other.obj);
+#endif
         return *this;
     }
     T& operator*() const
     {
+#ifndef NO_BOUNDS_CHECKING
         if (obj == nullptr) {
             _abort("Null pointer exception", "??", 0, 0, 0, 0);
         }
+#endif
         return *obj;
     }
     T* operator->() const
     {
+#ifndef NO_BOUNDS_CHECKING
         if (obj == nullptr) {
             _abort("Null pointer exception", "??", 0, 0, 0, 0);
         }
+#endif
         return obj;
     }
     // Define implicit conversion to T*

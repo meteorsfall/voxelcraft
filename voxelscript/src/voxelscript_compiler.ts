@@ -170,6 +170,21 @@ if (options.cpp_file) {
 }
 
 async function compile() {
+  let child_argv: string[] = [
+    '--std=c++17',
+    '-fwrapv',
+    '-g',
+    '-O' + options.optimization_level,
+    // Stop at first error
+    '-Wfatal-errors',
+  ];
+  if (!options.is_reference_counting) {
+    child_argv.push('-DNO_REFERENCE_COUNTING');
+  }
+  if (!options.is_bounds_checking) {
+    child_argv.push('-DNO_BOUNDS_CHECKING');
+  }
+
   if (options.is_wasm) {
     let wasm_filename = options.output_file!;
     if (!existsSync(path.dirname(wasm_filename))) {
@@ -178,21 +193,16 @@ async function compile() {
 
     // emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -o main.wasm
     // cat main.cpp | emcc -std=c++17 -fno-rtti -fno-exceptions -Wfatal-errors main.cpp -s ALLOW_MEMORY_GROWTH --no-entry -xc++ -o main2.wasm
-    const child_argv = [
-      '-std=c++17',
+    child_argv = child_argv.concat([
       '-fno-rtti',
       '-fno-exceptions',
-      '-Wfatal-errors',
       '-sALLOW_MEMORY_GROWTH',
-      '-fwrapv',
-      '-O' + options.optimization_level,
-      '-g',
       '-sERROR_ON_UNDEFINED_SYMBOLS=0', // TODO: Replace with more specific "-sEXPORTED_FUNCTIONS"
       '--no-entry',
       '-xc++',
       '-',
       '-o' + wasm_filename
-    ];
+    ]);
     let cp = childProcess.spawnSync("voxelc-emcc", child_argv, {
         input: compiler_context.get_compiled_code(),
         windowsHide: true,
@@ -238,18 +248,13 @@ async function compile() {
     }
 
     // Run clang++ to compile the resulting c++
-    let child_argv = [
+    child_argv = child_argv.concat([
         '-D_COMPILE_VS_NATIVE_',
-        '-O' + options.optimization_level,
-        '-g',
-        '-fwrapv',
-        '--std=c++17',
         '-o' + exec_filename,
-        '-Wfatal-errors', // Stop at first error
-    ];
+    ]);
 
     if (options.cpp_file) {
-      // Use cpp file
+      // Use cpp file if possible
       // By doing this, gdb debugging will reference line numbers in main.cpp
       child_argv.push(options.cpp_file);
     } else {

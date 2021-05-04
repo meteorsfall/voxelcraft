@@ -21,6 +21,8 @@ interface option_type {
   cpp_file : string | null,
   desired_module : string | null,
   override : string | null,
+  is_reference_counting: boolean,
+  is_bounds_checking: boolean,
   is_wasm: boolean,
 };
 
@@ -346,6 +348,8 @@ function parse_args(args : any[]) : option_type {
   let desired_module : string | null = null;
   let override : string | null = null;
   let is_wasm : boolean = false;
+  let is_reference_counting : boolean = true;
+  let is_bounds_checking : boolean = true;
 
   let help_str = `Usage: voxelc [options] [source]
 Description: Will compile a VoxelScript package either to native executable code, or to a .wasm module
@@ -359,6 +363,12 @@ Options:
                             wasm: Will compile to a wasm module
   -O{0,1,2,3}             Specifices the optimization level. 0 means no optimizations, 3 means maximally optimized.
                             The default is 0.
+
+  --no-refcount           Don't implement reference counting. Note that memory will never be freed.
+                            The default is to reference count.
+
+  --no-bounds-checking    Don't bounds-check arrays.
+                            The default is to check bounds.
                           
   --module=<name>         Selects a specific module to compile. The default is to compile all modules found in the --source package directory.
                             When selected, an executable for the package will not be generated.
@@ -375,10 +385,6 @@ Options:
   if (argv['help']) {
     console.log(help_str);
     exit(0);
-  }
-
-  if (argv['cpp-file']) {
-    cpp_file = path.resolve(argv['cpp-file']);
   }
 
   if (argv['output'] && argv['o']) {
@@ -423,14 +429,6 @@ Options:
     exit(1);
   }
 
-  if (argv['module']) {
-    desired_module = argv['module'];
-  }
-
-  if (argv['override']) {
-    override = path.resolve(argv['override']);
-  }
-
   if (argv['O'] != undefined) {
     if (argv['O'] === 0 || argv['O'] === 1 || argv['O'] === 2 || argv['O'] === 3) {
       optimization_level = argv['O'];
@@ -441,12 +439,33 @@ Options:
     }
   }
 
+  if (argv['refcount'] != undefined) {
+    is_reference_counting = argv['refcount'];
+  }
+  if (argv['bounds-checking'] != undefined) {
+    is_bounds_checking = argv['bounds-checking'];
+  }
+
+  if (argv['cpp-file']) {
+    cpp_file = path.resolve(argv['cpp-file']);
+  }
+
+  if (argv['module']) {
+    desired_module = argv['module'];
+  }
+
+  if (argv['override']) {
+    override = path.resolve(argv['override']);
+  }
+
   return {
     source,
     output_file,
     optimization_level,
     cpp_file,
     desired_module,
+    is_reference_counting,
+    is_bounds_checking,
     override,
     is_wasm
   };
