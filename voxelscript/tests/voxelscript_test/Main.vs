@@ -257,6 +257,8 @@ implement Tester {
         bool mmm = "38912".is_integer();
         print("M: ", mmm);
 
+        float start_time = time();
+
         Vec3[] arr = [];
         for(int i = 0; i < 10000; i++) {
             arr = [];
@@ -271,11 +273,45 @@ implement Tester {
 
         print("Float < Int", test_arr[0] < 2);
 
+        print("Time: ", time() - start_time);
+
+        print("test arr: ", test_arr);
+
+        float randi_sum = 0.0;
+        float randf_sum = 0.0;
+        for(int i = 0; i < 100; i++) {
+            randi_sum += randi();
+            randf_sum += randf();
+        }
+        print("Average of 100 randi()'s: ", randi_sum / 100);
+        print("Average of 100 randf()'s: ", randf_sum / 100);
+
         // Should throw null-pointer exception
         // this.null_test.push(new Vec3(1.0, 2.0, 3.0));
 
         //string ret = input();
         //print("Copy: ", ret);
+
+        // Check for char parsing
+        char char1 = 'B';
+        char char2 = '\x41';
+        if (char1 != char2) print("Char comparison passed!");
+
+        // Check for string indexing
+        string strstr = "abcd";
+        print("strstr[2] = ", strstr[2]);
+
+        // Check for while loops with no body
+        int i = 0;
+        while(i++ < 50);
+
+        print("INT: ", 12345);
+        print("INT: ", -15);
+
+        // Test exponential notation
+        float asdkf = 5.5e+5 + 5.55e3 - 1.23e-3;
+        print("expFloat: ", asdkf);
+        print("subnormFloat: ", 2.0e-315, 4.94066e-324);
 
     }
 }

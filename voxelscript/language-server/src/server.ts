@@ -8,7 +8,13 @@ import * as path from 'path';
 import * as childProcess from 'child_process';
 import uri_to_path = require('file-uri-to-path');
 
+const ROOT_DIR = path.join(require('os').homedir(), ".voxells");
 const DEBUG_LOG = false;
+
+if (!existsSync(ROOT_DIR)) {
+    mkdirSync(ROOT_DIR);
+    log("Created root path: " + ROOT_DIR);
+}
 
 function is_subdir(base:string, child:string):boolean {
     let relative = path.relative(base, child);
@@ -57,14 +63,12 @@ function create_generic_diagnostic(msg : string, severity) {
     }
 }
 
-const compiler_path = path.join(__dirname, "voxelscript_compiler", "voxelscript_compiler.js");
-
-var access = createWriteStream(__dirname + '/stderr_log.txt');
+var access = createWriteStream(path.join(ROOT_DIR, 'stderr_log.txt'));
 process.stderr.write = access.write.bind(access);
 
 function log(log : string) : void {
     if (DEBUG_LOG) {
-        appendFileSync(__dirname + '/log.txt', log + "\n");
+        appendFileSync(path.join(ROOT_DIR, 'log.txt'), log + "\n");
     }
 }
 
@@ -78,8 +82,8 @@ let open_projects : any = {};
 
 let lock = false;
 
-const PROJECTS_PATH = path.join(__dirname, 'projects');
-const BUILD_PATH = path.join(__dirname, 'build');
+const PROJECTS_PATH = path.join(ROOT_DIR, 'projects');
+const BUILD_PATH = path.join(ROOT_DIR, 'build');
 
 function get_module_name(uri : string) {
     
@@ -107,15 +111,15 @@ function compile(package_name : string, module_name : string) {
             log("Created build path: " + build_path);
         }
 
-        log("Compiling: " + module_name + " with " + compiler_path);
+        log("Compiling Module: " + module_name);
         const child_argv = [
             '--cpp-file=' + path.join(build_path, 'main.cpp'),
             '--source=' + path.join(PROJECTS_PATH, package_name),
             '--override=' + path.join(PROJECTS_PATH, package_name, 'open_files'),
             '--module=' + module_name
         ];
-        log("node " + compiler_path + " " + child_argv.join(" "));
-        let cp = childProcess.fork(compiler_path, child_argv, {
+        log("voxelc " + child_argv.join(" "));
+        let cp = childProcess.spawn("voxelc", child_argv, {
             stdio: ['pipe', 'pipe', 'pipe', 'ipc']
         });
         log("Forked");

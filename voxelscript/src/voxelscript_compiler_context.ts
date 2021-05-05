@@ -253,7 +253,19 @@ let internal_functions: Record<string, function_type> = {
   },
   "time" : {
     arg_types: [],
+    return_type: make_primitive_type(primitive_type.FLOAT),
+  },
+  "randi" : {
+    arg_types: [],
     return_type: make_primitive_type(primitive_type.INT),
+  },
+  "randf" : {
+    arg_types: [],
+    return_type: make_primitive_type(primitive_type.FLOAT),
+  },
+  "sqrt" : {
+    arg_types: [make_primitive_type(primitive_type.FLOAT)],
+    return_type: make_primitive_type(primitive_type.FLOAT),
   },
 };
 // End internal traits/funcs
@@ -918,7 +930,11 @@ class VSCompiler {
       return "string";
     }
     if (t.is_primitive) {
-      return this.render_type(t);
+      if (t.primitive_type == primitive_type.FLOAT) {
+        return "float";
+      } else {
+        return this.render_type(t);
+      }
     }
     throw new Error("FATAL ERROR: Incorrect type!");
   }
@@ -945,7 +961,8 @@ class VSCompiler {
       if (base_value) {
         // If a base value was found, we must typecheck the template
         if (template.length > 0) {
-          if (!base_value || !base_value.is_class) {
+          // If a template was given, we check that it was the correct template
+          if (!base_value.is_class) {
             throw {
               message: "Template parameters can only be applied to classes, not " + this.readable_type(type_value),
               location: t.location,
@@ -981,14 +998,21 @@ class VSCompiler {
               }
             }
           }
-        } else if (base_value.template && base_value.template.length > 0) {
-          throw {
-            message: this.readable_type(base_value) + " expected a template list, but none was found",
-            location: t.location,
-          };
+        } else {
+          // If no template was given, we verify that no template was expected
+          if (base_value.is_class) {
+            let cls_value = this.get_context().resolve_class_type(type_name)!;
+            // Throw if a template was expected
+            if (cls_value.template!.length > 0) {
+              throw {
+                message: this.readable_type(base_value) + " expected a template list, but none was found",
+                location: t.location,
+              };
+            }
+          }
         }
         type_value = this.get_context().resolve_typename(type_name, template);
-      } // Otherwise, we say no such symbol type
+      } // If no base value was found, we say no such symbol type by not setting type_value
     } else if (t.type == "array_type") {
       // Must be a primitive
       type_name = "Won't need it";
@@ -1095,8 +1119,8 @@ class VSCompiler {
 
     let ret = null;
     if (op in comparison_operators) {
-      if (left.is_primitive && [primitive_type.INT, primitive_type.FLOAT].includes(left.primitive_type!) &&
-          right.is_primitive && [primitive_type.INT, primitive_type.FLOAT].includes(right.primitive_type!)
+      if (left.is_primitive && [primitive_type.INT, primitive_type.FLOAT, primitive_type.CHAR].includes(left.primitive_type!) &&
+          right.is_primitive && [primitive_type.INT, primitive_type.FLOAT, primitive_type.CHAR].includes(right.primitive_type!)
       ) {
         return make_primitive_type(primitive_type.BOOL);
       } else {
@@ -1339,6 +1363,9 @@ class VSCompiler {
     case "float":
       t = make_primitive_type(primitive_type.FLOAT);
       break;
+    case "char":
+      t = make_primitive_type(primitive_type.CHAR);
+      break;
     case "string":
       t = make_string_type();
       break;
@@ -1365,25 +1392,21 @@ class VSCompiler {
       }
       t = e.rhs.calculated_type;
       break;
+    case "prefix_minus":
     case "postfix_minus":
-      this.type_subexpression(e.lhs);
-      if (!_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
-        throw {
-          message: "Argument to postfix minus \"--\" must be an integer or a float",
-          location: e.lhs.location,
-        };
-      }
-      t = e.lhs.calculated_type;
-      break;
+    case "prefix_plus":
     case "postfix_plus":
-      this.type_subexpression(e.lhs);
-      if (!_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.lhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
+      // If expression_type is one of the above 4 strings, we have prefix/postfix operator
+      let expr_node = expression_type.includes("postfix") ? e.lhs : e.rhs;
+      this.type_subexpression(expr_node);
+      let expr_type: symbl_type = expr_node.calculated_type;
+      if (!expr_type.is_primitive || ![primitive_type.INT, primitive_type.FLOAT].includes(expr_type.primitive_type!)) {
         throw {
-          message: "Argument to postfix plus \"++\" must be an integer or a float",
-          location: e.lhs.location,
+          message: "Argument to " + expression_type.replace("_", " ") + " \"" + (expression_type.includes("plus") ? "++" : "--") + "\" must be an int or float, but " + this.readable_type(expr_type) + " was received instead",
+          location: expr_node.location,
         };
       }
-      t = e.lhs.calculated_type;
+      t = expr_type;
       break;
     case "cast":
       let cast_type = this.resolve_type(e.lhs);
@@ -1463,7 +1486,7 @@ class VSCompiler {
       t = lhs.is_array ? lhs.array_type : make_primitive_type(primitive_type.CHAR);
     } break;
     default:
-      throw new Error("FATAL ERROR: Type did not match in render_subexpression: " + e.type);
+      throw new Error("FATAL ERROR: Type did not match in type_subexpression: " + e.type);
     }
 
     e.calculated_type = t;
@@ -1654,10 +1677,13 @@ class VSCompiler {
     case "integer":
     case "bool":
     case "float":
-      this.write_output(e.value + (e.type == "float" ? "f" : ""));
+      this.write_output(e.value);
+      break;
+    case "char":
+      this.write_output("'" + e.value + "'");
       break;
     case "string":
-      this.write_output("string(\"" + e.value + "\", " + e.value.length + ")");
+      this.write_output("string(\"" + e.value + "\")");
       break;
     // ****
     // Unary Operators
@@ -1670,9 +1696,17 @@ class VSCompiler {
       this.write_output("-");
       this.render_subexpression(e.rhs);
       break;
+    case "prefix_minus":
+      this.write_output("--");
+      this.render_subexpression(e.rhs);
+      break;
     case "postfix_minus":
       this.render_subexpression(e.lhs);
       this.write_output("--");
+      break;
+    case "prefix_plus":
+      this.write_output("++");
+      this.render_subexpression(e.rhs);
       break;
     case "postfix_plus":
       this.render_subexpression(e.lhs);
@@ -1789,7 +1823,7 @@ class VSCompiler {
           return "int";
         }
         if (t.primitive_type == primitive_type.FLOAT) {
-          return "float";
+          return "double";
         }
       }
       if (t.is_string) {
@@ -1800,10 +1834,6 @@ class VSCompiler {
         }
       }
       if (t.is_class) {
-        if (options.rendering_template) {
-          return "ObjectRef<Object>";
-        }
-
         let tmp = "";
         if (t.template!.length > 0) {
           tmp += "<";
@@ -2575,6 +2605,8 @@ class VSCompiler {
     // Statements
     // *************
     case "null_statement":
+      // Needed for while/for's with null statements in the body
+      this.write_output(";");
       break;
     // Static variable declaration
     case "variable_declaration":

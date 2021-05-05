@@ -38,7 +38,7 @@ void* operator new(size_t size)
     return p; 
 } 
   
-void operator delete(void* p) 
+void operator delete(void* p) noexcept
 {
     //printf("Deallocating %p\n", p);
 #ifdef TRACK_MEMORY

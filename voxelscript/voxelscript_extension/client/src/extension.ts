@@ -1,21 +1,25 @@
 'use strict';
 import * as path from 'path';
 import {workspace} from 'vscode';
-import {LanguageClient} from 'vscode-languageclient';
+import {LanguageClient, LanguageClientOptions, ServerOptions, Executable, ExecutableOptions} from 'vscode-languageclient';
 
 function activate(context) {
-    // The server is implemented in node
-    let serverModule = context.asAbsolutePath(path.join('server/build', 'server.js'));
     // The debug options for the server
-    let debugOptions = { execArgv: ["--nolazy", "--debug=6004"] };
+    let debugArgs = ["--nolazy", "--debug=6004"];
+    // Server Executable
+    let serverExecutable: Executable = {
+        command: "voxells",
+        args: [],
+        options: {},
+    };
     // If the extension is launch in debug mode the debug server options are use
     // Otherwise the run options are used
-    let serverOptions = {
-        run: { module: serverModule },
-        debug: { module: serverModule, options: debugOptions }
+    let serverOptions: ServerOptions = {
+        run: serverExecutable,
+        debug: { ...serverExecutable, args: debugArgs },
     };
     // Options to control the language client
-    let clientOptions = {
+    let clientOptions: LanguageClientOptions = {
         // Register the server for plain text documents
         documentSelector: ['voxelscript'],
         synchronize: {

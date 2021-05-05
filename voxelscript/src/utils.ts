@@ -1,8 +1,8 @@
 
 import * as path from "path";
-import { writeFileSync, readFileSync, readdirSync, statSync, existsSync, mkdirSync } from 'fs';
+import { readFileSync, readdirSync, statSync } from 'fs';
 import minimist from 'minimist';
-import { start } from "repl";
+import { exit } from "process";
 
 interface file_information {
   filepath:string,
@@ -15,11 +15,14 @@ interface vspackage {
   options: any
 };
 interface option_type {
+  source : string,
+  optimization_level: number,
   output_file : string | null,
   cpp_file : string | null,
-  source : string,
   desired_module : string | null,
   override : string | null,
+  is_reference_counting: boolean,
+  is_bounds_checking: boolean,
   is_wasm: boolean,
 };
 
@@ -338,41 +341,56 @@ function error_to_string(module_name : string, file_path : string, code : string
 function parse_args(args : any[]) : option_type {
   let argv = minimist(args.slice(2));
 
-  let output_file : string | null = null;
-  let cpp_file : string | null = null;
   let source : string = "";
+  let output_file : string | null = null;
+  let optimization_level : number = 0;
+  let cpp_file : string | null = null;
   let desired_module : string | null = null;
   let override : string | null = null;
   let is_wasm : boolean = false;
+  let is_reference_counting : boolean = true;
+  let is_bounds_checking : boolean = true;
 
-  let help_str = `
-Usage: ${args[1]} [options] [source]
+  let help_str = `Usage: voxelc [options] [source]
 Description: Will compile a VoxelScript package either to native executable code, or to a .wasm module
 Options:
+  --help                  Show this help menu
   --source=<folder>       Specifies the source directory of the VoxelScript Package to compile
   -o, --output=<file>     Specifies where to write the resultant executable
                             If <file> ends in .wasm, --target=wasm will be the new default target
   --target=<arch>         Specifies the architecture to build for. Default is native.
                             native: Will compile to a native executable for your machine
                             wasm: Will compile to a wasm module
+  -O{0,1,2,3}             Specifices the optimization level. 0 means no optimizations, 3 means maximally optimized.
+                            The default is 0.
+
+  --no-refcount           Don't implement reference counting. Note that memory will never be freed.
+                            The default is to reference count.
+
+  --no-bounds-checking    Don't bounds-check arrays.
+                            The default is to check bounds.
                           
   --module=<name>         Selects a specific module to compile. The default is to compile all modules found in the --source package directory.
-                          When selected, an executable for the package will not be generated.
-                          This options is used for reporting errors related to that package.
+                            When selected, an executable for the package will not be generated.
+                            This options is used for reporting errors related to that package.
 
   --cpp-file=<file>       Will write intermediate C++ code to the given file
   --override=<path>       Specifies a --source path that will take higher precedence over --source itself.
-                          Only used for 
+                            Only used for the Language Server to override .vs files with the actively edited versions,
+                            even if the actual .vs files haven't been saved yet.
 `;
 
   // Use path.resolve to get the absolute directories of each argument
 
-  if (argv['cpp-file']) {
-    cpp_file = path.resolve(argv['cpp-file']);
+  if (argv['help']) {
+    console.log(help_str);
+    exit(0);
   }
 
   if (argv['output'] && argv['o']) {
-    throw new Error("Cannot pass both --output and -o");
+    console.error("Cannot pass both --output and -o\n");
+    console.error(help_str);
+    exit(1);
   }
   if (argv['output'] || argv['o']) {
     output_file = path.resolve(argv['output'] || argv['o']);
@@ -380,16 +398,18 @@ Options:
 
   if (argv['target']) {
     // Target defined explicitly
-    if (argv['target'] == 'native') {
+    if (argv['target'] === 'native') {
       is_wasm = false;
-    } else if (argv['target'] == 'wasm') {
+    } else if (argv['target'] === 'wasm') {
       is_wasm = true;
     } else {
-      throw new Error("Argument to --target must be 'native' or 'wasm'");
+      console.error("Argument to --target must be 'native' or 'wasm'\n");
+      console.error(help_str);
+      exit(1);
     }
   } else {
     // Otherwise, wasm can be deduced implicitly, and otherwise we compile to native
-    if (output_file && path.extname(output_file) == '.wasm') {
+    if (output_file && path.extname(output_file) === '.wasm') {
       is_wasm = true;
     } else {
       is_wasm = false;
@@ -404,7 +424,30 @@ Options:
   if (source_dir) {
     source = path.resolve(source_dir);
   } else {
-    throw new Error("No --source given!");
+    console.error("No --source given!\n");
+    console.error(help_str);
+    exit(1);
+  }
+
+  if (argv['O'] != undefined) {
+    if (argv['O'] === 0 || argv['O'] === 1 || argv['O'] === 2 || argv['O'] === 3) {
+      optimization_level = argv['O'];
+    } else {
+      console.error("Invalid value passed into -O!\n");
+      console.error(help_str);
+      exit(1);
+    }
+  }
+
+  if (argv['refcount'] != undefined) {
+    is_reference_counting = argv['refcount'];
+  }
+  if (argv['bounds-checking'] != undefined) {
+    is_bounds_checking = argv['bounds-checking'];
+  }
+
+  if (argv['cpp-file']) {
+    cpp_file = path.resolve(argv['cpp-file']);
   }
 
   if (argv['module']) {
@@ -416,10 +459,13 @@ Options:
   }
 
   return {
-    output_file,
-    cpp_file,
     source,
+    output_file,
+    optimization_level,
+    cpp_file,
     desired_module,
+    is_reference_counting,
+    is_bounds_checking,
     override,
     is_wasm
   };
