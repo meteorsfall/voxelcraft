@@ -25,6 +25,14 @@
       return [];
     }
   }
+
+  function ignore_leading_whitespace(args) {
+    let ret = [];
+    for(let arg of args) {
+      ret.push(arg[1]);
+    }
+    return ret;
+  }
 }
 
 // *************************
@@ -33,7 +41,7 @@
 
 // A set of top level statements make up a module 
 module
-  = _ root:(top_level)* e:export { return {type:"module", body:root.concat([e]), location:location()}; }
+  = _ root:(top_level)* e:export _ { return {type:"module", body:root.concat([e]), location:location()}; }
 
 // A top level statement is any of the following
 top_level
@@ -79,23 +87,23 @@ typedef
 
 // A trait block consists of a set of function declarations
 trait_block
-  = "{" _ decls:(function_declaration / function_implementation)* _ "}" { return decls; }
+  = "{" _ decls:(_ (function_declaration / function_implementation))* _ "}" { return ignore_leading_whitespace(decls); }
 
 // A class block consists of a set of function and variable declarations, with an optional init declaration
 class_block
-  = "{" _ decls:(variable_declaration / function_declaration / init_declaration)* _ "}" { return decls; }
+  = "{" _ decls:(_ (variable_declaration / function_declaration / init_declaration))* _ "}" { return ignore_leading_whitespace(decls); }
 
 // A class implementation block includes variables declaration/declarations, and functions implementations
 class_implementation_block
-  = "{" _ decls:((init_implementation / function_implementation / variable_declaration / variable_definition))* _ "}" { return decls; }
+  = "{" _ decls:(_ (init_implementation / function_implementation / variable_declaration / variable_definition))* _ "}" { return ignore_leading_whitespace(decls); }
 
 // A trait implementation block consists of a set of function implementations
 trait_implementation_block
-  = "{" _ decls:(function_implementation)* _ "}" { return decls; }
+  = "{" _ decls:(_ (function_implementation))* _ "}" { return ignore_leading_whitespace(decls); }
 
 // A function block consists of a set of standard statements
 function_block
-  = "{" _ decls:(statement)* _ "}" { return decls; }
+  = "{" _ decls:(_ (statement))* _ "}" { return ignore_leading_whitespace(decls); }
 
 // *************************
 // Expressions
@@ -281,13 +289,13 @@ function_declaration
 
 // A function implementation
 function_implementation
-  = r:voidable_type __ id:identifier _ args:typed_argument_list _ b:function_block _ { return {type:"function_implementation", arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
+  = r:voidable_type __ id:identifier _ args:typed_argument_list _ b:function_block { return {type:"function_implementation", arguments:args, identifier:id, "return_type":r, body:b, location:location()}; }
 
 init_declaration
   = INIT _ args:typed_argument_list ENDSTATEMENT { return {type:"init_declaration", arguments:args, location:location()}; }
 
 init_implementation
-  = i:INIT _ args:typed_argument_list _ b:function_block _ { return {type:"init_implementation", init: i /* for loc */, arguments:args, body:b, location:location()}; }
+  = i:INIT _ args:typed_argument_list _ b:function_block { return {type:"init_implementation", init: i /* for loc */, arguments:args, body:b, location:location()}; }
 
 // *************************
 // All Statements
@@ -309,16 +317,16 @@ new_variable_statement
   = variable_declaration / variable_definition / simple_statement
 
 if
-  = IF _ "(" _ c:expression _ ")" _ b:statement otherwise:(_ ELSE _ statement)? _ {
+  = IF _ "(" _ c:expression _ ")" _ b:statement otherwise:(_ ELSE _ statement)? {
     return {type:"if", condition:c, body:b, otherwise:otherwise ? otherwise[3] : null, location:location()};
   }
   
 for
-  = FOR _ "("  _ e1:new_variable_statement /* includes ";" */ _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement _ { return {type:"for", init:e1, condition:e2, iterate:e3, body:b, location:location()}; }
-  / FOR _ "("  _ id:identifier _ ":"  _ e:expression _ ")" _ b:statement _ { return {type:"for_each", "item_identifier":id, "collection":e, body:b, location:location()}; }
+  = FOR _ "("  _ e1:new_variable_statement /* includes ";" */ _ e2:expression _ ";"  _ e3:expression _ ")" _ b:statement { return {type:"for", init:e1, condition:e2, iterate:e3, body:b, location:location()}; }
+  / FOR _ "("  _ id:identifier _ ":"  _ e:expression _ ")" _ b:statement { return {type:"for_each", "item_identifier":id, "collection":e, body:b, location:location()}; }
 
 while
-  = WHILE _ "(" _ c:expression _ ")" _ b:statement _ { return {type:"while", condition: c, body:b, location:location()}; }
+  = WHILE _ "(" _ c:expression _ ")" _ b:statement { return {type:"while", condition: c, body:b, location:location()}; }
 
 variable_declaration
   = t:type __ id:identifier ENDSTATEMENT { return {type:"variable_declaration", "var_identifier":id, "var_type":t, location:location()}; }
@@ -538,4 +546,4 @@ EQUAL_LOC "assignment operator" = "="(!"=") {return {location: location()}}
 ARROW = "=>" {return "=>"}
 UNDERSCORE = "_" {return "_"}
 
-ENDSTATEMENT = _ ";" _ {return ";"}
+ENDSTATEMENT = _ ";" {return ";"}
