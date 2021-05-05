@@ -961,7 +961,8 @@ class VSCompiler {
       if (base_value) {
         // If a base value was found, we must typecheck the template
         if (template.length > 0) {
-          if (!base_value || !base_value.is_class) {
+          // If a template was given, we check that it was the correct template
+          if (!base_value.is_class) {
             throw {
               message: "Template parameters can only be applied to classes, not " + this.readable_type(type_value),
               location: t.location,
@@ -997,14 +998,21 @@ class VSCompiler {
               }
             }
           }
-        } else if (base_value.template && base_value.template.length > 0) {
-          throw {
-            message: this.readable_type(base_value) + " expected a template list, but none was found",
-            location: t.location,
-          };
+        } else {
+          // If no template was given, we verify that no template was expected
+          if (base_value.is_class) {
+            let cls_value = this.get_context().resolve_class_type(type_name)!;
+            // Throw if a template was expected
+            if (cls_value.template!.length > 0) {
+              throw {
+                message: this.readable_type(base_value) + " expected a template list, but none was found",
+                location: t.location,
+              };
+            }
+          }
         }
         type_value = this.get_context().resolve_typename(type_name, template);
-      } // Otherwise, we say no such symbol type
+      } // If no base value was found, we say no such symbol type by not setting type_value
     } else if (t.type == "array_type") {
       // Must be a primitive
       type_name = "Won't need it";
