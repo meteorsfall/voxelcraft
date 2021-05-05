@@ -168,6 +168,8 @@ string_buffer& operator<<(string_buffer& os, double f_val)
     // Raw Mantissa
     uint64 raw_mant = val & ((1ULL << 52) - 1);
 
+    int exp_adjust = -1023 - 52;
+
     // Check for NaN/Infinity
     if (raw_exp == 0x7ff) {
         if (raw_mant == 0) {
@@ -184,14 +186,22 @@ string_buffer& operator<<(string_buffer& os, double f_val)
             os << "0.0";
             return os;
         } else {
-            // TODO: Render subnormals properly
-            os << "Infinitesimal";
-            return os;
+            // Subnormals
+            // exp = 2^(1-1023), not 2^(raw_exp-1023) which would equal 2^(0-1023)
+            exp_adjust++;
+            // Interpret as 0.raw_mant, instead of 1.raw_mant
+            // To fix this, we slide raw_mant over until it's of the form 1.raw_mant
+            // TODO: Make resolution_available know how much this value has slid over,
+            // so that rounding works better
+            while((raw_mant >> 52) == 0) {
+                raw_mant <<= 1;
+                exp_adjust--;
+            }
         }
     }
 
     // Now, we can interpret exp/mant normally
-    int exp = ((int)(val >> 52) - 1023) - 52;
+    int exp = (int)(val >> 52) + exp_adjust;
     uint64 mant = (1ULL << 52) | raw_mant;
     // Repr: mant * 2^exp
 

@@ -311,6 +311,7 @@ implement Tester {
         // Test exponential notation
         float asdkf = 5.5e+5 + 5.55e3 - 1.23e-3;
         print("expFloat: ", asdkf);
+        print("subnormFloat: ", 2.0e-315, 4.94066e-324);
 
     }
 }
