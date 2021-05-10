@@ -488,7 +488,7 @@ public:
 // Trait instance
 class Trait {
 public:
-    Object* obj;
+    ObjectRef<Object> obj;
     Trait(Object* obj) : obj(obj) {};
 };
 
