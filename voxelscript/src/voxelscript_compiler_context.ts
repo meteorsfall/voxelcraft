@@ -222,10 +222,9 @@ interface block {
 let internal_traits: Record<string, trait_type> = {
   "Printable": {
     public_functions: {
-      "print": {
+      "to_string": {
         arg_types: [],
-        is_variadic: true,
-        return_type: null,
+        return_type: make_string_type(),
       },
     },
     implementations: {},
@@ -2092,7 +2091,7 @@ class VSCompiler {
         let func = t.public_functions[func_name];
         this.write_output("static ");
         this.write_output((func.return_type == null ? "void" : this.render_type(func.return_type)) + " ");
-        this.write_output("_Function_" + func_name + "(ObjectRef<Object> object");
+        this.write_output("_Function_" + func_name + "(Object* object");
         let arg_name = "a";
         for(let arg_type of func.arg_types) {
           this.write_output(", ");

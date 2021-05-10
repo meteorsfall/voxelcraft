@@ -700,22 +700,22 @@ struct _Env_Array {
 // **************
 
 namespace _Trait_Printable {
-  TRAIT_HEADER
-  static const id_type trait_id = 1;
-  TRAIT_MID1
-      typedef void (*_Function_print_type)(Object*);
-      _Vtable(
-          _Function_print_type _Function_print
-      ) :
-          _Function_print(_Function_print)
-      {};
-      _Function_print_type _Function_print;
-  TRAIT_MID
-      // Dynamic dispatch of trait function calls
-      static void _Function_print(Object* object) {
-          ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_print(object);
-      }
-  TRAIT_FOOTER
+    TRAIT_HEADER
+        static const id_type trait_id = 1;
+    TRAIT_MID1
+        typedef string (*_Function_to_string_type)(Object*);
+        _Vtable(
+            _Function_to_string_type _Function_to_string
+        ) :
+            _Function_to_string(_Function_to_string)
+        {};
+        _Function_to_string_type _Function_to_string;
+    TRAIT_MID
+        // Dynamic dispatch of trait function calls
+        static string _Function_to_string(Object* object) {
+            return ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_to_string(object);
+        }
+    TRAIT_FOOTER
 }
 
 // **************
@@ -727,7 +727,7 @@ namespace _Trait_Printable {
 string_buffer& operator<<(string_buffer& os, Object* v)
 {
     if (is_trait<_Trait_Printable::_Instance>(v)) {
-        ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_print(v);
+        os << ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_to_string(v);
     } else {
         if (v) {
             long long a = (long long)v;

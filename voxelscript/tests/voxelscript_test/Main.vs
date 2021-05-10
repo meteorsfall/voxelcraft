@@ -58,6 +58,12 @@ implement Eq on Vec3 {
     }
 }
 
+implement Printable on Vec3 {
+    string to_string() {
+        return "asdfklmaf!";
+    }
+}
+
 implement Hash on Vec3 {
     int hash() {
         return this.x * 123 + 321 * this.y + 9001 * this.z;
@@ -246,7 +252,8 @@ implement Tester {
         HashMap<Vec3, float> m = new HashMap<Vec3, float>();
         m.set(new Vec3(2, 3, 4), 5.0);
         float v = m.get(new Vec3(2, 3, 4));
-        print("Integer: ", v);
+        print("Vec3: ", new Vec3(2, 3, 4));
+        print("Float: ", v);
 
         Holder<int> hh = new Holder<int>(5);
         print("Held Int: ", hh.get_holder());
