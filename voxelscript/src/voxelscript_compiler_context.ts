@@ -1528,11 +1528,15 @@ class VSCompiler {
       t = fn.lambda_type!.return_type;
       break;
     case "this":
-      let template = [];
-      for(let i in this.get_context().template) {
-        template.push(make_template_type(this.get_context().class!, toInteger(i)));
+      if (this.get_context().class) {
+        let template = [];
+        for(let i in this.get_context().template) {
+          template.push(make_template_type(this.get_context().class!, toInteger(i)));
+        }
+        t = this.get_context().resolve_typename(this.get_context().class!, template)!;
+      } else if (this.get_context().base_type) {
+        t = this.get_context().base_type;
       }
-      t = this.get_context().resolve_typename(this.get_context().class!, template)!;
       break;
     case "subscript": {
       let lhs = this.type_subexpression(e.lhs)!;

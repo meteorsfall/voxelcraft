@@ -70,6 +70,12 @@ implement Printable on int {
     }
 }
 
+implement Hash on int {
+    int hash() {
+        return this * 329012939 + 318921142;
+    }
+}
+
 implement Hash on Vec3 {
     int hash() {
         return this.x * 123 + 321 * this.y + 9001 * this.z;
@@ -327,7 +333,8 @@ implement Tester {
         print("subnormFloat: ", 2.0e-315, 4.94066e-324);
 
         int an_int = 5;
-        print(an_int.to_string());
+        print("Int.to_string(): ", an_int.to_string());
+        print("Int.hash(): ", an_int.hash());
     }
 }
 
