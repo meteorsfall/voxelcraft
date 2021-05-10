@@ -64,6 +64,12 @@ implement Printable on Vec3 {
     }
 }
 
+implement Printable on int {
+    string to_string() {
+        return "asdf!";
+    }
+}
+
 implement Hash on Vec3 {
     int hash() {
         return this.x * 123 + 321 * this.y + 9001 * this.z;
@@ -320,6 +326,8 @@ implement Tester {
         print("expFloat: ", asdkf);
         print("subnormFloat: ", 2.0e-315, 4.94066e-324);
 
+        int an_int = 5;
+        print(an_int.to_string());
     }
 }
 

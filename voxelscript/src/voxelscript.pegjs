@@ -75,7 +75,7 @@ class_implementation
 
 // A trait implementation consists of a set of function implementations
 trait_implementation
-  = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b, location:location()}; }
+  = IMPLEMENT __ trait:identifier __ ON __ base_type:basic_type _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "base_type":base_type, body: b, location:location()}; }
 
 typedef
   = TYPEDEF __ lhs:identifier _ EQUAL _ args:typed_argument_list _ ARROW _ r:voidable_type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r, location:location()}; }
@@ -373,7 +373,7 @@ bool
 
 // Integer
 integer
-  = num:([0-9]+) ![0-9\.] { return {type:"integer", value: num.join(""), location:location()}; }
+  = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join(""), location:location()}; }
 
 // Float
 float
