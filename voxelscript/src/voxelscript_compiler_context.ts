@@ -179,7 +179,7 @@ function make_template_type(class_name: string, i: int): symbl_type {
 
 //////////////////////////////////////////////////
 
-let primitive_traits: Record<primitive_type, string[]> = {0: [], 1: [], 2: [], 3: []};
+let primitive_traits: Record<primitive_type, Record<string, boolean>> = {0: {}, 1: {}, 2: {}, 3: {}};
 
 // Classes have pub/priv members/functions
 interface class_type {
@@ -549,7 +549,7 @@ class VSContext {
       }
 
       // Check if the primitive already has a trait with that function name
-      for(let trait_name of primitive_traits[parent.primitive_type!]) {
+      for(let trait_name in primitive_traits[parent.primitive_type!]) {
         let trait = this.resolve_trait_type(trait_name)!;
         let trait_member = this.resolve_member_of_trait(trait, member);
         if (trait_member) {
@@ -1136,6 +1136,14 @@ class VSCompiler {
       // Traits can only cast if they're equal
       return _.isEqual(to, from) ? to : null;
     }
+    // Check if primitive can be casted to that trait
+    if (to.is_trait && from.is_primitive) {
+      if (to.trait_name! in primitive_traits[from.primitive_type!]) {
+        return to;
+      } else {
+        return null;
+      }
+    }
     if (to.is_trait && from.is_template) {
       // Check if template is constrained by the to trait before trying to cast it
       let constraints = this.get_context().resolve_class_type(this.get_context().class!)!.template[from.template_num!];
@@ -1153,25 +1161,25 @@ class VSCompiler {
     }
   }
 
-  render_coalesced(rhs: any, t: symbl_type): void {
-    let right = this.type_subexpression(rhs)!;
+  render_coalesced(rhs: any, cast_type: symbl_type): void {
+    let rhs_type = this.type_subexpression(rhs)!;
 
-    if (t.is_trait && right.is_class) {
-      let cast_type = t;
-      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
-      this.write_output("static_cast<Object*>")
+    if (cast_type.is_trait) {
+      if (rhs_type.is_class) {
+        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+        this.write_output("static_cast<Object*>")
+      } else if (rhs_type.is_primitive) {
+        this.write_output("cast_primitive_to_trait<" + this.render_trait(cast_type) + ", " + this.render_type(rhs_type) + ">(");
+        this.write_output("static_cast<" + this.render_type(rhs_type) + ">");
+      } else {
+        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+      }
       this.render_subexpression(rhs);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
       this.write_output(")");
-    } else if (t.is_trait && right.is_trait && !_.isEqual(right, t)) {
-      let cast_type = t;
-      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
-      this.render_subexpression(rhs);
-      this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
-      this.write_output(")");
-    } else if (t.is_array && right.array_type == null) {
+    } else if (cast_type.is_array && rhs_type.array_type == null) {
       this.write_output("(");
-      this.write_output("new " + this.render_type(t).slice(0, -1).slice("ObjectRef<".length));
+      this.write_output("new " + this.render_type(cast_type).slice(0, -1).slice("ObjectRef<".length));
       this.render_subexpression(rhs);
       this.write_output(")");
     } else {
@@ -1985,8 +1993,8 @@ class VSCompiler {
     }
   }
 
-  class_id: number = 1;
-  trait_id: number = 2;
+  class_id: number = 0;
+  trait_id: number = 0;
 
   foreach_num: number = 1;
   
@@ -2107,7 +2115,7 @@ class VSCompiler {
 
       this.write_output("TRAIT_HEADER\n");
       this.tab(1);
-      this.write_output("static const id_type trait_id = " + this.trait_id + ";\n");
+      this.write_output("static const id_type trait_id = first_available_trait_id + " + this.trait_id + ";\n");
       this.trait_id++;
       this.tab(-1);
       this.write_output("TRAIT_MID1\n");
@@ -2439,7 +2447,7 @@ class VSCompiler {
       this.tab(1);
 
       // Object ID
-      this.write_output("static const id_type object_id = " + this.class_id + ";\n");
+      this.write_output("static const id_type object_id = first_available_class_id + " + this.class_id + ";\n");
       this.class_id++;
 
       let constructor_args = null;
@@ -2609,7 +2617,7 @@ class VSCompiler {
       if (class_data) {
         class_data!.traits[trait_name] = true;
       } else {
-        primitive_traits[base_type.primitive_type!].push(trait_name);
+        primitive_traits[base_type.primitive_type!][trait_name] = true;
       }
 
       this.get_context().set_top_level_implementing_trait(base_type, trait_name);

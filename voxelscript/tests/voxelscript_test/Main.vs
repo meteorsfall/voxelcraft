@@ -335,6 +335,9 @@ implement Tester {
         int an_int = 5;
         print("Int.to_string(): ", an_int.to_string());
         print("Int.hash(): ", an_int.hash());
+
+        Printable p = an_int;
+        print(p);
     }
 }
 

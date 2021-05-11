@@ -515,6 +515,33 @@ typedef Object* ObjectInstance;
 // Array of all vtables
 static void* vtbls[1024][1024];
 
+// List primitive IDs
+template<typename T>
+int get_id() {_cstr_abort("INTERNAL ERROR: Wrong cast?", "??", 0, 0, 0, 0);};
+template<>
+int get_id<bool>() {return 1;}
+template<>
+int get_id<int>() {return 2;}
+template<>
+int get_id<double>() {return 3;}
+template<>
+int get_id<string>() {return 4;}
+
+// Give the first available class id that other classes can start counting from
+constexpr int first_available_class_id = 5;
+
+template<typename T>
+class Box : public Object {
+    Box<T>(T inp) : Object(get_id<T>()), member(inp) {};
+public:
+    T member;
+    static ObjectRef<Object> create_box(T inp) {
+        ObjectRef<Object> ret = new Box<T>(inp);
+        ret->reference_count--;
+        return ret;
+    }
+};
+
 template<typename T>
 bool is_class(Object* obj) {
     return obj->object_id == T::object_id;
@@ -539,6 +566,20 @@ T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int 
         _abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);
+}
+
+// From primitive U, to trait T
+template<typename T, typename U>
+// Use ObjectRef in-case it's an anonymous trait
+ObjectRef<Object> cast_primitive_to_trait(U primitive_obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+    return Box<U>::create_box(primitive_obj);
+}
+
+// From trait T, to primitive U
+template<typename T, typename U>
+U cast_trait_to_primitive(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+    Box<U>* prim_box = obj;
+    return prim_box->member;
 }
 
 namespace _Array_ {
@@ -717,6 +758,9 @@ namespace _Trait_Printable {
         }
     TRAIT_FOOTER
 }
+
+// The first available trait id that other traits can use
+constexpr int first_available_trait_id = 2;
 
 // **************
 // Global functions
