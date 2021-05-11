@@ -1114,35 +1114,40 @@ class VSCompiler {
     };
   }
 
-  coalesce_to(lhs: symbl_type, rhs: symbl_type): symbl_type | null {
-    if (lhs.is_array && rhs.is_array && rhs.array_type == null) {
-      // Coalesce empty arrays to LHS arrays
-      return lhs;
+  coalesce_to(from: symbl_type | null, to: symbl_type): symbl_type | null {
+    // Can't cast from null
+    if (!from) {
+      return null;
     }
-    if (lhs.is_trait && rhs.is_class) {
-      if (lhs.trait_name! in this.get_context().resolve_class_type(rhs.class_name!)!.traits) {
+
+    if (to.is_array && from.is_array && from.array_type == null) {
+      // Coalesce empty arrays to LHS arrays
+      return to;
+    }
+    if (to.is_trait && from.is_class) {
+      if (to.trait_name! in this.get_context().resolve_class_type(from.class_name!)!.traits) {
         // Check if class implements trait before casting
-        return lhs;
+        return to;
       } else {
         return null;
       }
     }
-    if (lhs.is_trait && rhs.is_trait) {
+    if (to.is_trait && from.is_trait) {
       // Traits can only cast if they're equal
-      return _.isEqual(lhs, rhs) ? lhs : null;
+      return _.isEqual(to, from) ? to : null;
     }
-    if (lhs.is_trait && rhs.is_template) {
-      // Check if template is constrained by the lhs trait before trying to cast it
-      let constraints = this.get_context().resolve_class_type(this.get_context().class!)!.template[rhs.template_num!];
+    if (to.is_trait && from.is_template) {
+      // Check if template is constrained by the to trait before trying to cast it
+      let constraints = this.get_context().resolve_class_type(this.get_context().class!)!.template[from.template_num!];
       for(let possible_trait of constraints) {
-        if (_.isEqual(lhs, possible_trait)) {
-          return lhs;
+        if (_.isEqual(to, possible_trait)) {
+          return to;
         }
       }
       return null;
     }
-    if (_.isEqual(lhs, rhs)) {
-      return lhs;
+    if (_.isEqual(from, to)) {
+      return to;
     } else {
       return null;
     }
@@ -1236,7 +1241,7 @@ class VSCompiler {
       if (!left || !right) {
         throw new Error("Type is null");
       }
-      e.calculated_type = this.coalesce_to(left, right);
+      e.calculated_type = this.coalesce_to(right, left);
       if (!e.calculated_type) {
         throw {
           message: "Cannot assign type " + this.readable_type(right) + " to type " + this.readable_type(left),
@@ -1517,7 +1522,7 @@ class VSCompiler {
         for(let i = 0; i < fn.lambda_type!.arg_types.length; i++) {
           let expected_type = fn.lambda_type!.arg_types[i];
           let actual_type = this.type_expression(e.args[i])!;
-          if (!this.coalesce_to(expected_type, actual_type)) {
+          if (!this.coalesce_to(actual_type, expected_type)) {
             throw {
               message: "Could not cast type " + this.readable_type(actual_type) + " to " + this.readable_type(expected_type),
               location: e.args[i].location,
@@ -1547,7 +1552,7 @@ class VSCompiler {
         };
       }
       let rhs = this.type_subexpression(e.rhs)!;
-      if (!this.coalesce_to(make_primitive_type(primitive_type.INT), rhs)) {
+      if (!this.coalesce_to(rhs, make_primitive_type(primitive_type.INT))) {
         throw {
           message: "Could not cast type " + this.readable_type(rhs) + " to int",
           location: e.rhs.location,
@@ -2776,7 +2781,7 @@ class VSCompiler {
       this.write_output("_VS_" + this.parse_identifier(data.var_identifier));
       this.write_output(" = ");
       let definition_type = this.type_expression(data.var_definition);
-      if (!definition_type || !this.coalesce_to(var_type, definition_type)) {
+      if (!this.coalesce_to(definition_type, var_type)) {
         throw {
           message: "Cannot cast " + this.readable_type(definition_type) + " to " + this.readable_type(var_type),
           location: data.location,
@@ -2816,7 +2821,7 @@ class VSCompiler {
       let return_type = this.get_context().resolve_return_type();
       if (return_type) {
         let given_return_type = this.type_expression(data.value);
-        if (!given_return_type || !this.coalesce_to(return_type, given_return_type)) {
+        if (!given_return_type || !this.coalesce_to(given_return_type, return_type)) {
           throw {
             message: 'Cannot cast from ' + this.readable_type(given_return_type) + ' to ' + this.readable_type(return_type),
             location: data.value.location,
