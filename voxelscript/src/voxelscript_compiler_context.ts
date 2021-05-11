@@ -2726,25 +2726,54 @@ class VSCompiler {
         this.get_context().clear_top_level_function();
       }
 
-      if(class_data) {
-        // Create the Vtable
-        let vtable_type_name = "_Trait_" + trait_name + "::_Instance::_Vtable";
-        this.write_output("static " + vtable_type_name + " _Vtable = " + vtable_type_name + "(");
-        let first = true;
-        for(let fn_name in trait_data.public_functions) {
-          if (!first) {
-            this.write_output(", ");
+      if (!class_data) {
+        // Create vtable function implementations for primitives, which simply unwraps the boxed value and then dispatches to the real function
+        for(let func in member_map) {
+          let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
+
+          // Render function definition's signature
+          this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Vtable_Function_" + func);
+          let rendered_type_args = this.render_typed_args(member_map[func].arguments);
+          this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ")");
+          this.write_output(" {\n");
+
+          // Render function body
+          this.tab(1);
+          let rendered_args = this.render_typed_args(member_map[func].arguments, false);
+          if (return_type) {
+            this.write_output("return ");
           }
-          first = false;
-          this.write_output("_Function_" + fn_name);
+          this.write_output("_Function_" + func + "(((Box<" + this.render_type(base_type) + ">*)(self_void))->member");
+          this.write_output((rendered_args ? ", " : "") + rendered_args + ");\n");
+          // Render function implementation body
+          this.tab(-1);
+
+          // Close Function
+          this.write_output("}\n");
         }
-        this.write_output(");\n");
-        
-        // Set the global vtables table to point to our specific vtable for dynamic dispatch
-        this.write_output("static bool dummy = (vtbls[" + namespace_string + "::_Instance::object_id][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
-      } else {
-        // TODO: Create vtable for primitives for dynamic instantiation of primitives
       }
+
+      // Create the Vtable
+      let vtable_type_name = "_Trait_" + trait_name + "::_Instance::_Vtable";
+      this.write_output("static " + vtable_type_name + " _Vtable = " + vtable_type_name + "(");
+      let first = true;
+      for(let fn_name in trait_data.public_functions) {
+        if (!first) {
+          this.write_output(", ");
+        }
+        first = false;
+        this.write_output((class_data ? "" : "_Vtable") + "_Function_" + fn_name);
+      }
+      this.write_output(");\n");
+
+      // Set the global vtables table to point to our specific vtable for dynamic dispatch
+      let object_id_str = "";
+      if (class_data) {
+        object_id_str = namespace_string + "::_Instance::object_id";
+      } else {
+        object_id_str = "get_id<" + this.render_type(base_type) + ">()";
+      }
+      this.write_output("static bool dummy = (vtbls[" + object_id_str + "][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
 
       this.get_context().clear_top_level();
   
