@@ -557,12 +557,18 @@ bool is_primitive(Object* obj) {
     return obj->object_id == get_id<T>();
 }
 
-template<typename T>
-Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    if (!is_trait<T>(obj)) {
-        _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+#include <type_traits>
+// Cast from type T to trait U, with Object* as the parameter
+template<typename T, typename U>
+ObjectRef<Object> cast_to_trait(T obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+    if constexpr (std::is_arithmetic<T>::value || std::is_same<T, string>::value) {
+        return Box<T>::create_box(obj);
+    } else {
+        if (!is_trait<U>(static_cast<Object*>(obj))) {
+            _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+        }
+        return static_cast<Object*>(obj);
     }
-    return obj;
 }
 
 template<typename T>
@@ -571,13 +577,6 @@ T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int 
         _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);
-}
-
-// From primitive U, to trait T
-template<typename T, typename U>
-// Use ObjectRef in-case it's an anonymous trait
-ObjectRef<Object> cast_primitive_to_trait(U primitive_obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    return Box<U>::create_box(primitive_obj);
 }
 
 // From trait T, to primitive U

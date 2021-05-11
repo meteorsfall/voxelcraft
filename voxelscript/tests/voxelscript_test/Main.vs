@@ -72,7 +72,8 @@ implement Printable on int {
 
 implement Hash on int {
     int hash() {
-        return this * 329012939 + 318921142;
+        int ret = this * 329012939 + 318921142;
+        return ret < 0 ? -ret : ret;
     }
 }
 
@@ -358,8 +359,8 @@ implement Tester {
         print("Same number: ", hm_dyn.get(new Vec3(2, 3, 4)));
 
         HashMap<int, float> hm = new HashMap<int, float>();
-        //hm.set(1, 3.2);
-        //print(hm.get(1));
+        hm.set(1, 3.2);
+        print(hm.get(1));
     }
 }
 

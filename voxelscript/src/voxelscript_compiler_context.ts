@@ -1171,13 +1171,18 @@ class VSCompiler {
 
     if (cast_type.is_trait) {
       if (rhs_type.is_class) {
-        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+        this.write_output("cast_to_trait<Object*, " + this.render_trait(cast_type) + ">(");
         this.write_output("static_cast<Object*>")
       } else if (rhs_type.is_primitive) {
-        this.write_output("cast_primitive_to_trait<" + this.render_trait(cast_type) + ", " + this.render_type(rhs_type) + ">(");
+        this.write_output("cast_to_trait<" + this.render_type(rhs_type) + ", " + this.render_trait(cast_type) + ">(");
         this.write_output("static_cast<" + this.render_type(rhs_type) + ">");
+      } else if (rhs_type.is_template) {
+        this.write_output("cast_to_trait<" + this.render_type(rhs_type) + ", " + this.render_trait(cast_type) + ">(");
       } else {
-        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+        if (this.render_trait(cast_type) == "_Trait_Eq::_Instance") {
+          console.log(new Error().stack);
+        }
+        this.write_output("cast_to_trait<Object*, " + this.render_trait(cast_type) + ">(");
       }
       this.render_subexpression(rhs);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
@@ -1824,7 +1829,7 @@ class VSCompiler {
 
       let used_casting_function = false;
       if (cast_type.is_trait) {
-        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+        this.write_output("cast_to_trait<Object*, " + this.render_trait(cast_type) + ">(");
         used_casting_function = true;
       } else if (cast_type.is_class) {
         this.write_output("cast_to_class<" + this.render_class(cast_type) + ">(");
