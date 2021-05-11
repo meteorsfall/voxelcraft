@@ -1046,17 +1046,22 @@ class VSCompiler {
             if (cls_value.template[i].length != 0) {
               // If the length is not zero, we should check the constraints
               let val = template[i];
-              // Constraints only work if the template given is a class
-              if (!val.is_class) {
+              let trait_list;
+              // Get trait list for whatever types were passed into the templated class
+              if (val.is_class) {
+                let cls_val = this.get_context().resolve_class_type(val.class_name!)!;
+                trait_list = cls_val.traits;
+              } else if (val.is_primitive) {
+                trait_list = primitive_traits[val.primitive_type!];
+              } else {
                 throw {
-                  message: 'Template parameter #' + i + ' of ' + this.readable_type(base_value) + ' has constraints, constrained template parameters must be instantiated with a class. ' + this.readable_type(val) + ' is not a class',
+                  message: 'Template parameter #' + i + ' of ' + this.readable_type(base_value) + ' has trait constraints, constrained template parameters must be instantiated with a class or a primitive. ' + this.readable_type(val) + ' is neither a class nor a primitive.',
                   location: t.template[i].location,
                 };
               }
               // If it's a class, we should check that it implements all of the traits that we want it to implement
-              let cls_val = this.get_context().resolve_class_type(val.class_name!)!;
               for(let required_trait of cls_value.template[i]) {
-                if (!(required_trait.trait_name! in cls_val.traits)) {
+                if (!(required_trait.trait_name! in trait_list)) {
                   throw {
                     message: this.readable_type(val) + ' does not implement ' + this.readable_type(required_trait) + ', but template parameter #' + i + ' of ' + this.readable_type(base_value) + ' requires it',
                     location: t.template[i].location,  
