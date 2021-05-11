@@ -290,7 +290,7 @@ implement Tester {
         float start_time = time();
 
         Vec3[] arr = [];
-        for(int i = 0; i < 10000; i++) {
+        for(int i = 0; i < 1000; i++) {
             arr = [];
             for(int j = 0; j < 1000; j++) {
                 arr.push(new Vec3(1.0, 2.0, 3.0));
@@ -343,12 +343,19 @@ implement Tester {
         print("expFloat: ", asdkf);
         print("subnormFloat: ", 2.0e-315, 4.94066e-324);
 
+        // Test calling trait functions on a primitive
         int an_int = 5;
-        print("Int.to_string(): ", an_int.to_string());
         print("Int.hash(): ", an_int.hash());
+        print("Int.to_string(): ", an_int.to_string(), " <=> ", 5.to_string());
 
+        // Test dynamic dispatch for primitive casted as a generic trait
         Printable p = an_int;
-        print(p);
+        print("Same number: ", p);
+
+        // Test class templates with dynamic traits
+        HashMap<Vec3, Printable> hm_dyn = new HashMap<Vec3, Printable>();
+        hm_dyn.set(new Vec3(2, 3, 4), p);
+        print("Same number: ", hm_dyn.get(new Vec3(2, 3, 4)));
 
         HashMap<int, float> hm = new HashMap<int, float>();
         //hm.set(1, 3.2);

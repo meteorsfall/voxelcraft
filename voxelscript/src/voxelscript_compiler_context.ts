@@ -1704,9 +1704,14 @@ class VSCompiler {
       if (is_member_trait_function) {
         this.write_output(this.namespace_name(e.lhs.calculated_type) + "::");
         this.write_output(this.implementation_name(e.calculated_type.member_trait, e.lhs.calculated_type) + "::");
-      } else if (is_trait_function || is_template) {
-        // All members of traits / template params, are functions
-        this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
+      } else if (is_trait_function) {
+        // All members of traits params, are functions
+        if (is_template) {
+          // Use static dispatch when the trait function is from a template
+          this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::");
+        } else {
+          this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
+        }
       } else if (is_member_array_function) {
         this.write_output("_Array_::");
       } else if (is_member_string_function) {
@@ -1733,6 +1738,12 @@ class VSCompiler {
         }
       }
       this.write_output(prefix + member_name);
+      // Use static dispatch for template
+      if (is_template) {
+        this.write_output("<");
+        this.write_output("T" + e.lhs.calculated_type.template_num);
+        this.write_output(">");
+      }
       break;
     case "binary_operator":
       this.render_subexpression(e.lhs);
@@ -2223,6 +2234,13 @@ class VSCompiler {
       }
       this.tab(-1);
       this.write_output("TRAIT_FOOTER\n");
+
+      // Create static dispatch template calls
+      for(let func_name in t.public_functions) {
+        let func = t.public_functions[func_name];
+        this.write_output("template<typename T>\n");
+        this.write_output("constexpr auto _Function_" + func_name + " = _Instance::_Function_" + func_name + ";\n");
+      }
   
       // Close namespace
       this.tab(-1);
@@ -2803,6 +2821,18 @@ class VSCompiler {
       this.write_output("}\n");
       this.tab(-1);
       this.write_output("}\n");
+
+      // Create static dispatch template calls
+      for(let fn_name in trait_data.public_functions) {
+        this.write_output("template<>\n");
+        this.write_output("constexpr auto _Trait_" + trait_name + "::_Function_" + fn_name + "<");
+        if (class_data) {
+          this.write_output("ObjectRef<" + namespace_string + "::_Instance>");
+        } else {
+          this.write_output(this.render_type(base_type));
+        }
+        this.write_output("> = " + namespace_string + "::" + trait_implementation_name + "::_Function_" + fn_name + ";\n");
+      }
     } break;
     // *************
     // Statements

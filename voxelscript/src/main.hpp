@@ -764,6 +764,8 @@ namespace _Trait_Printable {
             return ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_to_string(object);
         }
     TRAIT_FOOTER
+    template<typename T>
+    constexpr auto _Function_to_string = _Instance::_Function_to_string;
 }
 
 // The first available trait id that other traits can use
