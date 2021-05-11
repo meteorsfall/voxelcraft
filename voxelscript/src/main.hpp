@@ -553,9 +553,14 @@ bool is_trait(Object* obj) {
 }
 
 template<typename T>
+bool is_primitive(Object* obj) {
+    return obj->object_id == get_id<T>();
+}
+
+template<typename T>
 Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
     if (!is_trait<T>(obj)) {
-        _abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+        _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return obj;
 }
@@ -563,7 +568,7 @@ Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line,
 template<typename T>
 T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
     if (!is_class<T>(obj)) {
-        _abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+        _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);
 }
@@ -576,10 +581,12 @@ ObjectRef<Object> cast_primitive_to_trait(U primitive_obj, const char* error_fil
 }
 
 // From trait T, to primitive U
-template<typename T, typename U>
-U cast_trait_to_primitive(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    Box<U>* prim_box = obj;
-    return prim_box->member;
+template<typename T>
+T cast_trait_to_primitive(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+    if (!is_primitive<T>(obj)) {
+        _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+    }
+    return static_cast<Box<T>*>(obj)->member;
 }
 
 namespace _Array_ {

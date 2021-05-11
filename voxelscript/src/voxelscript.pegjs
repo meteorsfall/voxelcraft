@@ -196,8 +196,8 @@ precedence_6_extensions
   / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
-  / __ IS_NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs, location:location()}; }
-  / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / __ IS_NOT __ rhs:basic_type { return {type: "is_not", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / __ IS __ rhs:basic_type { return {type: "is", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_6
   = lhs:precedence_5 many_rhs:precedence_6_extensions* { return leftAssoc(lhs, many_rhs); }

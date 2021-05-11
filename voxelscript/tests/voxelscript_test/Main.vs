@@ -50,7 +50,7 @@ implement Eq on Vec3 {
             Vec3 v = <Vec3>e;
             return this.x == v.x && this.y == v.y && this.z == v.z;
         } else {
-            return this.truey();
+            return !this.truey();
         }
     }
     bool truey() {
@@ -73,6 +73,17 @@ implement Printable on int {
 implement Hash on int {
     int hash() {
         return this * 329012939 + 318921142;
+    }
+}
+
+implement Eq on int {
+    bool is_equal(Eq e) {
+        if (e is int) {
+            int v = <int>e;
+            return this == v;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -338,6 +349,10 @@ implement Tester {
 
         Printable p = an_int;
         print(p);
+
+        HashMap<int, float> hm = new HashMap<int, float>();
+        //hm.set(1, 3.2);
+        //print(hm.get(1));
     }
 }
 

@@ -1411,6 +1411,12 @@ class VSCompiler {
     case "is":
       this.type_subexpression(e.lhs);
       e.rhs.calculated_type = this.resolve_type(e.rhs);
+      if (e.rhs.template) {
+        throw {
+          message: "Cannot check \"is\" against a templated class (Not implemented yet)",
+          location: e.rhs.location,
+        }
+      }
       t = make_primitive_type(primitive_type.BOOL);
       break;
     case "array": {
@@ -1738,11 +1744,13 @@ class VSCompiler {
       // Pass onto "is"
     case "is":
       let rhs_type = e.rhs.calculated_type;
-      let rendered_type = rhs_type.is_class ? this.render_class(rhs_type) : this.render_trait(rhs_type);
-      this.write_output(
-        "is_" + (rhs_type.is_class ? "class" : "trait") +
-        "<" + rendered_type  + ">("
-      );
+      if (rhs_type.is_class) {
+        this.write_output("is_class<" + this.render_class(rhs_type) + ">(");
+      } else if (rhs_type.is_trait) {
+        this.write_output("is_trait<" + this.render_trait(rhs_type) + ">(");
+      } else if (rhs_type.is_primitive) {
+        this.write_output("is_primitive<" + this.render_type(rhs_type) + ">(");
+      }
       this.render_subexpression(e.lhs);
       this.write_output(")");
       break;
@@ -1802,15 +1810,24 @@ class VSCompiler {
       break;
     case "cast":
       let cast_type: symbl_type = e.lhs.calculated_type;
+
+      let used_casting_function = false;
       if (cast_type.is_trait) {
         this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+        used_casting_function = true;
       } else if (cast_type.is_class) {
         this.write_output("cast_to_class<" + this.render_class(cast_type) + ">(");
+        used_casting_function = true;
       } else {
-        this.write_output("(" + this.render_type(cast_type) + ")");
+        if (e.rhs.calculated_type.is_trait) {
+          this.write_output("cast_trait_to_primitive<" + this.render_type(cast_type) + ">(");
+          used_casting_function = true;
+        } else {
+          this.write_output("(" + this.render_type(cast_type) + ")");
+        }
       }
       this.render_subexpression(e.rhs);
-      if (cast_type.is_trait || cast_type.is_class) {
+      if (used_casting_function) {
         this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
         this.write_output(")");
       }
