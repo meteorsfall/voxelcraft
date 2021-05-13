@@ -12,11 +12,12 @@
     "vscode-languageserver": "^5.2.1"
   },
   "devDependencies": {
-    "pkg": "^4.4.9"
+    "pkg": "^4.4.9",
+    "typescript": "^4.2.4"
   },
   "scripts": {
-    "compile-ts": "tsc -b",
+    "compile-ts": "npx tsc -b",
     "package": "npm run compile-ts && npx pkg ./js-build/server.js --targets=linux --out-path=./build",
-    "install": "npm run package && sudo cp ./build/server /usr/local/bin/voxells"
+    "install_language_server": "npm run package && sudo cp ./build/server /usr/local/bin/voxells"
   }
 }
