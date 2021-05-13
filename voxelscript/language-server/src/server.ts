@@ -7,12 +7,28 @@ import { unlinkSync, createWriteStream, writeFileSync, readFileSync, readdirSync
 import * as path from 'path';
 import * as childProcess from 'child_process';
 import uri_to_path = require('file-uri-to-path');
+import {randomBytes} from 'crypto';
+import { exit } from 'process';
 
-const ROOT_DIR = path.join(require('os').homedir(), ".voxells");
+function randomString(size: number) {
+    // Round to multiple of 4
+    if (size % 4 != 0) {
+        size -= (size % 4);
+        size += 4;
+    }
+    // 4 bits per hex character
+    size /= 4;
+    return randomBytes(size).toString('hex').slice(0, size)
+}
+
+const ROOT_DIR = path.join("/tmp", "voxells", randomString(64));
 const DEBUG_LOG = false;
 
-if (!existsSync(ROOT_DIR)) {
-    mkdirSync(ROOT_DIR);
+if (existsSync(ROOT_DIR)) {
+    log("Impossible! Far too unlikely.");
+    exit(1);
+} else {
+    mkdirSync(ROOT_DIR, { recursive: true });
     log("Created root path: " + ROOT_DIR);
 }
 
@@ -256,12 +272,6 @@ documents.listen(connection);
 // in the passed params the rootPath of the workspace plus the client capabilites.
 let workspaceRoot;
 connection.onInitialize((params) => {
-    if (existsSync(PROJECTS_PATH)) {
-        recursivelyDelete(PROJECTS_PATH);
-    }
-    if (existsSync(BUILD_PATH)) {
-        recursivelyDelete(BUILD_PATH);
-    }
     mkdirSync(BUILD_PATH);
     mkdirSync(PROJECTS_PATH);
     log("Initialized Server");
@@ -272,6 +282,9 @@ connection.onInitialize((params) => {
             textDocumentSync: documents.syncKind
         }
     };
+});
+connection.onShutdown(() => {
+    recursivelyDelete(ROOT_DIR);
 });
 
 function create_cloned_project_space(uri : string) : string | null {
