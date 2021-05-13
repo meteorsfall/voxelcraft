@@ -6,6 +6,13 @@ if [[ "$1" == "-y" ]]; then
   should_yes='-y'
 fi
 
+# Error handling
+set -e
+err_report() {
+  echo "Error on line $1"
+}
+trap 'err_report $LINENO' ERR
+
 ## Install all dependencies ##
 pkgs='nodejs npm libssl-dev python3 default-jre clang'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
@@ -49,7 +56,8 @@ EOF
   cat >./init-emcc <<'EOF'
 #!/bin/bash
 DIR="$(dirname "$(readlink -f "$0")")"
-printf "#include <iostream>\nint main() {std::cout << \"Hello World"\!"\" << std::endl;}" | "$DIR/emcc/emcc" -xc++ - -o /tmp/VOXELC_test.wasm
+cd "$DIR"
+printf "#include <iostream>\nint main() {std::cout << \"Hello World"\!"\" << std::endl;}" | ./voxelc-emcc -xc++ - -o /tmp/VOXELC_test.wasm
 rm /tmp/VOXELC_test.wasm
 EOF
   chmod +x ./init-emcc
@@ -60,6 +68,8 @@ EOF
   cp -P ../emsdk/upstream/bin/* bin
   cp -rP ../emsdk/upstream/lib/* lib
   rm -r ./lib/clang ./lib/cmake
+  # Initialize emcc, which we have to do before deleting emsdk so that it updates to its new .emscripten file
+  ./voxelc-emcc 2>&1 | grep "emcc: error: no input files" >/dev/null
 
   cd .. # out of ./build/emscripten
   rm -rf ./emsdk
