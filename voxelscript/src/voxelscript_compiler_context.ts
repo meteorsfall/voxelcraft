@@ -551,12 +551,15 @@ class VSContext {
       // Check if the primitive already has a trait with that function name
       for(let trait_name in primitive_traits[parent.primitive_type!]) {
         let trait = this.resolve_trait_type(trait_name)!;
-        let trait_member = this.resolve_member_of_trait(trait, member);
-        if (trait_member) {
-          ret = Object.assign({}, trait_member);
-          ret.is_member_trait_function = true;
-          ret.member_trait = trait_name;
-          break;
+        // Only resolve member of trait, if the trait is in scope (i.e. can be resolved)
+        if (trait != null) {
+          let trait_member = this.resolve_member_of_trait(trait, member);
+          if (trait_member) {
+            ret = Object.assign({}, trait_member);
+            ret.is_member_trait_function = true;
+            ret.member_trait = trait_name;
+            break;
+          }
         }
       }
 
