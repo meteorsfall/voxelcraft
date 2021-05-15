@@ -193,10 +193,10 @@ main : context {
       styles []       = .keyword, .keyword, .keyword, .type;
    }
    
-   // Color "CUSTOM_TYPE VARIABLE" accordingly
+   // Color [(,]"CUSTOM_TYPE VARIABLE"[,);=] accordingly
    : inline_push {
       // Check for variable declaration in this line
-      regex          \= (^|[\(,])(?=\s*$${__NONCAPTURE_TYPE}(\s*)$${__IDENTIFIER}(\s*[,);=]))
+      regex          \= (^|[(,])(?=\s*$${__NONCAPTURE_TYPE}(\s*)$${__IDENTIFIER}(\s*[,);=]))
       styles []       = .white;
       : pop {
          regex       \= (\s*)$${__IDENTIFIER}(?=\s*[,);=])
@@ -212,9 +212,15 @@ main : context {
    }
    
    // Color "CUSTOM_TYPE func(" accordingly
-   : pattern {
-      regex          \= $${__IDENTIFIER}(\s+)$${__IDENTIFIER}(?=\s*[(])
-      styles []       = .type, .white, .func;
+   : inline_push {
+      // Check for variable declaration in this line
+      regex          \= (?=\s*$${__NONCAPTURE_TYPE}(\s*)$${__IDENTIFIER}[(])
+      styles []       = .white;
+      : pop {
+         regex       \= (\s*)$${__IDENTIFIER}(?=\s*[(])
+         styles []    = .white, .func;
+      }
+      : include "type";
    }
    
    // Color "func(" accordingly
