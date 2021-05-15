@@ -178,7 +178,7 @@ main : context {
    
    // Color all "new CUSTOM_TYPE"
    : inline_push {
-      regex          \= (\bnew)(\s+)(?=$${__NONCAPTURE_TYPE}(?:\s*\())
+      regex          \= (\bnew)(\s+)(?=$${__NONCAPTURE_TYPE}\s*\()
       styles []       = .keyword, .white;
       : pop {
          regex       \= (\s*\()
