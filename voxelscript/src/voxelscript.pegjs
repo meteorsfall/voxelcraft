@@ -75,7 +75,7 @@ class_implementation
 
 // A trait implementation consists of a set of function implementations
 trait_implementation
-  = IMPLEMENT __ trait:identifier __ ON __ cls:identifier _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "class":cls, body: b, location:location()}; }
+  = IMPLEMENT __ trait:identifier __ ON __ base_type:basic_type _ b:trait_implementation_block { return {type:"trait_implementation", "trait":trait, "base_type":base_type, body: b, location:location()}; }
 
 typedef
   = TYPEDEF __ lhs:identifier _ EQUAL _ args:typed_argument_list _ ARROW _ r:voidable_type ENDSTATEMENT { return {type:"typedef_function", identifier: lhs, args: args, return_type: r, location:location()}; }
@@ -196,8 +196,8 @@ precedence_6_extensions
   / _ GREATER_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "greater_than_or_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ LESS_THAN _ rhs:precedence_5 { return {type: "less_than", capture_lhs: "lhs", rhs: rhs, location:location()}; }
   / _ LESS_THAN_OR_EQUAL _ rhs:precedence_5 { return {type: "less_than_or_equal", capture_lhs: "lhs", rhs: rhs, location:location()}; }
-  / __ IS_NOT __ rhs:identifier { return {type: "is_not", capture_lhs: "lhs", rhs: rhs, location:location()}; }
-  / __ IS __ rhs:identifier { return {type: "is", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / __ IS_NOT __ rhs:basic_type { return {type: "is_not", capture_lhs: "lhs", rhs: rhs, location:location()}; }
+  / __ IS __ rhs:basic_type { return {type: "is", capture_lhs: "lhs", rhs: rhs, location:location()}; }
 
 precedence_6
   = lhs:precedence_5 many_rhs:precedence_6_extensions* { return leftAssoc(lhs, many_rhs); }
@@ -373,7 +373,7 @@ bool
 
 // Integer
 integer
-  = num:([0-9]+) ![0-9\.] { return {type:"integer", value: num.join(""), location:location()}; }
+  = num:([0-9]+) ![0-9] { return {type:"integer", value: num.join(""), location:location()}; }
 
 // Float
 float

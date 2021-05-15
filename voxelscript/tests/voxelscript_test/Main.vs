@@ -50,11 +50,41 @@ implement Eq on Vec3 {
             Vec3 v = <Vec3>e;
             return this.x == v.x && this.y == v.y && this.z == v.z;
         } else {
-            return this.truey();
+            return !this.truey();
         }
     }
     bool truey() {
         return true;
+    }
+}
+
+implement Printable on Vec3 {
+    string to_string() {
+        return "asdfklmaf!";
+    }
+}
+
+implement Printable on int {
+    string to_string() {
+        return "asdf!";
+    }
+}
+
+implement Hash on int {
+    int hash() {
+        int ret = this * 329012939 + 318921142;
+        return ret < 0 ? -ret : ret;
+    }
+}
+
+implement Eq on int {
+    bool is_equal(Eq e) {
+        if (e is int) {
+            int v = <int>e;
+            return this == v;
+        } else {
+            return false;
+        }
     }
 }
 
@@ -246,7 +276,8 @@ implement Tester {
         HashMap<Vec3, float> m = new HashMap<Vec3, float>();
         m.set(new Vec3(2, 3, 4), 5.0);
         float v = m.get(new Vec3(2, 3, 4));
-        print("Integer: ", v);
+        print("Vec3: ", new Vec3(2, 3, 4));
+        print("Float: ", v);
 
         Holder<int> hh = new Holder<int>(5);
         print("Held Int: ", hh.get_holder());
@@ -260,7 +291,7 @@ implement Tester {
         float start_time = time();
 
         Vec3[] arr = [];
-        for(int i = 0; i < 10000; i++) {
+        for(int i = 0; i < 1000; i++) {
             arr = [];
             for(int j = 0; j < 1000; j++) {
                 arr.push(new Vec3(1.0, 2.0, 3.0));
@@ -313,6 +344,23 @@ implement Tester {
         print("expFloat: ", asdkf);
         print("subnormFloat: ", 2.0e-315, 4.94066e-324);
 
+        // Test calling trait functions on a primitive
+        int an_int = 5;
+        print("Int.hash(): ", an_int.hash());
+        print("Int.to_string(): ", an_int.to_string(), " <=> ", 5.to_string());
+
+        // Test dynamic dispatch for primitive casted as a generic trait
+        Printable p = an_int;
+        print("Same number: ", p);
+
+        // Test class templates with dynamic traits
+        HashMap<Vec3, Printable> hm_dyn = new HashMap<Vec3, Printable>();
+        hm_dyn.set(new Vec3(2, 3, 4), p);
+        print("Same number: ", hm_dyn.get(new Vec3(2, 3, 4)));
+
+        HashMap<int, float> hm = new HashMap<int, float>();
+        hm.set(1, 3.2);
+        print(hm.get(1));
     }
 }
 

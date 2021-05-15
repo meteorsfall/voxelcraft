@@ -488,7 +488,7 @@ public:
 // Trait instance
 class Trait {
 public:
-    Object* obj;
+    ObjectRef<Object> obj;
     Trait(Object* obj) : obj(obj) {};
 };
 
@@ -515,6 +515,33 @@ typedef Object* ObjectInstance;
 // Array of all vtables
 static void* vtbls[1024][1024];
 
+// List primitive IDs
+template<typename T>
+int get_id() {_cstr_abort("INTERNAL ERROR: Wrong cast?", "??", 0, 0, 0, 0);};
+template<>
+int get_id<bool>() {return 1;}
+template<>
+int get_id<int>() {return 2;}
+template<>
+int get_id<double>() {return 3;}
+template<>
+int get_id<string>() {return 4;}
+
+// Give the first available class id that other classes can start counting from
+constexpr int first_available_class_id = 5;
+
+template<typename T>
+class Box : public Object {
+    Box<T>(T inp) : Object(get_id<T>()), member(inp) {};
+public:
+    T member;
+    static ObjectRef<Object> create_box(T inp) {
+        ObjectRef<Object> ret = new Box<T>(inp);
+        ret->reference_count--;
+        return ret;
+    }
+};
+
 template<typename T>
 bool is_class(Object* obj) {
     return obj->object_id == T::object_id;
@@ -526,19 +553,39 @@ bool is_trait(Object* obj) {
 }
 
 template<typename T>
-Object* cast_to_trait(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
-    if (!is_trait<T>(obj)) {
-        _abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+bool is_primitive(Object* obj) {
+    return obj->object_id == get_id<T>();
+}
+
+#include <type_traits>
+// Cast from type T to trait U, with Object* as the parameter
+template<typename T, typename U>
+ObjectRef<Object> cast_to_trait(T obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+    if constexpr (std::is_arithmetic<T>::value || std::is_same<T, string>::value) {
+        return Box<T>::create_box(obj);
+    } else {
+        if (!is_trait<U>(static_cast<Object*>(obj))) {
+            _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+        }
+        return static_cast<Object*>(obj);
     }
-    return obj;
 }
 
 template<typename T>
 T* cast_to_class(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
     if (!is_class<T>(obj)) {
-        _abort("Fail to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+        _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
     }
     return static_cast<T*>(obj);
+}
+
+// From trait T, to primitive U
+template<typename T>
+T cast_trait_to_primitive(Object* obj, const char* error_file, int error_start_line, int error_start_char, int error_end_line, int error_end_char) {
+    if (!is_primitive<T>(obj)) {
+        _abort("Failed to cast!", error_file, error_start_line, error_start_char, error_end_line, error_end_char);
+    }
+    return static_cast<Box<T>*>(obj)->member;
 }
 
 namespace _Array_ {
@@ -700,23 +747,28 @@ struct _Env_Array {
 // **************
 
 namespace _Trait_Printable {
-  TRAIT_HEADER
-  static const id_type trait_id = 1;
-  TRAIT_MID1
-      typedef void (*_Function_print_type)(Object*);
-      _Vtable(
-          _Function_print_type _Function_print
-      ) :
-          _Function_print(_Function_print)
-      {};
-      _Function_print_type _Function_print;
-  TRAIT_MID
-      // Dynamic dispatch of trait function calls
-      static void _Function_print(Object* object) {
-          ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_print(object);
-      }
-  TRAIT_FOOTER
+    TRAIT_HEADER
+        static const id_type trait_id = 1;
+    TRAIT_MID1
+        typedef string (*_Function_to_string_type)(Object*);
+        _Vtable(
+            _Function_to_string_type _Function_to_string
+        ) :
+            _Function_to_string(_Function_to_string)
+        {};
+        _Function_to_string_type _Function_to_string;
+    TRAIT_MID
+        // Dynamic dispatch of trait function calls
+        static string _Function_to_string(Object* object) {
+            return ((_Vtable*)vtbls[object->object_id][trait_id])->_Function_to_string(object);
+        }
+    TRAIT_FOOTER
+    template<typename T>
+    constexpr auto _Function_to_string = _Instance::_Function_to_string;
 }
+
+// The first available trait id that other traits can use
+constexpr int first_available_trait_id = 2;
 
 // **************
 // Global functions
@@ -727,7 +779,7 @@ namespace _Trait_Printable {
 string_buffer& operator<<(string_buffer& os, Object* v)
 {
     if (is_trait<_Trait_Printable::_Instance>(v)) {
-        ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_print(v);
+        os << ((_Trait_Printable::_Instance::_Vtable*)vtbls[v->object_id][_Trait_Printable::_Instance::trait_id])->_Function_to_string(v);
     } else {
         if (v) {
             long long a = (long long)v;

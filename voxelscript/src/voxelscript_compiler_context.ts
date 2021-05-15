@@ -85,7 +85,7 @@ function make_primitive_type(prim: primitive_type): symbl_type {
 
 function make_string_type(): symbl_type {
   return {
-    is_primitive: true,
+    is_primitive: false,
     is_lambda: false,
     is_class: false,
     is_trait: false,
@@ -179,6 +179,8 @@ function make_template_type(class_name: string, i: int): symbl_type {
 
 //////////////////////////////////////////////////
 
+let primitive_traits: Record<primitive_type, Record<string, boolean>> = {0: {}, 1: {}, 2: {}, 3: {}};
+
 // Classes have pub/priv members/functions
 interface class_type {
   template: symbl_type[][],
@@ -222,10 +224,9 @@ interface block {
 let internal_traits: Record<string, trait_type> = {
   "Printable": {
     public_functions: {
-      "print": {
+      "to_string": {
         arg_types: [],
-        is_variadic: true,
-        return_type: null,
+        return_type: make_string_type(),
       },
     },
     implementations: {},
@@ -282,6 +283,7 @@ class VSContext {
   is_implementing_trait: bool = false;
   implementing_function: string = "";
   implementing_function_type: function_type | null = null;
+  base_type: symbl_type | null = null;
   class: string | null = null;
   trait: string | null = null;
   template: string[] = [];
@@ -327,10 +329,13 @@ class VSContext {
     this.trait = trait;
   }
 
-  set_top_level_implementing_trait(cls: string, trait: string) {
+  set_top_level_implementing_trait(base_type: symbl_type, trait: string) {
     this.check_empty();
     this.is_implementing_trait = true;
-    this.class = cls;
+    this.base_type = base_type;
+    if (base_type.is_class) {
+      this.class = base_type.class_name;
+    }
     this.trait = trait;
   }
 
@@ -344,12 +349,18 @@ class VSContext {
     }
     this.implementing_function = fn_name;
     if (this.is_implementing_trait) {
-      let member = this.resolve_member_of(make_class_type(this.class!), fn_name);
+      let member;
+      if (this.class) {
+        member = this.resolve_member_of(make_class_type(this.class!), fn_name);
+      } else {
+        member = this.resolve_member_of(this.base_type!, fn_name);
+      }
       if (member) {
         this.implementing_function_type = member.lambda_type;
       } else {
-        console.log(fn_name, " to ", this.internal_functions[fn_name]);
-        this.implementing_function_type = this.internal_functions[fn_name];
+        throw new Error("FATAL ERROR: Member of trait for top level function not found");
+        //console.log(fn_name, " to ", this.internal_functions[fn_name]);
+        //this.implementing_function_type = this.internal_functions[fn_name];
       }
     } else {
       this.implementing_function_type = this.resolve_member_of(make_class_type(this.class!), fn_name)!.lambda_type;
@@ -372,6 +383,7 @@ class VSContext {
     this.is_in_class = false;
     this.is_in_trait = false;
     this.is_implementing_trait = false;
+    this.base_type = null;
     this.class = null;
     this.trait = null;
     this.template = [];
@@ -514,7 +526,45 @@ class VSContext {
 
   }*/
 
+  // Given a parent type, and a member string, will return the symbl_type
+  // representing the type of the specified member of the parent.
+  // Will return null is no such member exists.
+  // is_member_function will equal true if it's a member function of a class
+  //     (Will be a lambda type, but distinct from a member who's type is a lambda due to `this` semantics)
+  // is_member_trait_function will equal true if it's a member of a trait that the class implements
+  //     member_trait will be the trait name that caused the class to implement that member
   resolve_member_of(parent: symbl_type, member: string): symbl_type | null {
+    if(parent.is_primitive) {
+      let ret: any = {
+        is_member_function: false,
+      };
+
+      // Check if we're actively implementing a trait on that primitive
+      if(this.base_type && this.base_type.is_primitive && parent.primitive_type == this.base_type.primitive_type && member in this.internal_functions) {
+        ret = make_lambda_type(this.internal_functions[member]);
+        ret.is_member_trait_function = true;
+        ret.member_trait = this.trait;
+      } else {
+        ret = null;
+      }
+
+      // Check if the primitive already has a trait with that function name
+      for(let trait_name in primitive_traits[parent.primitive_type!]) {
+        let trait = this.resolve_trait_type(trait_name)!;
+        // Only resolve member of trait, if the trait is in scope (i.e. can be resolved)
+        if (trait != null) {
+          let trait_member = this.resolve_member_of_trait(trait, member);
+          if (trait_member) {
+            ret = Object.assign({}, trait_member);
+            ret.is_member_trait_function = true;
+            ret.member_trait = trait_name;
+            break;
+          }
+        }
+      }
+
+      return ret;
+    }
     if (parent.is_array) {
       let ret = null;
       if (member == "push") {
@@ -579,6 +629,9 @@ class VSContext {
       } else if (member in cls.private_functions) {
         ret = make_lambda_type(cls.private_functions[member]);
         ret.is_member_function = true;
+      // For traits:
+      // If we're using a type that's receiving a trait implementation,
+      // That symbol will be resolved
       } else if (parent.class_name == this.class && member in this.internal_functions) {
         ret = make_lambda_type(this.internal_functions[member]);
         ret.is_member_trait_function = true;
@@ -939,6 +992,23 @@ class VSCompiler {
     throw new Error("FATAL ERROR: Incorrect type!");
   }
 
+  // Returns the namespace that a class or primitive's members live in
+  namespace_name(t: symbl_type): string {
+    let str_name;
+    if (t.is_class) {
+      str_name = "_Class_" + t.class_name!;
+    } else if (t.is_primitive) {
+      str_name = "_Primitive_" + this.readable_type(t);
+    } else {
+      throw new Error("FATAL ERROR: Called namespace_name on " + this.readable_type(t) + "!");
+    }
+    return str_name;
+  }
+
+  implementation_name(trait_name: string, base_type: symbl_type): string {
+    return "_Implement_" + trait_name + "_On_" + this.namespace_name(base_type);
+  }
+
   // For a pegjs type, get the type
   resolve_type(t: any): symbl_type {
     let type_name: string;
@@ -979,17 +1049,22 @@ class VSCompiler {
             if (cls_value.template[i].length != 0) {
               // If the length is not zero, we should check the constraints
               let val = template[i];
-              // Constraints only work if the template given is a class
-              if (!val.is_class) {
+              let trait_list;
+              // Get trait list for whatever types were passed into the templated class
+              if (val.is_class) {
+                let cls_val = this.get_context().resolve_class_type(val.class_name!)!;
+                trait_list = cls_val.traits;
+              } else if (val.is_primitive) {
+                trait_list = primitive_traits[val.primitive_type!];
+              } else {
                 throw {
-                  message: 'Template parameter #' + i + ' of ' + this.readable_type(base_value) + ' has constraints, constrained template parameters must be instantiated with a class. ' + this.readable_type(val) + ' is not a class',
+                  message: 'Template parameter #' + i + ' of ' + this.readable_type(base_value) + ' has trait constraints, constrained template parameters must be instantiated with a class or a primitive. ' + this.readable_type(val) + ' is neither a class nor a primitive.',
                   location: t.template[i].location,
                 };
               }
               // If it's a class, we should check that it implements all of the traits that we want it to implement
-              let cls_val = this.get_context().resolve_class_type(val.class_name!)!;
               for(let required_trait of cls_value.template[i]) {
-                if (!(required_trait.trait_name! in cls_val.traits)) {
+                if (!(required_trait.trait_name! in trait_list)) {
                   throw {
                     message: this.readable_type(val) + ' does not implement ' + this.readable_type(required_trait) + ', but template parameter #' + i + ' of ' + this.readable_type(base_value) + ' requires it',
                     location: t.template[i].location,  
@@ -1047,59 +1122,77 @@ class VSCompiler {
     };
   }
 
-  coalesce_to(lhs: symbl_type, rhs: symbl_type): symbl_type | null {
-    if (lhs.is_array && rhs.is_array && rhs.array_type == null) {
-      // Coalesce empty arrays to LHS arrays
-      return lhs;
+  coalesce_to(from: symbl_type | null, to: symbl_type): symbl_type | null {
+    // Can't cast from null
+    if (!from) {
+      return null;
     }
-    if (lhs.is_trait && rhs.is_class) {
-      if (lhs.trait_name! in this.get_context().resolve_class_type(rhs.class_name!)!.traits) {
+
+    if (to.is_array && from.is_array && from.array_type == null) {
+      // Coalesce empty arrays to LHS arrays
+      return to;
+    }
+    if (to.is_trait && from.is_class) {
+      if (to.trait_name! in this.get_context().resolve_class_type(from.class_name!)!.traits) {
         // Check if class implements trait before casting
-        return lhs;
+        return to;
       } else {
         return null;
       }
     }
-    if (lhs.is_trait && rhs.is_trait) {
+    if (to.is_trait && from.is_trait) {
       // Traits can only cast if they're equal
-      return _.isEqual(lhs, rhs) ? lhs : null;
+      return _.isEqual(to, from) ? to : null;
     }
-    if (lhs.is_trait && rhs.is_template) {
-      // Check if template is constrained by the lhs trait before trying to cast it
-      let constraints = this.get_context().resolve_class_type(this.get_context().class!)!.template[rhs.template_num!];
+    // Check if primitive can be casted to that trait
+    if (to.is_trait && from.is_primitive) {
+      if (to.trait_name! in primitive_traits[from.primitive_type!]) {
+        return to;
+      } else {
+        return null;
+      }
+    }
+    if (to.is_trait && from.is_template) {
+      // Check if template is constrained by the to trait before trying to cast it
+      let constraints = this.get_context().resolve_class_type(this.get_context().class!)!.template[from.template_num!];
       for(let possible_trait of constraints) {
-        if (_.isEqual(lhs, possible_trait)) {
-          return lhs;
+        if (_.isEqual(to, possible_trait)) {
+          return to;
         }
       }
       return null;
     }
-    if (_.isEqual(lhs, rhs)) {
-      return lhs;
+    if (_.isEqual(from, to)) {
+      return to;
     } else {
       return null;
     }
   }
 
-  render_coalesced(rhs: any, t: symbl_type): void {
-    let right = this.type_subexpression(rhs)!;
+  render_coalesced(rhs: any, cast_type: symbl_type): void {
+    let rhs_type = this.type_subexpression(rhs)!;
 
-    if (t.is_trait && right.is_class) {
-      let cast_type = t;
-      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
-      this.write_output("static_cast<Object*>")
+    if (cast_type.is_trait) {
+      if (rhs_type.is_class) {
+        this.write_output("cast_to_trait<Object*, " + this.render_trait(cast_type) + ">(");
+        this.write_output("static_cast<Object*>")
+      } else if (rhs_type.is_primitive) {
+        this.write_output("cast_to_trait<" + this.render_type(rhs_type) + ", " + this.render_trait(cast_type) + ">(");
+        this.write_output("static_cast<" + this.render_type(rhs_type) + ">");
+      } else if (rhs_type.is_template) {
+        this.write_output("cast_to_trait<" + this.render_type(rhs_type) + ", " + this.render_trait(cast_type) + ">(");
+      } else {
+        if (this.render_trait(cast_type) == "_Trait_Eq::_Instance") {
+          console.log(new Error().stack);
+        }
+        this.write_output("cast_to_trait<Object*, " + this.render_trait(cast_type) + ">(");
+      }
       this.render_subexpression(rhs);
       this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
       this.write_output(")");
-    } else if (t.is_trait && right.is_trait && !_.isEqual(right, t)) {
-      let cast_type = t;
-      this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
-      this.render_subexpression(rhs);
-      this.write_output(", \"" + this.compiling_module + ".vs\", " + rhs.location.start.line + ", " + rhs.location.start.column + ", " + rhs.location.end.line + ", " + rhs.location.end.column);
-      this.write_output(")");
-    } else if (t.is_array && right.array_type == null) {
+    } else if (cast_type.is_array && rhs_type.array_type == null) {
       this.write_output("(");
-      this.write_output("new " + this.render_type(t).slice(0, -1).slice("ObjectRef<".length));
+      this.write_output("new " + this.render_type(cast_type).slice(0, -1).slice("ObjectRef<".length));
       this.render_subexpression(rhs);
       this.write_output(")");
     } else {
@@ -1169,7 +1262,7 @@ class VSCompiler {
       if (!left || !right) {
         throw new Error("Type is null");
       }
-      e.calculated_type = this.coalesce_to(left, right);
+      e.calculated_type = this.coalesce_to(right, left);
       if (!e.calculated_type) {
         throw {
           message: "Cannot assign type " + this.readable_type(right) + " to type " + this.readable_type(left),
@@ -1267,9 +1360,9 @@ class VSCompiler {
       break;
     case "member_of":
       let cls = this.type_subexpression(e.lhs);
-      if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array && !cls.is_template && !cls.is_string)) {
+      if (!cls || (!cls.is_class && !cls.is_trait && !cls.is_array && !cls.is_template && !cls.is_string && !cls.is_primitive)) {
         throw {
-          message: "Member-of operator \".\" must have a class, trait, array, or string on the left-hand side.",
+          message: "Member-of operator \".\" must have a class, trait, array, or primitive on the left-hand side. Not a " + this.readable_type(cls),
           location: e.location,
         };
       }
@@ -1326,6 +1419,12 @@ class VSCompiler {
     case "is":
       this.type_subexpression(e.lhs);
       e.rhs.calculated_type = this.resolve_type(e.rhs);
+      if (e.rhs.template) {
+        throw {
+          message: "Cannot check \"is\" against a templated class (Not implemented yet)",
+          location: e.rhs.location,
+        }
+      }
       t = make_primitive_type(primitive_type.BOOL);
       break;
     case "array": {
@@ -1450,7 +1549,7 @@ class VSCompiler {
         for(let i = 0; i < fn.lambda_type!.arg_types.length; i++) {
           let expected_type = fn.lambda_type!.arg_types[i];
           let actual_type = this.type_expression(e.args[i])!;
-          if (!this.coalesce_to(expected_type, actual_type)) {
+          if (!this.coalesce_to(actual_type, expected_type)) {
             throw {
               message: "Could not cast type " + this.readable_type(actual_type) + " to " + this.readable_type(expected_type),
               location: e.args[i].location,
@@ -1461,11 +1560,15 @@ class VSCompiler {
       t = fn.lambda_type!.return_type;
       break;
     case "this":
-      let template = [];
-      for(let i in this.get_context().template) {
-        template.push(make_template_type(this.get_context().class!, toInteger(i)));
+      if (this.get_context().class) {
+        let template = [];
+        for(let i in this.get_context().template) {
+          template.push(make_template_type(this.get_context().class!, toInteger(i)));
+        }
+        t = this.get_context().resolve_typename(this.get_context().class!, template)!;
+      } else if (this.get_context().base_type) {
+        t = this.get_context().base_type;
       }
-      t = this.get_context().resolve_typename(this.get_context().class!, template)!;
       break;
     case "subscript": {
       let lhs = this.type_subexpression(e.lhs)!;
@@ -1476,7 +1579,7 @@ class VSCompiler {
         };
       }
       let rhs = this.type_subexpression(e.rhs)!;
-      if (!this.coalesce_to(make_primitive_type(primitive_type.INT), rhs)) {
+      if (!this.coalesce_to(rhs, make_primitive_type(primitive_type.INT))) {
         throw {
           message: "Could not cast type " + this.readable_type(rhs) + " to int",
           location: e.rhs.location,
@@ -1607,12 +1710,16 @@ class VSCompiler {
       let is_member_string_function = e.calculated_type.is_member_string_function;
       let is_trait_function = e.calculated_type.is_trait_function;
       if (is_member_trait_function) {
-        // TODO: Render as namespace
-        this.write_output("_Class_" + e.lhs.calculated_type.class_name! + "::");
-        this.write_output("_Implement_" + e.calculated_type.member_trait + "_On_" + e.lhs.calculated_type.class_name! + "::");
-      } else if (is_trait_function || is_template) {
-        // All members of traits / template params, are functions
-        this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
+        this.write_output(this.namespace_name(e.lhs.calculated_type) + "::");
+        this.write_output(this.implementation_name(e.calculated_type.member_trait, e.lhs.calculated_type) + "::");
+      } else if (is_trait_function) {
+        // All members of traits params, are functions
+        if (is_template) {
+          // Use static dispatch when the trait function is from a template
+          this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::");
+        } else {
+          this.write_output("_Trait_" + e.lhs.calculated_type.trait_name! + "::_Instance::");
+        }
       } else if (is_member_array_function) {
         this.write_output("_Array_::");
       } else if (is_member_string_function) {
@@ -1639,6 +1746,12 @@ class VSCompiler {
         }
       }
       this.write_output(prefix + member_name);
+      // Use static dispatch for template
+      if (is_template) {
+        this.write_output("<");
+        this.write_output("T" + e.lhs.calculated_type.template_num);
+        this.write_output(">");
+      }
       break;
     case "binary_operator":
       this.render_subexpression(e.lhs);
@@ -1650,11 +1763,13 @@ class VSCompiler {
       // Pass onto "is"
     case "is":
       let rhs_type = e.rhs.calculated_type;
-      let rendered_type = rhs_type.is_class ? this.render_class(rhs_type) : this.render_trait(rhs_type);
-      this.write_output(
-        "is_" + (rhs_type.is_class ? "class" : "trait") +
-        "<" + rendered_type  + ">("
-      );
+      if (rhs_type.is_class) {
+        this.write_output("is_class<" + this.render_class(rhs_type) + ">(");
+      } else if (rhs_type.is_trait) {
+        this.write_output("is_trait<" + this.render_trait(rhs_type) + ">(");
+      } else if (rhs_type.is_primitive) {
+        this.write_output("is_primitive<" + this.render_type(rhs_type) + ">(");
+      }
       this.render_subexpression(e.lhs);
       this.write_output(")");
       break;
@@ -1714,15 +1829,24 @@ class VSCompiler {
       break;
     case "cast":
       let cast_type: symbl_type = e.lhs.calculated_type;
+
+      let used_casting_function = false;
       if (cast_type.is_trait) {
-        this.write_output("cast_to_trait<" + this.render_trait(cast_type) + ">(");
+        this.write_output("cast_to_trait<Object*, " + this.render_trait(cast_type) + ">(");
+        used_casting_function = true;
       } else if (cast_type.is_class) {
         this.write_output("cast_to_class<" + this.render_class(cast_type) + ">(");
+        used_casting_function = true;
       } else {
-        this.write_output("(" + this.render_type(cast_type) + ")");
+        if (e.rhs.calculated_type.is_trait) {
+          this.write_output("cast_trait_to_primitive<" + this.render_type(cast_type) + ">(");
+          used_casting_function = true;
+        } else {
+          this.write_output("(" + this.render_type(cast_type) + ")");
+        }
       }
       this.render_subexpression(e.rhs);
-      if (cast_type.is_trait || cast_type.is_class) {
+      if (used_casting_function) {
         this.write_output(", \"" + this.compiling_module + ".vs\", " + e.lhs.location.start.line + ", " + e.lhs.location.start.column + ", " + e.lhs.location.end.line + ", " + e.lhs.location.end.column);
         this.write_output(")");
       }
@@ -1910,8 +2034,8 @@ class VSCompiler {
     }
   }
 
-  class_id: number = 1;
-  trait_id: number = 2;
+  class_id: number = 0;
+  trait_id: number = 0;
 
   foreach_num: number = 1;
   
@@ -2032,7 +2156,7 @@ class VSCompiler {
 
       this.write_output("TRAIT_HEADER\n");
       this.tab(1);
-      this.write_output("static const id_type trait_id = " + this.trait_id + ";\n");
+      this.write_output("static const id_type trait_id = first_available_trait_id + " + this.trait_id + ";\n");
       this.trait_id++;
       this.tab(-1);
       this.write_output("TRAIT_MID1\n");
@@ -2092,7 +2216,7 @@ class VSCompiler {
         let func = t.public_functions[func_name];
         this.write_output("static ");
         this.write_output((func.return_type == null ? "void" : this.render_type(func.return_type)) + " ");
-        this.write_output("_Function_" + func_name + "(ObjectRef<Object> object");
+        this.write_output("_Function_" + func_name + "(Object* object");
         let arg_name = "a";
         for(let arg_type of func.arg_types) {
           this.write_output(", ");
@@ -2118,6 +2242,13 @@ class VSCompiler {
       }
       this.tab(-1);
       this.write_output("TRAIT_FOOTER\n");
+
+      // Create static dispatch template calls
+      for(let func_name in t.public_functions) {
+        let func = t.public_functions[func_name];
+        this.write_output("template<typename T>\n");
+        this.write_output("constexpr auto _Function_" + func_name + " = _Instance::_Function_" + func_name + ";\n");
+      }
   
       // Close namespace
       this.tab(-1);
@@ -2364,7 +2495,7 @@ class VSCompiler {
       this.tab(1);
 
       // Object ID
-      this.write_output("static const id_type object_id = " + this.class_id + ";\n");
+      this.write_output("static const id_type object_id = first_available_class_id + " + this.class_id + ";\n");
       this.class_id++;
 
       let constructor_args = null;
@@ -2485,15 +2616,43 @@ class VSCompiler {
       //
       // }
 
+      // The name of the trait
       let trait_name = this.parse_identifier(data.trait);
-      var class_name = this.parse_identifier(data["class"]);
-      let class_data = this.get_context().resolve_class_type(class_name);
-      if (!class_data) {
+      // The base type that the trait is being applied onto
+      let base_type = this.resolve_type(data.base_type);
+
+      // Cannot implement traits on templated base types, yet
+      if (data.base_type.template) {
         throw {
-          message: "Class \"" + class_name + "\" not found",
-          location: data["class"].location,
+          message: "Cannot implement a trait on a templated argument (At least, not yet)",
+          location: data.base_type.location
         };
       }
+
+      // The namespace for the base type, written as _{Class/Primtive}_{base_type}
+      let namespace_string = this.namespace_name(base_type);
+      // If The base type is a class, these will be set to the respective symbl_type/class_type
+      let class_type: symbl_type | null = null;
+      let class_data: class_type | null = null;
+      if (base_type.is_class) {
+        let class_name = base_type.class_name!;
+        class_data = this.get_context().resolve_class_type(class_name);
+        if (!class_data) {
+          throw {
+            message: "Class \"" + class_name + "\" not found",
+            location: data.base_type.location,
+          };
+        }
+        class_data.traits[trait_name] = true;
+        class_type = make_class_type(class_name);
+      } else if (!base_type.is_primitive) {
+        throw {
+          message: "Traits can only be implemented on classes or primitives, not " + this.readable_type(base_type),
+          location: data.base_type.location,
+        }
+      }
+
+      // Resolve the trait from the given trait name
       let trait_data = this.get_context().resolve_trait_type(trait_name);
       if (!trait_data) {
         throw {
@@ -2501,15 +2660,23 @@ class VSCompiler {
           location: data.trait.location,
         };
       }
-      class_data.traits[trait_name] = true;
 
-      this.get_context().set_top_level_implementing_trait(class_name, trait_name);
+      // Add trait to the class/primitive trait list
+      if (class_data) {
+        class_data!.traits[trait_name] = true;
+      } else {
+        primitive_traits[base_type.primitive_type!][trait_name] = true;
+      }
 
+      this.get_context().set_top_level_implementing_trait(base_type, trait_name);
+
+      // Store a map from function implementation name, to the AST node representing that function
       let member_map: Record<string, any> = {};
       for(let statement of data.body) {
         if (statement.type == "function_implementation") {
           let fn_name = statement.identifier.value;
           let fn_type = this.resolve_function_type(statement);
+          // If it's a public trait function, it needs to match the public interface
           if (fn_name in trait_data.public_functions) {
             if (!_.isEqual(trait_data.public_functions[fn_name], fn_type)) {
               throw {
@@ -2519,20 +2686,21 @@ class VSCompiler {
             }
             member_map[fn_name] = statement;
           } else {
-            // Private
+          // If it's a private trait helper function, it can be whatever it wants to be
             this.get_context().set_top_level_internal_function(fn_name, fn_type);
             member_map[fn_name] = statement;
           }
         } else {
+          // TODO: Allow traits to have internal data
           throw {
-            // TODO: Allow traits to have internal data
             message: "Only function implementations are allowed in trait implementations",
             location: statement.identifier.location,
           };
         }
       }
 
-      // Fill in any missing functions with their default implementation
+      // Fill in any missing public functions with their default implementation,
+      // If no default implementation exists then complain that the function has not been implemented
       for(let fn_name in trait_data.public_functions) {
         if (!(fn_name in member_map)) {
           if (fn_name in trait_data.implementations) {
@@ -2540,6 +2708,7 @@ class VSCompiler {
             // Refresh types from the default implementation, so that they occur within the new context
             this.refresh_types(member_map[fn_name]);
           } else {
+            // If no default implementation exists, complain that the function has not been implemented
             throw {
               message: "Trait implementation missing trait function \"" + fn_name + "\"",
               location: data.trait.location,
@@ -2548,8 +2717,10 @@ class VSCompiler {
         }
       }
   
-      let trait_implementation_name = "_Implement_" + trait_name + "_On_" + class_name;
-      this.write_output("namespace _Class_" + class_name + " {\n");
+      // Create the namespace that trait implementation will live in
+      // We'll put this in the same namespace as the base class/primitive itself
+      let trait_implementation_name = this.implementation_name(trait_name, base_type);
+      this.write_output("namespace " + namespace_string + " {\n");
       this.tab(1);
       this.write_output("namespace " + trait_implementation_name + " {\n");
       this.tab(1);
@@ -2558,29 +2729,79 @@ class VSCompiler {
       for(let func in member_map) {
         let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
         this.get_context().set_top_level_function(func);
+
+        // Render function declaration
         this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
         let rendered_type_args = this.render_typed_args(member_map[func].arguments);
-        this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ");\n");
+        if (class_data) { // For classes
+          this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ");\n");
+        } else { // For primitives
+          this.write_output("(" + this.render_type(base_type) + " self_primitive" + (rendered_type_args ? ", " : "") + rendered_type_args + ");\n");
+        }
+
         this.get_context().clear_top_level_function();
       }
       // Implement Trait function
       for(let func in member_map) {
         let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
         this.get_context().set_top_level_function(func);
+
+        // Render function definition's signature
         this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Function_" + func);
         let rendered_type_args = this.render_typed_args(member_map[func].arguments);
-        this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ")");
+        if (class_data) { // For classes
+          this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ")");
+        } else { // For primitives
+          this.write_output("(" + this.render_type(base_type) + " self_primitive" + (rendered_type_args ? ", " : "") + rendered_type_args + ")");
+        }
         this.write_output(" {\n");
+
+        // Render function body
         this.tab(1);
-        let rendered_class = this.render_type(make_class_type(class_name));
-        this.write_output(rendered_class + " const self = static_cast<" + this.render_class(make_class_type(class_name)) + "*>(self_void);\n")
+        if(class_data) {
+          let rendered_class = this.render_type(class_type!);
+          this.write_output(rendered_class + " const self = static_cast<" + this.render_class(class_type!) + "*>(self_void);\n")
+        } else { // For primitives
+          this.write_output(this.render_type(base_type) + " const self = self_primitive;\n");
+        }
         // Render function implementation body
         this.render_statement(member_map[func]);
         this.tab(-1);
+
+        // Close Function
         this.write_output("}\n");
+
         this.get_context().clear_top_level_function();
       }
 
+      if (!class_data) {
+        // Create vtable function implementations for primitives, which simply unwraps the boxed value and then dispatches to the real function
+        for(let func in member_map) {
+          let return_type = member_map[func].return_type ? this.resolve_type(member_map[func].return_type) : null;
+
+          // Render function definition's signature
+          this.write_output((return_type == null ? "void" : this.render_type(return_type)) + " _Vtable_Function_" + func);
+          let rendered_type_args = this.render_typed_args(member_map[func].arguments);
+          this.write_output("(Object* self_void" + (rendered_type_args ? ", " : "") + rendered_type_args + ")");
+          this.write_output(" {\n");
+
+          // Render function body
+          this.tab(1);
+          let rendered_args = this.render_typed_args(member_map[func].arguments, false);
+          if (return_type) {
+            this.write_output("return ");
+          }
+          this.write_output("_Function_" + func + "(((Box<" + this.render_type(base_type) + ">*)(self_void))->member");
+          this.write_output((rendered_args ? ", " : "") + rendered_args + ");\n");
+          // Render function implementation body
+          this.tab(-1);
+
+          // Close Function
+          this.write_output("}\n");
+        }
+      }
+
+      // Create the Vtable
       let vtable_type_name = "_Trait_" + trait_name + "::_Instance::_Vtable";
       this.write_output("static " + vtable_type_name + " _Vtable = " + vtable_type_name + "(");
       let first = true;
@@ -2589,10 +2810,18 @@ class VSCompiler {
           this.write_output(", ");
         }
         first = false;
-        this.write_output("_Function_" + fn_name);
+        this.write_output((class_data ? "" : "_Vtable") + "_Function_" + fn_name);
       }
       this.write_output(");\n");
-      this.write_output("static bool dummy = (vtbls[_Class_" + class_name + "::_Instance::object_id][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
+
+      // Set the global vtables table to point to our specific vtable for dynamic dispatch
+      let object_id_str = "";
+      if (class_data) {
+        object_id_str = namespace_string + "::_Instance::object_id";
+      } else {
+        object_id_str = "get_id<" + this.render_type(base_type) + ">()";
+      }
+      this.write_output("static bool dummy = (vtbls[" + object_id_str + "][_Trait_" + trait_name + "::_Instance::trait_id] = &_Vtable);\n");
 
       this.get_context().clear_top_level();
   
@@ -2600,6 +2829,18 @@ class VSCompiler {
       this.write_output("}\n");
       this.tab(-1);
       this.write_output("}\n");
+
+      // Create static dispatch template calls
+      for(let fn_name in trait_data.public_functions) {
+        this.write_output("template<>\n");
+        this.write_output("constexpr auto _Trait_" + trait_name + "::_Function_" + fn_name + "<");
+        if (class_data) {
+          this.write_output("ObjectRef<" + namespace_string + "::_Instance>");
+        } else {
+          this.write_output(this.render_type(base_type));
+        }
+        this.write_output("> = " + namespace_string + "::" + trait_implementation_name + "::_Function_" + fn_name + ";\n");
+      }
     } break;
     // *************
     // Statements
@@ -2637,7 +2878,7 @@ class VSCompiler {
       this.write_output("_VS_" + this.parse_identifier(data.var_identifier));
       this.write_output(" = ");
       let definition_type = this.type_expression(data.var_definition);
-      if (!definition_type || !this.coalesce_to(var_type, definition_type)) {
+      if (!this.coalesce_to(definition_type, var_type)) {
         throw {
           message: "Cannot cast " + this.readable_type(definition_type) + " to " + this.readable_type(var_type),
           location: data.location,
@@ -2677,7 +2918,7 @@ class VSCompiler {
       let return_type = this.get_context().resolve_return_type();
       if (return_type) {
         let given_return_type = this.type_expression(data.value);
-        if (!given_return_type || !this.coalesce_to(return_type, given_return_type)) {
+        if (!given_return_type || !this.coalesce_to(given_return_type, return_type)) {
           throw {
             message: 'Cannot cast from ' + this.readable_type(given_return_type) + ' to ' + this.readable_type(return_type),
             location: data.value.location,
