@@ -1,17 +1,14 @@
 #!/bin/bash
-set -e
 
+# Error handling
+set -e
+trap 'echo "Error on line $LINENO!"' ERR
+
+# Check for -y
 should_yes=''
 if [[ "$1" == "-y" ]]; then
   should_yes='-y'
 fi
-
-# Error handling
-set -e
-err_report() {
-  echo "Error on line $1"
-}
-trap 'err_report $LINENO' ERR
 
 ## Install all dependencies ##
 pkgs='nodejs npm libssl-dev python3 default-jre clang'
@@ -80,5 +77,8 @@ EOF
 fi
 
 ## Install npm packages everywhere ##
-npm i && cd language-server && npm i && cd ../voxelscript_extension && npm i && cd client && npm i
+npm i && cd language-server && npm i && cd ../voxelscript_extension && npm i && cd client && npm i && cd ../..
+
+# Setup iro-to-textmate compiler
+./scripts/setup_iro.sh
 
