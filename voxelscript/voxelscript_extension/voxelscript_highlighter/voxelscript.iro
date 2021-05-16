@@ -147,7 +147,7 @@ main : context {
       }
    }
    
-   // Color all "typedef NEW_CUSTOM_TYPE = CUSTOM_TYPE;"
+   // Color all "typedef TYPE_NAME = TYPE;"
    : inline_push {
       regex          \= (\btypedef\s+)$${__IDENTIFIER}(\s*=)(?=\s*$${__NONCAPTURE_TYPE}\s*;)
       styles []       = .keyword, .type, .white;
@@ -158,13 +158,13 @@ main : context {
       : include "type";
    }
    
-   // Color beginning of "(typedef NEW_CUSTOM_TYPE) = args => CUSTOM_TYPE;"
+   // Color beginning of "[typedef TYPE_NAME] = args => TYPE;"
    : pattern {
       regex          \= (\btypedef\s+)$${__IDENTIFIER}
       styles []       = .keyword, .type;
    }
    
-   // Color end of "typedef NEW_CUSTOM_TYPE = args (=> CUSTOM_TYPE);", along with the custom return type of lambdas (=> CUSTOM_TYPE)
+   // Color the end of "typedef TYPE_NAME = args [=> TYPE];"
    : inline_push {
       // Check for variable declaration in this line
       regex          \= (=>)(?=\s*$${__NONCAPTURE_TYPE}\s*[;{])
@@ -176,7 +176,7 @@ main : context {
       : include "type";
    }
    
-   // Color all "new CUSTOM_TYPE"
+   // Color all "new TYPE"
    : inline_push {
       regex          \= (\bnew)(\s+)(?=$${__NONCAPTURE_TYPE}\s*\()
       styles []       = .keyword, .white;
@@ -187,13 +187,18 @@ main : context {
       : include "type";
    }
    
-   // Color all "is (not)? TYPE;"
-   : pattern {
-      regex          \= (is\s*)(not\s*)?(?:$${__KEYWORDS}|$${__IDENTIFIER})
-      styles []       = .keyword, .keyword, .keyword, .type;
+   // Color all "is (not)? TYPE"
+   : inline_push {
+      regex          \= (\bis\s+)(not\s+)?(?=$${__NONCAPTURE_TYPE})
+      styles []       = .keyword, .keyword;
+      : pop {
+         regex       \= (?!\s*($${__KEYWORDS}|$${__IDENTIFIER}))
+         styles []    = .white;
+      }
+      : include "type";
    }
    
-   // Color [(,]"CUSTOM_TYPE VARIABLE"[,);=] accordingly
+   // Color [(,]"TYPE VARIABLE"[,);=] accordingly
    : inline_push {
       // Check for variable declaration in this line
       regex          \= (^|[(,])(?=\s*$${__NONCAPTURE_TYPE}(\s*)$${__IDENTIFIER}(\s*[,);=]))
@@ -211,7 +216,7 @@ main : context {
       styles []       = .keyword;
    }
    
-   // Color "CUSTOM_TYPE func(" accordingly
+   // Color "TYPE func(" accordingly
    : inline_push {
       // Check for variable declaration in this line
       regex          \= (?=\s*$${__NONCAPTURE_TYPE}(\s*)$${__IDENTIFIER}[(])
@@ -229,7 +234,7 @@ main : context {
       styles []       = .func;
    }
    
-   // Color cast operation "<CUSTOM_TYPE> EXPRESSION"
+   // Color cast operation "<TYPE> EXPRESSION"
    : inline_push {
       regex          \= (<)\s*(?=$${__NONCAPTURE_TYPE}(?:\s*\>\s*))
       styles []       = .white;
