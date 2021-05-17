@@ -37,7 +37,8 @@ fi
 
 # Regenerate tmLanguage file
 if [[ "$SHOULD_MAKE_TM" == "true" ]]; then
-  python3 ./scripts/iro_to_textmate.py "file://$(pwd)/build/compile_iro/eeyo.io/iro/index.html" ./scripts/iro_to_textmate.py < "$IRO_FILE" > "$TM_FILE"
+  mkdir -p "$(dirname "$TM_FILE")"
+  python3 ./scripts/iro_to_textmate.py "file://$(pwd)/build/compile_iro/eeyo.io/iro/index.html" < "$IRO_FILE" > "$TM_FILE"
 
   if ! cat "$TM_FILE" | grep voxelscript &>/dev/null; then
     echo ".tmLanguage file doesn't have the phrase \"voxelscript\" in it. Something probably went wrong."

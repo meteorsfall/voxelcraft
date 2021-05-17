@@ -28,7 +28,7 @@ fi
 #########################
 
 ## Install all dependencies ##
-pkgs='nodejs npm libssl-dev python3 default-jre clang'
+pkgs='nodejs npm libssl-dev default-jre clang python3 python3-virtualenv'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs $should_yes
 fi
