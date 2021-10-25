@@ -1471,7 +1471,17 @@ class VSCompiler {
     // ****
     // Unary Operators
     // ****
-    case "logical_not":
+    case "bitwise_not": {
+      this.type_subexpression(e.rhs);
+      if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.INT))) {
+        throw {
+          message: "Argument to bitwise not \"~\" must be an integer",
+          location: e.rhs.location,
+        };
+      }
+      t = make_primitive_type(primitive_type.INT);
+    } break;
+    case "logical_not": {
       this.type_subexpression(e.rhs);
       if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.BOOL))) {
         throw {
@@ -1480,7 +1490,7 @@ class VSCompiler {
         };
       }
       t = make_primitive_type(primitive_type.BOOL);
-      break;
+    } break;
     case "minus":
       this.type_subexpression(e.rhs);
       if (!_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.INT)) && !_.isEqual(e.rhs.calculated_type, make_primitive_type(primitive_type.FLOAT))) {
@@ -1803,6 +1813,10 @@ class VSCompiler {
     // ****
     // Unary Operators
     // ****
+    case "bitwise_not":
+      this.write_output("~");
+      this.render_subexpression(e.rhs);
+      break;
     case "logical_not":
       this.write_output("!");
       this.render_subexpression(e.rhs);
