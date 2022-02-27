@@ -1,5 +1,8 @@
 #!/bin/bash
+
+# Setup error handling
 set -e
+trap 'echo "Error on line $LINENO!"' ERR
 
 npm run package_compiler
 sudo cp ./build/voxelscript_compiler /usr/local/bin/voxelc

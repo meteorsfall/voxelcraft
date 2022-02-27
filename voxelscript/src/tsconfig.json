@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "target": "es5",                          
-    "module": "commonjs",                    
-    "lib": ["es6"],                     
+    "target": "es5",
+    "module": "commonjs",
+    "lib": ["es6", "dom"],
     "allowJs": false,
-    "outDir": "build",                          
+    "outDir": "build",
     "rootDir": ".",
-    "strict": true,         
+    "strict": true,
     "noImplicitAny": true,
     "esModuleInterop": true,
     "resolveJsonModule": true,

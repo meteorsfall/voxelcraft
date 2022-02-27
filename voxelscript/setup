@@ -1,33 +1,57 @@
 #!/bin/bash
-set -e
 
+# Error handling
+set -e
+trap 'echo "Error on line $LINENO!"' ERR
+
+# Check for -y
 should_yes=''
 if [[ "$1" == "-y" ]]; then
   should_yes='-y'
 fi
 
+# Remove old build directory if it exists
+if [[ -d ./build ]]; then
+  read -rp "Build directory found! Delete it? (y/n) " input
+  if [[ "$input" =~ ^[yY](es)?$ ]]; then
+    rm -rf ./build
+    echo "Previous ./build directory deleted!"
+    echo ""
+  else
+    echo "Cannot continue until ./build it deleted."
+    exit 1
+  fi
+fi
+
+#########################
+# Install dependencies
+#########################
+
 ## Install all dependencies ##
-pkgs='nodejs npm libssl-dev python3 default-jre clang'
+pkgs='nodejs npm libssl-dev default-jre clang python3 python3-virtualenv'
 if ! dpkg -s $pkgs >/dev/null 2>&1; then
   sudo apt-get install $pkgs $should_yes
 fi
 
-## Install emcc ##
-if [ ! -d ./build/emscripten ]; then
-  mkdir -p build
-  cd build
-  rm -rf emsdk
-  git clone https://github.com/emscripten-core/emsdk.git
-  cd emsdk
-  ./emsdk install latest
-  ./emsdk activate latest
-  cd .. # out of ./emsdk
-  mkdir emscripten
-  cd emscripten
-  ../emsdk/upstream/emscripten/tools/install.py ./emcc
+#########################
+# Setup emcc
+#########################
 
-  # Init config file
-  cat >./emcc/.emscripten <<'EOF'
+## Install emcc ##
+mkdir build
+cd build
+rm -rf emsdk
+git clone https://github.com/emscripten-core/emsdk.git
+cd emsdk
+./emsdk install latest
+./emsdk activate latest
+cd .. # out of ./emsdk
+mkdir emscripten
+cd emscripten
+../emsdk/upstream/emscripten/tools/install.py ./emcc
+
+# Init config file
+cat >./emcc/.emscripten <<'EOF'
 import os,sys
 
 root_dir = os.path.dirname(os.path.abspath(os.path.split(sys.argv[0])[0]))
@@ -37,38 +61,51 @@ LLVM_ROOT = os.path.join(root_dir, 'bin')
 BINARYEN_ROOT = root_dir # Expects to look into /bin from here
 NODE_JS = '/usr/bin/nodejs'
 EOF
-  # Script that wraps emcc and can be symlink'ed
-  cat >./voxelc-emcc <<'EOF'
+# Script that wraps emcc and can be symlink'ed
+cat >./voxelc-emcc <<'EOF'
 #!/bin/bash
 DIR="$(dirname "$(readlink -f "$0")")"
 "$DIR/emcc/emcc" "$@"
 EOF
-  chmod +x ./voxelc-emcc
+chmod +x ./voxelc-emcc
 
-  # Script that initializes emcc
-  cat >./init-emcc <<'EOF'
+# Script that initializes emcc
+cat >./init-emcc <<'EOF'
 #!/bin/bash
 DIR="$(dirname "$(readlink -f "$0")")"
-printf "#include <iostream>\nint main() {std::cout << \"Hello World"\!"\" << std::endl;}" | "$DIR/emcc/emcc" -xc++ - -o /tmp/VOXELC_test.wasm
+cd "$DIR"
+printf "#include <iostream>\nint main() {std::cout << \"Hello World"\!"\" << std::endl;}" | ./voxelc-emcc -xc++ - -o /tmp/VOXELC_test.wasm
 rm /tmp/VOXELC_test.wasm
 EOF
-  chmod +x ./init-emcc
+chmod +x ./init-emcc
 
-  # Copy llvm/binaryen binaries into bin and lib
-  mkdir bin
-  mkdir lib
-  cp -P ../emsdk/upstream/bin/* bin
-  cp -rP ../emsdk/upstream/lib/* lib
-  rm -r ./lib/clang ./lib/cmake
+# Copy llvm/binaryen binaries into bin and lib
+mkdir bin
+mkdir lib
+cp -P ../emsdk/upstream/bin/* bin
+cp -rP ../emsdk/upstream/lib/* lib
+rm -r ./lib/clang ./lib/cmake
+# Initialize emcc, which we have to do before deleting emsdk so that it updates to its new .emscripten file
+./voxelc-emcc 2>&1 | grep "emcc: error: no input files" >/dev/null
 
-  cd .. # out of ./build/emscripten
-  rm -rf ./emsdk
-  cd .. # out of ./build
+cd .. # out of ./build/emscripten
+rm -rf ./emsdk
+cd .. # out of ./build
 
-  # Initialize emcc cache
-  ./build/emscripten/init-emcc
-fi
+# Initialize emcc cache
+./build/emscripten/init-emcc
+
+#########################
+# Install npm packages
+#########################
 
 ## Install npm packages everywhere ##
-npm i && cd language-server && npm i && cd ../voxelscript_extension && npm i && cd client && npm i
+npm i && cd language-server && npm i && cd ../voxelscript_extension && npm i && cd client && npm i && cd ../..
+
+#########################
+# Setup iro
+#########################
+
+# Setup iro-to-textmate compiler
+./scripts/setup_iro.sh
 

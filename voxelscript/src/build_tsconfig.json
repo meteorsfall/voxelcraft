@@ -1,17 +1,17 @@
 {
-    "compilerOptions": {
-      "target": "es5",                          
-      "module": "commonjs",                    
-      "lib": ["es6"],                     
-      "allowJs": false,
-      "outDir": "build",                          
-      "rootDir": ".",
-      "strict": true,         
-      "noImplicitAny": true,
-      "esModuleInterop": true,
-      "resolveJsonModule": true,
-      "incremental": true,
-      "sourceMap": true
-    }
+  "compilerOptions": {
+    "target": "es5",
+    "module": "commonjs",
+    "lib": ["es6"],
+    "allowJs": false,
+    "outDir": "build",
+    "rootDir": ".",
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "incremental": true,
+    "sourceMap": true
   }
-  
+}
+

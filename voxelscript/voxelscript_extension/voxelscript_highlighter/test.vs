@@ -20,6 +20,7 @@ class HashMap<Key: Hash + Eq, Value: any> /* ji */
     T test;
     init(T in);
     T get_holder();
+    Array<int, Hash<Coal, Double>> get_data(Hash<float, Array<Double>> hm);
 }
 implement Holder<T> {
     init(T in, Array<int, Hash<double[][], Coal>> t2) {
@@ -28,6 +29,9 @@ implement Holder<T> {
  /* mhm */
     T get_holder(Array<int, Hash<double, Coal>> test) {
         return this.test;
+    }
+    Array<int, Hash<Coal, Double>> get_data(Hash<float, Array<Double>> hm) {
+        return new Array<int, Hash<Coal, Double>>();
     }
 }
 
@@ -73,6 +77,8 @@ implement Tester {
             c.iterate();
             i++;
         }
+
+        return false;
     }
 }
 
